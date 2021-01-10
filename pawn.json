@@ -1,0 +1,19 @@
+{
+	"user": "Mergevos",
+	"repo": "samp-vehicle-framework",
+	"entry": "test.pwn",
+	"output": "test.amx",
+	"dependencies": [
+		"sampctl/samp-stdlib",
+		"pawn-lang/YSI-Includes@5.x"
+	],
+	"runtime": {
+		"version": "0.3.7",
+		"mode": "y_testing",
+		"rcon_password": "password",
+		"port": 8192,
+		"hostname": "SA-MP Server",
+		"maxplayers": 50,
+		"language": ""
+	}
+}
