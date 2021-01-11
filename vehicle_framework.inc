@@ -31,7 +31,7 @@ static
     Float: Vehicle_Health[MAX_VEHICLES],
     Float: Vehicle_Position[4];
     
-/*
+/**
   * <param name="modelid">vehicle model (400-611)</param>
   * <param name="Float: x">x vehicle rotation</param>
   * <param name="Float: y">y vehicle rotation</param>
@@ -59,7 +59,7 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
     LinkVehicleToInterior(Vehicle_Handler[idx], interiorid);
 }
 
-/*
+/**
   * <param name="Float: health">vehicle health (damage)</param>
   * <param name="plate">the text that will appear on the vehicle plates</param>
 */
