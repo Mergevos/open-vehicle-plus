@@ -53,7 +53,7 @@ CMD:veh(playerid, const params[])
 ```
 ## Engine
 ```c
-stock Vehicle_GetEngineState(vehicleid)
+stock e_ENGINE_STATES: Vehicle_GetEngineState(vehicleid)
 stock Vehicle_SetEngineState(vehicleid, E_ENGINE_STATES: engine_state)
 
 CMD:engine(playerid, const params[])
@@ -72,7 +72,7 @@ CMD:engine(playerid, const params[])
 ```c
 stock Vehicle_SetLightsState(vehicleid, E_LIGHT_STATES: left_lights, E_LIGHT_STATES: right_lights, E_LIGHT_STATES: back_lights)
 stock Vehicle_SetLightsRunState(vehicleid, E_LIGHT_RUN_STATE: light_state)
-stock Vehicle_GetLightsRunState(vehicleid)
+stock e_LIGHT_RUN_STATE: Vehicle_GetLightsRunState(vehicleid)
 
 CMD:lights(playerid, const params[])
 {
