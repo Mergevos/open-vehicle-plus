@@ -20,16 +20,15 @@ static const
 
 static 
     Vehicle_Model[MAX_VEHICLES],
-    Vehicle_Handler[MAX_VEHICLES],
     Vehicle_NumberPlate[MAX_VEHICLES][MAX_NUMBER_PLATE],
     Vehicle_RespawnDelay[MAX_VEHICLES],
     Vehicle_DimensionInfo[MAX_VEHICLES][2],
     Vehicle_ColorInfo[MAX_VEHICLES][2],
     Vehicle_Handler[MAX_VEHICLES],
-    Vehicle_Iter<MAX_VEHICLES>,
     
+    Iterator: Vehicle_Iter<MAX_VEHICLES>,
     Float: Vehicle_Health[MAX_VEHICLES],
-    Float: Vehicle_Position[4];
+    Float: Vehicle_Position[MAX_VEHICLES][4];
     
 /**
   * <param name="modelid">vehicle model (400-611)</param>
@@ -56,14 +55,14 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
     Vehicle_Handler[idx] = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay);
 
     SetVehicleVirtualWorld(Vehicle_Handler[idx], virtual_world);
-    LinkVehicleToInterior(Vehicle_Handler[idx], interiorid);
+    LinkVehicleToInterior(Vehicle_Handler[idx], interior);
 }
 
 /**
   * <param name="Float: health">vehicle health (damage)</param>
   * <param name="plate">the text that will appear on the vehicle plates</param>
 */
-stock Vehicle_CreateEx(modelid, Float:x, Float:y, Float:z, Float:rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE]) {
+stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE]) {
     new idx = Iter_Alloc(Vehicle_Iter);
     
     Vehicle_Model[idx] = modelid;
@@ -81,32 +80,32 @@ stock Vehicle_CreateEx(modelid, Float:x, Float:y, Float:z, Float:rotation, color
     strcopy(Vehicle_NumberPlate[idx], plate);
     Vehicle_Handler[idx] = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay);
     
-    SetVehicleHealth(Vehicle_Handler[idx], health)
+    SetVehicleHealth(Vehicle_Handler[idx], health);
     SetVehicleNumberPlate(Vehicle_Handler[idx], plate);
     SetVehicleVirtualWorld(Vehicle_Handler[idx], virtual_world);
-    LinkVehicleToInterior(Vehicle_Handler[idx], interiorid);
+    LinkVehicleToInterior(Vehicle_Handler[idx], interior);
 }
 
 // -- 
 // Engine 
 // --
 
-enum E_ENGINE_STATES {
+enum e_ENGINE_STATES {
     E_ENGINE_STATE_OFF = 0,
     E_ENGINE_STATE_ON
 };
 
-stock E_LIGHT_RUN_STATE: Vehicle_GetEngineState(vehicleid) {
-    new 
+stock e_ENGINE_STATES: Vehicle_GetEngineState(vehicleid) {
+    new
         engine_state,
         unnecessary;
     
     GetVehicleParamsEx(vehicleid, engine_state, unnecessary, unnecessary, unnecessary, unnecessary, unnecessary, unnecessary);
     
-    return E_ENGINE_STATES: engine_state;
+    return e_ENGINE_STATES: engine_state;
 }
 
-stock Vehicle_SetEngineState(vehicleid, E_ENGINE_STATES: engine_state) {
+stock Vehicle_SetEngineState(vehicleid, e_ENGINE_STATES: engine_state) {
     new
         unnecessary_params[7];
         
@@ -120,12 +119,12 @@ stock Vehicle_SetEngineState(vehicleid, E_ENGINE_STATES: engine_state) {
 // Lights
 // --
 
-enum E_LIGHT_STATES {
+enum e_LIGHT_STATES {
     E_LIGHT_ON = 0,
     E_LIGHT_OFF
 };
 
-enum E_LIGHT_RUN_STATE {
+enum e_LIGHT_RUN_STATE {
     E_LIGHTS_OFF,
     E_LIGHTS_ON    
 };
@@ -134,7 +133,7 @@ stock encode_lights(front_left_light, front_right_light, back_lights) {
     return front_left_light | (front_right_light << 2) | (back_lights << 6);
 }
 
-stock Vehicle_SetLightsState(vehicleid, E_LIGHT_STATES: left_lights, E_LIGHT_STATES: right_lights, E_LIGHT_STATES: back_lights) {
+stock Vehicle_SetLightsState(vehicleid, e_LIGHT_STATES: left_lights, e_LIGHT_STATES: right_lights, e_LIGHT_STATES: back_lights) {
     new 
         lights, 
         unnecessary_params;
@@ -145,7 +144,7 @@ stock Vehicle_SetLightsState(vehicleid, E_LIGHT_STATES: left_lights, E_LIGHT_STA
     return ret;
 }
 
-stock Vehicle_SetLightsRunState(vehicleid, E_LIGHT_RUN_STATE: light_state) {
+stock Vehicle_SetLightsRunState(vehicleid, e_LIGHT_RUN_STATE: light_state) {
     new
         unnecessary_params[7];
         
@@ -155,16 +154,12 @@ stock Vehicle_SetLightsRunState(vehicleid, E_LIGHT_RUN_STATE: light_state) {
     return ret;
 }
 
-stock E_LIGHT_RUN_STATE: Vehicle_GetLightsRunState(vehicleid) {
+stock e_LIGHT_RUN_STATE: Vehicle_GetLightsRunState(vehicleid) {
     new
         light_state,
         unnecessary;
         
     GetVehicleParamsEx(vehicleid, unnecessary, light_state, unnecessary, unnecessary, unnecessary, unnecessary, unnecessary);
     
-    return E_LIGHT_RUN_STATE: light_state;
+    return e_LIGHT_RUN_STATE: light_state;
 }
-
-//--
-// Alarms
-// --
