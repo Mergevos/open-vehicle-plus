@@ -20,14 +20,13 @@ static const
 
 static 
     Vehicle_Model[MAX_VEHICLES],
-    Vehicle_Handler[MAX_VEHICLES],
     Vehicle_NumberPlate[MAX_VEHICLES][MAX_NUMBER_PLATE],
     Vehicle_RespawnDelay[MAX_VEHICLES],
     Vehicle_DimensionInfo[MAX_VEHICLES][2],
     Vehicle_ColorInfo[MAX_VEHICLES][2],
     Vehicle_Handler[MAX_VEHICLES],
-    Vehicle_Iter<MAX_VEHICLES>,
     
+    Iterator: Vehicle_Iter<MAX_VEHICLES>,
     Float: Vehicle_Health[MAX_VEHICLES],
     Float: Vehicle_Position[4];
     
