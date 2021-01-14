@@ -95,7 +95,7 @@ enum e_ENGINE_STATES {
     E_ENGINE_STATE_ON
 };
 
-stock Vehicle_GetEngineState(vehicleid) {
+stock e_ENGINE_STATES: Vehicle_GetEngineState(vehicleid) {
     new
         engine_state,
         unnecessary;
