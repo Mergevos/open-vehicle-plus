@@ -90,7 +90,7 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
 // Engine 
 // --
 
-enum E_ENGINE_STATES {
+enum e_ENGINE_STATES {
     E_ENGINE_STATE_OFF = 0,
     E_ENGINE_STATE_ON
 };
@@ -102,10 +102,10 @@ stock Vehicle_GetEngineState(vehicleid) {
     
     GetVehicleParamsEx(vehicleid, engine_state, unnecessary, unnecessary, unnecessary, unnecessary, unnecessary, unnecessary);
     
-    return engine_state;
+    return e_ENGINE_STATES: engine_state;
 }
 
-stock Vehicle_SetEngineState(vehicleid, E_ENGINE_STATES: engine_state) {
+stock Vehicle_SetEngineState(vehicleid, e_ENGINE_STATES: engine_state) {
     new
         unnecessary_params[7];
         
@@ -119,12 +119,12 @@ stock Vehicle_SetEngineState(vehicleid, E_ENGINE_STATES: engine_state) {
 // Lights
 // --
 
-enum E_LIGHT_STATES {
+enum e_LIGHT_STATES {
     E_LIGHT_ON = 0,
     E_LIGHT_OFF
 };
 
-enum E_LIGHT_RUN_STATE {
+enum e_LIGHT_RUN_STATE {
     E_LIGHTS_OFF,
     E_LIGHTS_ON    
 };
@@ -133,7 +133,7 @@ stock encode_lights(front_left_light, front_right_light, back_lights) {
     return front_left_light | (front_right_light << 2) | (back_lights << 6);
 }
 
-stock Vehicle_SetLightsState(vehicleid, E_LIGHT_STATES: left_lights, E_LIGHT_STATES: right_lights, E_LIGHT_STATES: back_lights) {
+stock Vehicle_SetLightsState(vehicleid, e_LIGHT_STATES: left_lights, e_LIGHT_STATES: right_lights, e_LIGHT_STATES: back_lights) {
     new 
         lights, 
         unnecessary_params;
@@ -144,7 +144,7 @@ stock Vehicle_SetLightsState(vehicleid, E_LIGHT_STATES: left_lights, E_LIGHT_STA
     return ret;
 }
 
-stock Vehicle_SetLightsRunState(vehicleid, E_LIGHT_RUN_STATE: light_state) {
+stock Vehicle_SetLightsRunState(vehicleid, e_LIGHT_RUN_STATE: light_state) {
     new
         unnecessary_params[7];
         
@@ -154,12 +154,12 @@ stock Vehicle_SetLightsRunState(vehicleid, E_LIGHT_RUN_STATE: light_state) {
     return ret;
 }
 
-stock Vehicle_GetLightsRunState(vehicleid) {
+stock e_LIGHT_RUN_STATE: Vehicle_GetLightsRunState(vehicleid) {
     new
         light_state,
         unnecessary;
         
     GetVehicleParamsEx(vehicleid, unnecessary, light_state, unnecessary, unnecessary, unnecessary, unnecessary, unnecessary);
     
-    return light_state;
+    return e_LIGHT_RUN_STATE: light_state;
 }
