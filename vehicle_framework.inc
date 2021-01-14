@@ -28,7 +28,7 @@ static
     
     Iterator: Vehicle_Iter<MAX_VEHICLES>,
     Float: Vehicle_Health[MAX_VEHICLES],
-    Float: Vehicle_Position[4];
+    Float: Vehicle_Position[MAX_VEHICLES][4];
     
 /**
   * <param name="modelid">vehicle model (400-611)</param>
@@ -55,14 +55,14 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
     Vehicle_Handler[idx] = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay);
 
     SetVehicleVirtualWorld(Vehicle_Handler[idx], virtual_world);
-    LinkVehicleToInterior(Vehicle_Handler[idx], interiorid);
+    LinkVehicleToInterior(Vehicle_Handler[idx], interior);
 }
 
 /**
   * <param name="Float: health">vehicle health (damage)</param>
   * <param name="plate">the text that will appear on the vehicle plates</param>
 */
-stock Vehicle_CreateEx(modelid, Float:x, Float:y, Float:z, Float:rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE]) {
+stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE]) {
     new idx = Iter_Alloc(Vehicle_Iter);
     
     Vehicle_Model[idx] = modelid;
@@ -83,7 +83,7 @@ stock Vehicle_CreateEx(modelid, Float:x, Float:y, Float:z, Float:rotation, color
     SetVehicleHealth(Vehicle_Handler[idx], health)
     SetVehicleNumberPlate(Vehicle_Handler[idx], plate);
     SetVehicleVirtualWorld(Vehicle_Handler[idx], virtual_world);
-    LinkVehicleToInterior(Vehicle_Handler[idx], interiorid);
+    LinkVehicleToInterior(Vehicle_Handler[idx], interior);
 }
 
 // -- 
