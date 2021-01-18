@@ -26,7 +26,19 @@ CMD:testengoff(playerid, params[])
 
 CMD:testl1on(playerid, params[])
 {
-    Vehicle_SetLightsState(GetPlayerVehicleID(playerid),  E_LIGHT_STATES: 0,  E_LIGHT_STATES: 1,  E_LIGHT_STATES: 1);
+    Vehicle_SetLightsState(GetPlayerVehicleID(playerid),  e_LIGHT_STATES: 0,  e_LIGHT_STATES: 1,  e_LIGHT_STATES: 1);
     Vehicle_SetLightsRunState(GetPlayerVehicleID(playerid), E_LIGHTS_ON);
+    return 1;
+}
+
+CMD:testalarmson(playerid, params[]) 
+{
+    Vehicle_SetAlarms(0, E_ALARMS_ON);
+    return 1;
+}
+
+CMD:testalarmsoff(playerid, params[]) 
+{
+    Vehicle_SetAlarms(GetPlayerVehicleID(playerid), E_ALARMS_OFF);
     return 1;
 }
