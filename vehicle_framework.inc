@@ -163,3 +163,31 @@ stock e_LIGHT_RUN_STATE: Vehicle_GetLightsRunState(vehicleid) {
     
     return e_LIGHT_RUN_STATE: light_state;
 }
+
+// ---
+// Lock
+// ---
+enum e_LOCK_STATES {
+    E_LOCK_STATE_OFF = 0,
+    E_LOCK_STATE_ON
+};
+
+stock e_LOCK_STATES: Vehicle_GetLockState(vehicleid) {
+    new
+        lock_state,
+        unnecessary;
+    
+    GetVehicleParamsEx(vehicleid, unnecessary, unnecessary, unnecessary, lock_state, unnecessary, unnecessary, unnecessary);
+
+    return e_LOCK_STATES: lock_state;
+}
+
+stock Vehicle_SetLockState(vehicleid, e_LOCK_STATES: lock_state) {
+    new
+        unnecessary_params[7];
+        
+    GetVehicleParamsEx(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3], unnecessary_params[4], unnecessary_params[5], unnecessary_params[6]);
+    new const ret = SetVehicleParamsEx(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], _:lock_state, unnecessary_params[4], unnecessary_params[5], unnecessary_params[6]);
+    
+    return ret;
+}
