@@ -30,6 +30,25 @@ static
     Float: Vehicle_Health[MAX_VEHICLES],
     Float: Vehicle_Position[MAX_VEHICLES][4];
     
+
+// --
+// Params
+// --
+
+static const
+    PARAMS_ENGINE = 0,
+    PARAMS_LIGHTS,
+    PARAMS_ALARM, 
+    PARAMS_DOORS,
+    PARAMS_BONNET,
+    PARAMS_BOOT,
+    PARAMS_OBJECTIVE;
+
+static
+    Vehicle_Params[7];
+
+
+
 /**
   * <param name="modelid">vehicle model (400-611)</param>
   * <param name="Float: x">x vehicle rotation</param>
@@ -96,21 +115,16 @@ enum e_ENGINE_STATES {
 };
 
 stock e_ENGINE_STATES: Vehicle_GetEngineState(vehicleid) {
-    new
-        engine_state,
-        unnecessary;
+    GetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
     
-    GetVehicleParamsEx(vehicleid, engine_state, unnecessary, unnecessary, unnecessary, unnecessary, unnecessary, unnecessary);
-    
-    return e_ENGINE_STATES: engine_state;
+    return e_ENGINE_STATES: Vehicle_Params[PARAMS_ENGINE];
 }
 
 stock Vehicle_SetEngineState(vehicleid, e_ENGINE_STATES: engine_state) {
-    new
-        unnecessary_params[7];
-        
-    GetVehicleParamsEx(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3], unnecessary_params[4], unnecessary_params[5], unnecessary_params[6]);
-    new const ret = SetVehicleParamsEx(vehicleid, _:engine_state, unnecessary_params[1], unnecessary_params[2], unnecessary_params[3], unnecessary_params[4], unnecessary_params[5], unnecessary_params[6]);
+
+    GetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
+    Vehicle_Params[PARAMS_ENGINE] = _:engine_state;
+    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
     
     return ret;
 }
@@ -145,23 +159,39 @@ stock Vehicle_SetLightsState(vehicleid, e_LIGHT_STATES: left_lights, e_LIGHT_STA
 }
 
 stock Vehicle_SetLightsRunState(vehicleid, e_LIGHT_RUN_STATE: light_state) {
-    new
-        unnecessary_params[7];
         
-    GetVehicleParamsEx(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3], unnecessary_params[4], unnecessary_params[5], unnecessary_params[6]);
-    new const ret = SetVehicleParamsEx(vehicleid, unnecessary_params[0], _:light_state, unnecessary_params[2], unnecessary_params[3], unnecessary_params[4], unnecessary_params[5], unnecessary_params[6]);
+    GetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
+    Vehicle_Params[PARAMS_LIGHTS] = _:light_state;
+    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
     
     return ret;
 }
 
 stock e_LIGHT_RUN_STATE: Vehicle_GetLightsRunState(vehicleid) {
-    new
-        light_state,
-        unnecessary;
-        
-    GetVehicleParamsEx(vehicleid, unnecessary, light_state, unnecessary, unnecessary, unnecessary, unnecessary, unnecessary);
-    
-    return e_LIGHT_RUN_STATE: light_state;
+    GetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
+    return e_LIGHT_RUN_STATE: Vehicle_Params[PARAMS_LIGHTS];
+}
+
+
+// --
+// Alarms
+// --
+enum e_ALARMS_STATE {
+    E_ALARMS_OFF = 0,
+    E_ALARMS_ON
+};
+
+stock Vehicle_SetAlarms(vehicleid, e_ALARMS_STATE: alarm_state) {
+    GetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
+    Vehicle_Params[PARAMS_ALARM] = _:alarm_state;
+   
+    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
+    return ret;
+}
+
+stock e_ALARMS_STATE: Vehicle_GetAlarms(vehicleid) {
+    GetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
+    return e_ALARMS_STATE: Vehicle_Params[PARAMS_ALARM];
 }
 
 // ---
@@ -173,21 +203,15 @@ enum e_DOOR_STATES {
 };
 
 stock e_DOOR_STATES: Vehicle_GetDoorState(vehicleid) {
-    new
-        door_state,
-        unnecessary;
-    
-    GetVehicleParamsEx(vehicleid, unnecessary, unnecessary, unnecessary, door_state, unnecessary, unnecessary, unnecessary);
 
-    return e_DOOR_STATES: door_state;
+    GetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
+    
+    return e_DOOR_STATES: Vehicle_Params[PARAMS_DOORS];
 }
 
 stock Vehicle_SetDoorState(vehicleid, e_DOOR_STATES: door_state) {
-    new
-        unnecessary_params[7];
-        
-    GetVehicleParamsEx(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3], unnecessary_params[4], unnecessary_params[5], unnecessary_params[6]);
-    new const ret = SetVehicleParamsEx(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], _:door_state, unnecessary_params[4], unnecessary_params[5], unnecessary_params[6]);
-    
+    GetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
+    Vehicle_Params[PARAMS_DOORS] = _:door_state;
+    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
     return ret;
 }
