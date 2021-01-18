@@ -165,29 +165,29 @@ stock e_LIGHT_RUN_STATE: Vehicle_GetLightsRunState(vehicleid) {
 }
 
 // ---
-// Lock
+// Doors
 // ---
-enum e_LOCK_STATES {
-    E_LOCK_STATE_OFF = 0,
-    E_LOCK_STATE_ON
+enum e_DOOR_STATES {
+    E_DOOR_STATE_OFF = 0,
+    E_DOOR_STATE_ON
 };
 
-stock e_LOCK_STATES: Vehicle_GetLockState(vehicleid) {
+stock e_DOOR_STATES: Vehicle_GetDoorState(vehicleid) {
     new
-        lock_state,
+        door_state,
         unnecessary;
     
-    GetVehicleParamsEx(vehicleid, unnecessary, unnecessary, unnecessary, lock_state, unnecessary, unnecessary, unnecessary);
+    GetVehicleParamsEx(vehicleid, unnecessary, unnecessary, unnecessary, door_state, unnecessary, unnecessary, unnecessary);
 
-    return e_LOCK_STATES: lock_state;
+    return e_DOOR_STATES: door_state;
 }
 
-stock Vehicle_SetLockState(vehicleid, e_LOCK_STATES: lock_state) {
+stock Vehicle_SetDoorState(vehicleid, e_DOOR_STATES: door_state) {
     new
         unnecessary_params[7];
         
     GetVehicleParamsEx(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3], unnecessary_params[4], unnecessary_params[5], unnecessary_params[6]);
-    new const ret = SetVehicleParamsEx(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], _:lock_state, unnecessary_params[4], unnecessary_params[5], unnecessary_params[6]);
+    new const ret = SetVehicleParamsEx(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], _:door_state, unnecessary_params[4], unnecessary_params[5], unnecessary_params[6]);
     
     return ret;
 }
