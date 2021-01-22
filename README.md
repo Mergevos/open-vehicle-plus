@@ -86,6 +86,20 @@ CMD:lights(playerid, const params[])
     return 1;
 }
 ```
+## Doors
+```c
+CMD:lock(playerid, const params[])
+{
+    Vehicle_SetLockState(GetPlayerVehicleID(playerid),
+        Vehicle_GetLockState(GetPlayerVehicleID(playerid)) ? (E_LOCK_STATE_OFF) : (E_LOCK_STATE_ON)
+    );
+    
+    // Output > 0 or 1
+    va_SendClientMessage(playerid, -1, "Door status: %d", Vehicle_GetLockState(GetPlayerVehicleID(playerid)));
+
+    return 1;
+}
+```
 
 ## Testing
 
