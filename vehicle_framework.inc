@@ -215,3 +215,51 @@ stock Vehicle_SetDoorState(vehicleid, e_DOOR_STATES: door_state) {
     new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[PARAMS_ENGINE], Vehicle_Params[PARAMS_LIGHTS], Vehicle_Params[PARAMS_ALARM], Vehicle_Params[PARAMS_DOORS], Vehicle_Params[PARAMS_BONNET], Vehicle_Params[PARAMS_BOOT], Vehicle_Params[PARAMS_OBJECTIVE]);
     return ret;
 }
+
+// ---
+// Tires
+// ---
+enum e_TIRE_VEHICLE {
+    E_TIRE_VEHICLE_INFLATED = 0b0000,
+
+    // Popped tires
+    E_TIRE_VEHICLE_FR = 0b0010, // Front right
+    E_TIRE_VEHICLE_BR = 0b0001, // Back right
+    E_TIRE_VEHICLE_FL = 0b1000, // Front left
+    E_TIRE_VEHICLE_BL = 0b0100, // Back left
+    E_TIRE_VEHICLE_ALL = 0b1111 // All tires
+};
+
+stock Vehicle_SetTireState(vehicleid, e_TIRE_VEHICLE: tire_state) {    
+    new
+        unnecessary_params[4],
+        ret;
+
+    GetVehicleDamageStatus(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3]);
+    ret = UpdateVehicleDamageStatus(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], _:tire_state);
+
+    return ret;
+}
+
+// ---
+// Bike tires
+// ---
+enum e_TIRE_BIKES {
+    E_TIRE_BIKE_INFLATED = 0b00,
+
+    // Popped tires
+    E_TIRE_BIKE_F = 0b10, // Front tire
+    E_TIRE_BIKE_B = 0b01, // Back tire
+    E_TIRE_BIKE_ALL = 0b11 // All tires
+};
+
+stock Vehicle_SetBikeTireState(vehicleid, e_TIRE_BIKES: tire_state) {
+    new
+        unnecessary_params[4],
+        ret;
+
+    GetVehicleDamageStatus(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3]);
+    ret = UpdateVehicleDamageStatus(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], _:tire_state);
+
+    return ret;
+}
