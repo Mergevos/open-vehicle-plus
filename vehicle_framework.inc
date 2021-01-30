@@ -144,9 +144,20 @@ enum e_LIGHT_RUN_STATE {
     E_LIGHTS_ON    
 };
 
-stock encode_lights(front_left_light, front_right_light, back_lights) {
+// internal
+
+static stock encode_lights(front_left_light, front_right_light, back_lights) {
     return front_left_light | (front_right_light << 2) | (back_lights << 6);
 }
+
+static stock decode_lights(lights, &front_left_light, &front_right_light, &back_lights)
+{
+    front_left_light = lights & 1;
+    front_right_light = lights >> 2 & 1;
+    back_lights = lights >> 6 & 1;
+}
+
+//
 
 stock Vehicle_SetLightsState(vehicleid, e_LIGHT_STATES: left_lights, e_LIGHT_STATES: right_lights, e_LIGHT_STATES: back_lights) {
     new 
@@ -157,6 +168,21 @@ stock Vehicle_SetLightsState(vehicleid, e_LIGHT_STATES: left_lights, e_LIGHT_STA
     new const ret = UpdateVehicleDamageStatus(vehicleid, unnecessary_params, unnecessary_params, encode_lights(_:left_lights, _:right_lights, _:back_lights), unnecessary_params);
     
     return ret;
+}
+
+stock Vehicle_GetLightsState(vehicleid, &e_LIGHT_STATES: left_lights, &e_LIGHT_STATES: right_lights, &e_LIGHT_STATES: back_lights) {
+    new 
+        lights, 
+        e_LIGHT_STATES: lights_status[3],
+        unnecessary_params;
+
+    GetVehicleDamageStatus(vehicleid, unnecessary_params, unnecessary_params, lights, unnecessary_params);
+    decode_lights(lights, lights_status[0], lights_status[1], lights_status[2]);
+    
+    left_lights = lights_status[0];
+    right_lights = lights_status[1];
+    back_lights = lights_status[2];
+
 }
 
 stock Vehicle_SetLightsRunState(vehicleid, e_LIGHT_RUN_STATE: light_state) {
@@ -237,12 +263,36 @@ stock Vehicle_SetTireState(vehicleid, e_TIRE_STATUS: rear_right_tire, e_TIRE_STA
     return ret;
 }
 
+stock Vehicle_GetTireState(vehicleid, &e_TIRE_STATUS: rear_right_tire, &e_TIRE_STATUS: front_right_tire, &e_TIRE_STATUS: rear_left_tire, &e_TIRE_STATUS: front_left_tire) {    
+    new 
+        tires, 
+        e_TIRE_STATUS: tires_status[4],
+        unnecessary_params;
 
+    GetVehicleDamageStatus(vehicleid, unnecessary_params, unnecessary_params, unnecessary_params, tires);
+    decode_tires(tires, tires_status[0], tires_status[1], tires_status[2], tires_status[3]);
+    
+    rear_right_tire = tires_status[0];
+    front_right_tire = tires_status[1];
+    rear_left_tire = tires_status[2];
+    front_left_tire = tires_status[3];
 
-stock encode_tires(rear_right_tire, front_right_tire, rear_left_tire, front_left_tire)
+}
+
+static stock encode_tires(rear_right_tire, front_right_tire, rear_left_tire, front_left_tire)
 {
     return rear_right_tire | (front_right_tire << 1) | (rear_left_tire << 2) | (front_left_tire << 3);
 }
+
+static stock decode_tires(tires, &rear_right_tire, &front_right_tire, &rear_left_tire, &front_left_tire)
+{
+    rear_right_tire = tires & 1;
+    front_right_tire = tires >> 1 & 1;
+    rear_left_tire = tires >> 2 & 1;
+    front_left_tire = tires >> 3 & 1;
+}
+
+
 
 // --
 // Hooks
