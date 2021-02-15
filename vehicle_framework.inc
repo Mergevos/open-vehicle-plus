@@ -1,4 +1,6 @@
 #include <a_samp>
+
+
 #include <YSI_Data\y_foreach>
 #include <YSI_Game\y_vehicledata>
 
@@ -441,6 +443,19 @@ stock Vehicle_GetTireState(vehicleid, &e_TIRE_STATUS: rear_right_tire, &e_TIRE_S
     front_left_tire = tires_status[3];
 
 }
+
+
+stock Vehicle_GetNumberPlate(vehicleid, v_numberPlate[], len = sizeof(v_numberPlate))
+{
+	format(v_numberPlate, len, "%s", Vehicle_NumberPlate[vehicleid]);
+}
+
+stock Vehicle_SetNumberPlate(vehicleid, const v_numberPlate[], len = sizeof(v_numberPlate))
+{
+	format(Vehicle_NumberPlate[vehicleid], len, "%s", v_numberPlate);
+	SetVehicleNumberPlate(vehicleid, Vehicle_NumberPlate[vehicleid]);
+}
+
 
 //--
 
