@@ -263,6 +263,12 @@ enum e_ALARMS_STATE {
     E_ALARMS_ON
 };
 
+/**
+ * <summary> Sets the alarms state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the alarms state.</param>
+ * <returns> SetVehicleParamsEx values. </returns>
+*/
+
 stock Vehicle_SetAlarms(vehicleid, e_ALARMS_STATE: alarm_state) {
     GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
     Vehicle_Params[vehicleid][PARAMS_ALARM] = _:alarm_state;
@@ -270,6 +276,12 @@ stock Vehicle_SetAlarms(vehicleid, e_ALARMS_STATE: alarm_state) {
     new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
     return ret;
 }
+
+/**
+ * <summary> Gets the alarms state.</summary>
+ * <param name="vehicleid"> Vehicle from which we set the alarms state.</param>
+ * <returns> Alarms' state. </returns>
+*/
 
 stock e_ALARMS_STATE: Vehicle_GetAlarms(vehicleid) {
     GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
@@ -292,7 +304,7 @@ enum e_DOOR_STATES {
     E_DOOR_STATE_REMOVED
 };
 
-
+//--
 static stock encode_doors(bonnet, boot, driver_door, passenger_door)
 {
     return bonnet | (boot << 8) | (driver_door << 16) | (passenger_door << 24);
@@ -305,6 +317,17 @@ static stock decode_doors(doors, &bonnet, &boot, &driver_door, &passenger_door) 
     driver_door = doors >> 16 & 7;
     passenger_door = doors >> 24 & 7;
 }
+//
+
+/**
+ * <summary> Sets the doors alarms state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the doors state.</param>
+ * <param name="hood"> Hood state to set. </param>
+ * <param name="trunk"> Trunk state to set. </param>
+ * <param name="driver"> Driver-door state to set. </param>
+ * <param name="passenger"> Passenger-door state to set. </param>
+ * <returns> UpdateVehicleDamageStatus values. </returns>
+*/
 
 stock Vehicle_SetDoorState(vehicleid, e_DOOR_STATES: hood, e_DOOR_STATES: trunk, e_DOOR_STATES: driver, e_DOOR_STATES: passenger) {
     new
@@ -316,6 +339,15 @@ stock Vehicle_SetDoorState(vehicleid, e_DOOR_STATES: hood, e_DOOR_STATES: trunk,
     return ret;
 }
 
+/**
+ * <summary> Gets the doors state.</summary>
+ * <param name="vehicleid"> Vehicle from which we get the doors state.</param>
+ * <param name="&hood"> Hood state to get.</param>
+ * <param name="&trunk"> Trunk state to get.</param>
+ * <param name="&driver"> Driver-door state to get.</param>
+ * <param name="&passenger"> Passenger-door state to get.</param>
+*/
+
 stock Vehicle_GetDoorState(vehicleid, &e_DOOR_STATES: hood, &e_DOOR_STATES: trunk, &e_DOOR_STATES: driver, &e_DOOR_STATES: passenger) {
     new 
         doors, 
@@ -326,12 +358,25 @@ stock Vehicle_GetDoorState(vehicleid, &e_DOOR_STATES: hood, &e_DOOR_STATES: trun
     decode_doors(doors, doors_status[0], doors_status[1], doors_status[2], doors_status[3]);
 }
 
+/**
+ * <summary> Gets the doors' lock state.</summary>
+ * <param name="vehicleid"> Vehicle from which we set the doors' lock state.</param>
+ * <returns> Doors' lock state. </returns>
+*/
+
 stock e_DOOR_LOCK_STATES: Vehicle_GetDoorsLockState(vehicleid) {
 
     GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
     
     return e_DOOR_LOCK_STATES: Vehicle_Params[vehicleid][PARAMS_DOORS];
 }
+
+/**
+ * <summary> Sets the alarms state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the doors' lock state.</param>
+ * <param name="door_state"> Door's lock state to set. </param>
+ * <returns> SetVehicleParamsEx values. </returns>
+*/
 
 stock Vehicle_SetDoorsLockState(vehicleid, e_DOOR_LOCK_STATES: door_state) {
     GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
@@ -351,6 +396,16 @@ enum e_TIRE_STATUS {
     E_TIRE_POPPED
 };
 
+/**
+ * <summary> Gets the tires state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the tires state.</param>
+ * <param name="rear_right_tire"> Rear Right Tire state to set.</param>
+ * <param name="front_right_tire"> Front Right Tire state to set.</param>
+ * <param name="rear_left_tire"> Rear Left Tire state to set.</param>
+ * <param name="front_left_tire"> Front Left Tire state to set.</param>
+ * <returns> UpdateVehicleDamageStatus values. </returns>
+*/
+
 stock Vehicle_SetTireState(vehicleid, e_TIRE_STATUS: rear_right_tire, e_TIRE_STATUS: front_right_tire, e_TIRE_STATUS: rear_left_tire, e_TIRE_STATUS: front_left_tire) {    
     new
         unnecessary_params[4],
@@ -361,6 +416,15 @@ stock Vehicle_SetTireState(vehicleid, e_TIRE_STATUS: rear_right_tire, e_TIRE_STA
 
     return ret;
 }
+
+/**
+ * <summary> Gets the tires state.</summary>
+ * <param name="vehicleid"> Vehicle from which we get the tires state.</param>
+ * <param name="&rear_right_tire"> Rear Right Tire state to get.</param>
+ * <param name="&front_right_tire"> Front Right Tire state to get.</param>
+ * <param name="&rear_left_tire"> Rear Left Tire state to get.</param>
+ * <param name="&front_left_tire"> Front Left Tire state to get.</param>
+*/
 
 stock Vehicle_GetTireState(vehicleid, &e_TIRE_STATUS: rear_right_tire, &e_TIRE_STATUS: front_right_tire, &e_TIRE_STATUS: rear_left_tire, &e_TIRE_STATUS: front_left_tire) {    
     new 
@@ -377,6 +441,8 @@ stock Vehicle_GetTireState(vehicleid, &e_TIRE_STATUS: rear_right_tire, &e_TIRE_S
     front_left_tire = tires_status[3];
 
 }
+
+//--
 
 static stock encode_tires(rear_right_tire, front_right_tire, rear_left_tire, front_left_tire)
 {
