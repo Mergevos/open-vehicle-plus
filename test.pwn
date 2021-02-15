@@ -6,7 +6,7 @@ main() {}
 public OnGameModeInit()
 {
     SetWorldTime(0);
-    new e = AddStaticVehicle(503, 0, 0, 7, 0, -1, -1);
+    new e = AddStaticVehicle(403, 0, 0, 7, 0, -1, -1);
     printf("%d", e);
     printf("Vehicle alarm %d", Vehicle_IsManual(1));
     ManualVehicleEngineAndLights();
@@ -15,7 +15,7 @@ public OnGameModeInit()
 
 CMD:testengon(playerid, params[])
 {
-    printf("Vehicle alarm %d", Vehicle_Params[0][PARAMS_ALARM]);
+    //printf("Vehicle alarm %d", Vehicle_Params[0][PARAMS_ALARM]);
     Vehicle_SetEngineState(GetPlayerVehicleID(playerid), E_ENGINE_STATE_ON);
     return 1;
 }
@@ -68,7 +68,7 @@ CMD:testdoorlock(playerid, params[])
 
 CMD:testdoors(playerid, params[]) 
 {
-    Vehicle_SetDoorState(GetPlayerVehicleID(playerid), 4, 4, 1, 1);
+ //   Vehicle_SetDoorState(GetPlayerVehicleID(playerid), 4, 4, 1, 1);
     
     return 1;
 
@@ -90,4 +90,36 @@ decode_doors(doors, &bonnet, &boot, &driver_door, &passenger_door)
     boot = doors >> 8 & 7;
     driver_door = doors >> 16 & 7;
     passenger_door = doors >> 24 & 7;
+}
+
+
+CMD:testwin(playerid, params[])
+{
+    Vehicle_SetWindows(GetPlayerVehicleID(playerid), E_WINDOW_OPENED, E_WINDOW_OPENED, E_WINDOW_CLOSED, E_WINDOW_OPENED);
+    return 1;
+}
+
+CMD:wintest(playerid, params[])
+{
+    new e_WINDOWS_STATES: win[4];
+    Vehicle_GetWindows(GetPlayerVehicleID(playerid), win[0], win[1], win[2], win[3]);
+    new str[129];
+    format(str, sizeof(str), "driver %d, psngr: %d, rl %d rr %d", win[0], win[1], win[2], win[3]);
+    SendClientMessage(playerid, -1, str);
+    return 1;
+}
+
+
+CMD:testplate(playerid, params[]) 
+{
+    Vehicle_SetNumberPlate(GetPlayerVehicleID(playerid), "TEST123");
+    return 1;
+}
+
+CMD:platetest(playerid, params[])
+{
+    new pl[32];
+    Vehicle_GetNumberPlate(GetPlayerVehicleID(playerid), pl);
+    printf("%s", pl);
+    return 1;
 }

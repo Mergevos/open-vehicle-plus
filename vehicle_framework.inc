@@ -1,4 +1,6 @@
 #include <a_samp>
+
+
 #include <YSI_Data\y_foreach>
 #include <YSI_Game\y_vehicledata>
 
@@ -45,10 +47,15 @@ static const
     PARAMS_BOOT = 5,
     PARAMS_OBJECTIVE = 6;
 
+static const
+    WINDOWS_DRIVER = 0,
+    WINDOWS_PASSENGER = 1,
+    WINDOWS_REAR_LEFT = 2,
+    WINDOWS_REAR_RIGHT = 3;
+
 static
-    Vehicle_Params[MAX_VEHICLES][7];
-
-
+    Vehicle_Params[MAX_VEHICLES][7],
+    Vehicle_Windows[MAX_VEHICLES][4];
 
 /**
   * <summary> Creates a vehicle.</summary>
@@ -80,16 +87,16 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
 }
 
 /**
-  * <summary> Creates a vehicle with additional params.</summary>
-  * <param name="modelid">vehicle model (400-611)</param>
-  * <param name="Float: x">x vehicle rotation</param>
-  * <param name="Float: y">y vehicle rotation</param>
-  * <param name="Float: z">z vehicle rotation</param>
-  * <param name="Float: rotation">vehicle angle</param>
-  * <param name="respawn_delay">The time(ms) when the vehicle will be respawned again.</param>
-  * <param name="interior">interior id, if you want to create a vehicle inside the building</param>
-  * <param name="Float: health">vehicle health (damage)</param>
-  * <param name="plate">the text that will appear on the vehicle plates</param>
+ * <summary> Creates a vehicle with additional params.</summary>
+ * <param name="modelid">vehicle model (400-611)</param>
+ * <param name="Float: x">x vehicle rotation</param>
+ * <param name="Float: y">y vehicle rotation</param>
+ * <param name="Float: z">z vehicle rotation</param>
+ * <param name="Float: rotation">vehicle angle</param>
+ * <param name="respawn_delay">The time(ms) when the vehicle will be respawned again.</param>
+ * <param name="interior">interior id, if you want to create a vehicle inside the building</param>
+ * <param name="Float: health">vehicle health (damage)</param>
+ * <param name="plate">the text that will appear on the vehicle plates</param>
 */
 stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE]) {
     new idx = Iter_Alloc(Vehicle_Iter);
@@ -172,8 +179,7 @@ static stock encode_lights(front_left_light, front_right_light, back_lights) {
     return front_left_light | (front_right_light << 2) | (back_lights << 6);
 }
 
-static stock decode_lights(lights, &front_left_light, &front_right_light, &back_lights)
-{
+static stock decode_lights(lights, &front_left_light, &front_right_light, &back_lights) {
     front_left_light = lights & 1;
     front_right_light = lights >> 2 & 1;
     back_lights = lights >> 6 & 1;
@@ -291,6 +297,7 @@ stock e_ALARMS_STATE: Vehicle_GetAlarms(vehicleid) {
 // ---
 // Doors
 // ---
+
 enum e_DOOR_LOCK_STATES {
     E_DOOR_STATE_OFF = 0,
     E_DOOR_STATE_ON
@@ -305,8 +312,7 @@ enum e_DOOR_STATES {
 };
 
 //--
-static stock encode_doors(bonnet, boot, driver_door, passenger_door)
-{
+static stock encode_doors(bonnet, boot, driver_door, passenger_door) {
     return bonnet | (boot << 8) | (driver_door << 16) | (passenger_door << 24);
 }
 
@@ -320,7 +326,7 @@ static stock decode_doors(doors, &bonnet, &boot, &driver_door, &passenger_door) 
 //
 
 /**
- * <summary> Sets the doors alarms state.</summary>
+ * <summary> Sets the doors state.</summary>
  * <param name="vehicleid"> Vehicle which we set the doors state.</param>
  * <param name="hood"> Hood state to set. </param>
  * <param name="trunk"> Trunk state to set. </param>
@@ -455,4 +461,76 @@ static stock decode_tires(tires, &rear_right_tire, &front_right_tire, &rear_left
     front_right_tire = tires >> 1 & 1;
     rear_left_tire = tires >> 2 & 1;
     front_left_tire = tires >> 3 & 1;
+}
+
+// -- 
+// Plate
+// --
+
+/**
+ * <summary> Gets the vehicle's number plate.</summary>
+ * <param name="vehicleid"> Vehicle from which we get the vehicle plate.</param>
+ * <param name="plate"> Plate to get.</param>
+ * <param name="len"> Size of the plate.</param>
+*/
+
+stock Vehicle_GetNumberPlate(vehicleid, plate[], len = sizeof(plate)) {
+	format(plate, len, "%s", Vehicle_NumberPlate[vehicleid]);
+}
+
+/**
+ * <summary> Sets the vehicle's number plate.</summary>
+ * <param name="vehicleid"> Vehicle which we set the vehicle plate.</param>
+ * <param name="plate"> Plate to set.</param>
+*/
+
+stock Vehicle_SetNumberPlate(vehicleid, const plate[]) {
+
+	format(Vehicle_NumberPlate[vehicleid], MAX_NUMBER_PLATE, "%s", plate);
+	new const ret = SetVehicleNumberPlate(vehicleid, Vehicle_NumberPlate[vehicleid]);
+    return ret;
+}
+
+// --
+// Windows 
+// --
+
+enum e_WINDOWS_STATES {
+    E_WINDOW_NOT_SET = -1,
+    E_WINDOW_OPENED = 0,
+    E_WINDOW_CLOSED
+};
+
+/**
+ * <summary> Sets the vehicle's windows states.</summary>
+ * <param name="vehicleid"> Vehicle which we set the vehicle plate.</param>
+ * <param name="driver"> Driver-window state to set.</param>
+ * <param name="passenger"> Passenger-window state to set.</param>
+ * <param name="backleft"> Backleft-window state to set.</param>
+ * <param name="backright"> Backright-window state to gset.</param>
+*/
+
+stock Vehicle_SetWindows(vehicleid, e_WINDOWS_STATES: driver, e_WINDOWS_STATES: passenger, e_WINDOWS_STATES: backleft, e_WINDOWS_STATES: backright) {
+    Vehicle_Windows[vehicleid][WINDOWS_DRIVER] = _:driver;
+    Vehicle_Windows[vehicleid][WINDOWS_PASSENGER] = _:passenger;
+    Vehicle_Windows[vehicleid][WINDOWS_REAR_LEFT] = _:backleft;
+    Vehicle_Windows[vehicleid][WINDOWS_REAR_RIGHT] = _:backright;
+    SetVehicleParamsCarWindows(vehicleid, Vehicle_Windows[vehicleid][WINDOWS_DRIVER], Vehicle_Windows[vehicleid][WINDOWS_PASSENGER], Vehicle_Windows[vehicleid][WINDOWS_REAR_LEFT], Vehicle_Windows[vehicleid][WINDOWS_REAR_RIGHT]);
+}
+
+/**
+ * <summary> Gets the vehicle's windows states. </summary>
+ * <param name="vehicleid"> Vehicle from which we get the vehicle plate.</param>
+ * <param name="&driver"> Driver-window state to get.</param>
+ * <param name="&passenger"> Passenger-window state to get.</param>
+ * <param name="&backleft"> Backleft-window state to get.</param>
+ * <param name="&backright"> Backright-window state to get.</param>
+*/
+
+stock Vehicle_GetWindows(vehicleid, &e_WINDOWS_STATES: driver, &e_WINDOWS_STATES: passenger, &e_WINDOWS_STATES: backleft, &e_WINDOWS_STATES: backright) {
+    GetVehicleParamsCarWindows(vehicleid, Vehicle_Windows[vehicleid][WINDOWS_DRIVER], Vehicle_Windows[vehicleid][WINDOWS_PASSENGER], Vehicle_Windows[vehicleid][WINDOWS_REAR_LEFT], Vehicle_Windows[vehicleid][WINDOWS_REAR_RIGHT]);
+    driver = e_WINDOWS_STATES: Vehicle_Windows[vehicleid][WINDOWS_DRIVER];
+    passenger = e_WINDOWS_STATES: Vehicle_Windows[vehicleid][WINDOWS_PASSENGER];
+    backleft = e_WINDOWS_STATES: Vehicle_Windows[vehicleid][WINDOWS_REAR_LEFT];
+    backright = e_WINDOWS_STATES: Vehicle_Windows[vehicleid][WINDOWS_REAR_RIGHT];
 }
