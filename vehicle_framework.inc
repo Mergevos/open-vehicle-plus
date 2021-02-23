@@ -79,9 +79,9 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
     Vehicle_DimensionInfo[idx][DIMENSION_VIRTUAL_WORLD] = virtual_world;
     Vehicle_Handler[idx] = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay);
 
-	format(temp_vPlate, MAX_NUMBER_PLATE, "VEH-%d", Vehicle_Handler[idx]);
+    format(temp_vPlate, MAX_NUMBER_PLATE, "VEH-%d", Vehicle_Handler[idx]);
 
-	Vehicle_SetNumberPlate(Vehicle_Handler[idx], temp_vPlate, MAX_NUMBER_PLATE);
+    Vehicle_SetNumberPlate(Vehicle_Handler[idx], temp_vPlate, MAX_NUMBER_PLATE);
     SetVehicleVirtualWorld(Vehicle_Handler[idx], virtual_world);
     LinkVehicleToInterior(Vehicle_Handler[idx], interior);
 }
