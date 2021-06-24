@@ -1,7 +1,5 @@
 #include <a_samp>
 
-
-#include <YSI_Data\y_foreach>
 #include <YSI_Game\y_vehicledata>
 
 #if defined UGMP_Enable
@@ -534,3 +532,145 @@ stock Vehicle_GetWindows(vehicleid, &e_WINDOWS_STATES: driver, &e_WINDOWS_STATES
     backleft = e_WINDOWS_STATES: Vehicle_Windows[vehicleid][WINDOWS_REAR_LEFT];
     backright = e_WINDOWS_STATES: Vehicle_Windows[vehicleid][WINDOWS_REAR_RIGHT];
 }
+
+// --
+// Panels 
+// --
+
+/* Note: It seems that you can only read the value of the windshield. 
+        Setting it does update the value on the server, 
+        but it does not result 
+        in any physical change on the vehicle.
+*/
+
+enum e_PANEL_STATES {
+    E_PANEL_UNDAMAGED = 0,
+    E_PANEL_CRUSHED = 1,
+    E_PANEL_HANGING_LOOSE = 2,
+    E_PANEL_REMOVED = 3
+};
+
+//--
+
+static stock decode_panels(panels, &front_left_panel, &front_right_panel, &rear_left_panel, &rear_right_panel, &windshield, &front_bumper, &rear_bumper)
+{
+    front_left_panel = panels & 15;
+    front_right_panel = panels >> 4 & 15;
+    rear_left_panel = panels >> 8 & 15;
+    rear_right_panel = panels >> 12 & 15;
+    windshield = panels >> 16 & 15;
+    front_bumper = panels >> 20 & 15;
+    rear_bumper = panels >> 24 & 15;
+}
+
+static stock encode_panels(front_left_panel, front_right_panel, rear_left_panel, rear_right_panel, windshield, front_bumper, rear_bumper)
+{
+    return front_left_panel | (front_right_panel << 4) | (rear_left_panel << 8) | (rear_right_panel << 12) | (windshield << 16) | (front_bumper << 20) | (rear_bumper << 24);
+}
+
+//--
+
+/**
+ * <summary> Sets the vehicle's panels' states. </summary>
+ * <param name="vehicleid"> Id of vehicle we are setting panel states to.</param>
+ * <param name="front_left_panel"> Front left panel state to set.</param>
+ * <param name="front_right_panel"> Front right panel state to set.</param>
+ * <param name="back_left_panel"> Back left panel state to set.</param>
+ * <param name="back_right_panel"> Back right state to set.</param>
+*/
+
+stock Vehicle_SetPanelStates(vehicleid, e_PANEL_STATES: front_left_panel, e_PANEL_STATES: front_right_panel, e_PANEL_STATES: back_left_panel, e_PANEL_STATES: back_right_panel) {
+    new
+        unnecessary_params[4],
+        unnecessary_panels[7];
+
+    GetVehicleDamageStatus(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3]);
+    decode_panels(unnecessary_params[0], unnecessary_panels[0], unnecessary_panels[1], unnecessary_panels[2], unnecessary_panels[3], unnecessary_panels[4], unnecessary_panels[5], unnecessary_panels[6]);
+    
+    new ret = UpdateVehicleDamageStatus(vehicleid, encode_panels(_:front_left_panel, _:front_right_panel, _:back_left_panel, _:back_right_panel, unnecessary_panels[4], unnecessary_panels[5], unnecessary_panels[6]), unnecessary_params[1], unnecessary_params[2], unnecessary_params[3]);
+    return ret;
+}
+
+/**
+ * <summary> Gets the vehicle's panels' states. </summary>
+ * <param name="vehicleid"> Id of vehicle we are getting panel states from.</param>
+ * <param name="&front_left_panel"> Front left panel state to get.</param>
+ * <param name="&front_right_panel"> Front right panel state to get.</param>
+ * <param name="&back_left_panel"> Back left panel state to get.</param>
+ * <param name="&back_right_panel"> Back right state to get.</param>
+*/
+
+stock Vehicle_GetPanelStates(vehicleid, &e_PANEL_STATES: front_left_panel, &e_PANEL_STATES: front_right_panel, &e_PANEL_STATES: back_left_panel, &e_PANEL_STATES: back_right_panel) {
+    new
+        unnecessary_params[4],
+        e_PANEL_STATES: panels_status[7];
+
+    GetVehicleDamageStatus(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3]);
+    decode_panels(unnecessary_params[0], panels_status[0], panels_status[1], panels_status[2], panels_status[3], panels_status[4], panels_status[5], panels_status[6]);
+
+    front_left_panel = panels_status[0];
+    front_right_panel = panels_status[1];
+    back_left_panel = panels_status[2];
+    back_right_panel = panels_status[3];
+
+}
+
+/**
+ * <summary> Sets the vehicle's bumpers' states. </summary>
+ * <param name="vehicleid"> Id of vehicle we are setting bumper states to.</param>
+ * <param name="front_left_panel"> Front bumper state to set.</param>
+ * <param name="back_left_panel"> Rear bumper state to set.</param>
+*/
+
+stock Vehicle_SetBumperStates(vehicleid, e_PANEL_STATES: front_bumper, e_PANEL_STATES: rear_bumper) {
+    new
+        unnecessary_params[4],
+        unnecessary_panels[7];
+
+    GetVehicleDamageStatus(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3]);
+    decode_panels(unnecessary_params[0], unnecessary_panels[0], unnecessary_panels[1], unnecessary_panels[2], unnecessary_panels[3], unnecessary_panels[4], unnecessary_panels[5], unnecessary_panels[6]);
+    
+    new ret = UpdateVehicleDamageStatus(vehicleid, encode_panels(unnecessary_panels[0], unnecessary_panels[1], unnecessary_panels[2], unnecessary_panels[3], unnecessary_panels[4], _:front_bumper, _:rear_bumper), unnecessary_params[1], unnecessary_params[2], unnecessary_params[3]);
+    return ret;
+}
+
+/**
+ * <summary> Sets the vehicle's bumpers states. </summary>
+ * <param name="vehicleid"> Id of vehicle we are setting bumper states from.</param>
+ * <param name="&front_left_panel"> Front bumper state to get.</param>
+ * <param name="&back_left_panel"> Rear bumper state to get.</param>
+*/
+
+
+stock Vehicle_GetBumperStates(vehicleid, &e_PANEL_STATES: front_bumper, &e_PANEL_STATES: rear_bumper) {
+    new
+        unnecessary_params[4],
+        e_PANEL_STATES: panels_status[7];
+
+    GetVehicleDamageStatus(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3]);
+    decode_panels(unnecessary_params[0], panels_status[0], panels_status[1], panels_status[2], panels_status[3], panels_status[4], panels_status[5], panels_status[6]);
+
+    front_bumper = panels_status[5];
+    rear_bumper = panels_status[6];
+
+}
+
+/**
+ * <summary> Gets the vehicle's windshield state. </summary>
+ * <param name="vehicleid"> Id of vehicle we are getting winshield state from.</param>
+ * <param name="&windshield"> Windshield state to get.</param>
+*/
+
+stock Vehicle_GetWindshieldState(vehicleid, &e_PANEL_STATES: windshield) {
+    new
+        unnecessary_params[4],
+        e_PANEL_STATES: panels_status[7];
+
+    GetVehicleDamageStatus(vehicleid, unnecessary_params[0], unnecessary_params[1], unnecessary_params[2], unnecessary_params[3]);
+    decode_panels(unnecessary_params[0], panels_status[0], panels_status[1], panels_status[2], panels_status[3], panels_status[4], panels_status[5], panels_status[6]);
+
+    windshield = panels_status[4];
+
+}
+
+// --

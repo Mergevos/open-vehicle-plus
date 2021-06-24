@@ -1,12 +1,24 @@
 #include <a_samp>
 #include <YSI_Visual\y_commands>
 #include "vehicle_framework.inc"
+#include <YSI_Extra\y_inline_timers>
+#include <streamer>
 main() {}
+new tmpobjid1;
+new tmpobjid2;
+new tmpobjid3;
+new tmpobjid4;
+new tmpobjid5;
+new tmpobjid6;
+new tmpobjid7;
+new tmpobjid;
+static e;
 
 public OnGameModeInit()
 {
     SetWorldTime(0);
-    new e = AddStaticVehicle(403, 0, 0, 7, 0, -1, -1);
+    e = AddStaticVehicle(482, 0, 0, 7, 0, -1, -1);
+
     printf("%d", e);
     printf("Vehicle alarm %d", Vehicle_IsManual(1));
     ManualVehicleEngineAndLights();
@@ -44,6 +56,12 @@ CMD:testalarmson(playerid, params[])
     return 1;
 }
 
+CMD:testvel(playerid, param[])
+{
+    SetVehicleVelocity(e, 34, 35, 200);
+    return 1;
+}
+
 
 CMD:testalarmsoff(playerid, params[]) 
 {
@@ -66,10 +84,18 @@ CMD:testdoorlock(playerid, params[])
     return 1;
 }
 
-CMD:testdoors(playerid, params[]) 
+CMD:testblinks(playerid, params[]) 
 {
  //   Vehicle_SetDoorState(GetPlayerVehicleID(playerid), 4, 4, 1, 1);
-    
+
+    print("ej0");
+    AttachDynamicObjectToVehicle(tmpobjid1, e, 0.990, 2.520, -0.020, 0.000, 0.000, 0.000);
+    AttachDynamicObjectToVehicle(tmpobjid2, e, -0.999, 2.521, 0.000, 0.000, 0.000, 0.000);
+    AttachDynamicObjectToVehicle(tmpobjid3, e, 1.080, 1.050, 0.000, 0.000, 0.000, 0.000);
+    AttachDynamicObjectToVehicle(tmpobjid4, e, -0.960, -2.331, 0.000, 0.000, 0.000, 0.000);
+    AttachDynamicObjectToVehicle(tmpobjid5, e, 0.960, -2.300, 0.000, 0.000, 0.000, 0.000);
+    AttachDynamicObjectToVehicle(tmpobjid6, e, -1.081, 1.040, 0.000, 0.000, 0.000, 0.000);
+
     return 1;
 
 }
@@ -121,5 +147,50 @@ CMD:platetest(playerid, params[])
     new pl[32];
     Vehicle_GetNumberPlate(GetPlayerVehicleID(playerid), pl);
     printf("%s", pl);
+    return 1;
+}
+
+CMD:paneltest(playerid, params[])
+{
+
+    Vehicle_SetPanelStates(GetPlayerVehicleID(playerid), E_PANEL_CRUSHED, E_PANEL_HANGING_LOOSE, E_PANEL_UNDAMAGED, E_PANEL_UNDAMAGED);
+    return 1;
+}
+
+CMD:getpaneltest(playerid, params[])
+{
+    new e_PANEL_STATES: panels[4];
+    Vehicle_GetPanelStates(GetPlayerVehicleID(playerid), panels[0], panels[1], panels[2], panels[3]);
+    new str[128];
+    format(str, sizeof(str), "FL: %d, FR: %d, BL: %d, BR: %d", panels[0], panels[1], panels[2], panels[3]);
+    SendClientMessageToAll(-1, str);
+    return 1;
+}
+
+CMD:bumpertest(playerid, params[])
+{
+
+    Vehicle_SetBumperStates(GetPlayerVehicleID(playerid), E_PANEL_CRUSHED, E_PANEL_CRUSHED);
+    Vehicle_SetBumperStates(GetPlayerVehicleID(playerid), E_PANEL_CRUSHED, E_PANEL_HANGING_LOOSE);
+    return 1;
+}
+
+CMD:getbumpertest(playerid, params[])
+{
+    new e_PANEL_STATES: bumper[2];
+    Vehicle_GetBumperStates(GetPlayerVehicleID(playerid), bumper[0], bumper[1]);
+    new str[128];
+    format(str, sizeof(str), "F: %d, R: %d", bumper[0], bumper[1]);
+    SendClientMessageToAll(-1, str);
+    return 1;
+}
+
+CMD:getwindshieldtest(playerid, params[])
+{
+    new e_PANEL_STATES: winds;
+    Vehicle_GetWindshieldState(GetPlayerVehicleID(playerid), winds);
+    new str[128];
+    format(str, sizeof(str), "W: %d", winds);
+    SendClientMessageToAll(-1, str);
     return 1;
 }
