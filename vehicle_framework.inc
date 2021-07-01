@@ -25,16 +25,16 @@ static const
     DIMENSION_VIRTUAL_WORLD = 1;
 
 static 
-    Vehicle_Model[MAX_VEHICLES],
-    Vehicle_NumberPlate[MAX_VEHICLES][MAX_NUMBER_PLATE],
-    Vehicle_RespawnDelay[MAX_VEHICLES],
-    Vehicle_DimensionInfo[MAX_VEHICLES][2],
-    Vehicle_ColorInfo[MAX_VEHICLES][2],
-    Vehicle_Handler[MAX_VEHICLES],
+    Vehicle_gsModel[MAX_VEHICLES],
+    Vehicle_gsNumberPlate[MAX_VEHICLES][MAX_NUMBER_PLATE],
+    Vehicle_gsRespawnDelay[MAX_VEHICLES],
+    Vehicle_gsDimensionInfo[MAX_VEHICLES][2],
+    Vehicle_gsColorInfo[MAX_VEHICLES][2],
+    Vehicle_gsHandler[MAX_VEHICLES],
     
-    Iterator: Vehicle_Iter<MAX_VEHICLES>,
-    Float: Vehicle_Health[MAX_VEHICLES],
-    Float: Vehicle_Position[MAX_VEHICLES][4];
+    Iterator: Vehicle_gsIter<MAX_VEHICLES>,
+    Float: Vehicle_gsHealth[MAX_VEHICLES],
+    Float: Vehicle_gsPosition[MAX_VEHICLES][4];
     
 
 // --
@@ -61,8 +61,8 @@ enum WINDOWS
 }
 
 static
-    Vehicle_Params[MAX_VEHICLES][PARAMS],
-    Vehicle_Windows[MAX_VEHICLES][WINDOWS];
+    Vehicle_gsParams[MAX_VEHICLES][PARAMS],
+    Vehicle_gsWindows[MAX_VEHICLES][WINDOWS];
 
 /**
   * <summary> Creates a vehicle.</summary>
@@ -74,23 +74,24 @@ static
   * <param name="respawn_delay">The time(ms) when the vehicle will be respawned again.</param>
   * <param name="interior">interior id, if you want to create a vehicle inside the building</param>
 */
-stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world) {
-    new idx = Iter_Alloc(Vehicle_Iter);
+stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world) 
+{
+    new idx = Iter_Alloc(Vehicle_gsIter);
     
-    Vehicle_Model[idx] = modelid;
-    Vehicle_Position[idx][0] = x;
-    Vehicle_Position[idx][1] = y;
-    Vehicle_Position[idx][2] = z;
-    Vehicle_Position[idx][3] = rotation;
-    Vehicle_ColorInfo[idx][0] = color1;
-    Vehicle_ColorInfo[idx][1] = color2;
-    Vehicle_RespawnDelay[idx] = respawn_delay;
-    Vehicle_DimensionInfo[idx][DIMENSION_INTERIOR] = interior;
-    Vehicle_DimensionInfo[idx][DIMENSION_VIRTUAL_WORLD] = virtual_world;
-    Vehicle_Handler[idx] = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay);
+    Vehicle_gsModel[idx] = modelid;
+    Vehicle_gsPosition[idx][0] = x;
+    Vehicle_gsPosition[idx][1] = y;
+    Vehicle_gsPosition[idx][2] = z;
+    Vehicle_gsPosition[idx][3] = rotation;
+    Vehicle_gsColorInfo[idx][0] = color1;
+    Vehicle_gsColorInfo[idx][1] = color2;
+    Vehicle_gsRespawnDelay[idx] = respawn_delay;
+    Vehicle_gsDimensionInfo[idx][DIMENSION_INTERIOR] = interior;
+    Vehicle_gsDimensionInfo[idx][DIMENSION_VIRTUAL_WORLD] = virtual_world;
+    Vehicle_gsHandler[idx] = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay);
 
-    SetVehicleVirtualWorld(Vehicle_Handler[idx], virtual_world);
-    LinkVehicleToInterior(Vehicle_Handler[idx], interior);
+    SetVehicleVirtualWorld(Vehicle_gsHandler[idx], virtual_world);
+    LinkVehicleToInterior(Vehicle_gsHandler[idx], interior);
 }
 
 /**
@@ -105,35 +106,37 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
  * <param name="Float: health">vehicle health (damage)</param>
  * <param name="plate">the text that will appear on the vehicle plates</param>
 */
-stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE]) {
-    new idx = Iter_Alloc(Vehicle_Iter);
+stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE]) 
+{
+    new idx = Iter_Alloc(Vehicle_gsIter);
     
-    Vehicle_Model[idx] = modelid;
-    Vehicle_Position[idx][0] = x;
-    Vehicle_Position[idx][1] = y;
-    Vehicle_Position[idx][2] = z;
-    Vehicle_Position[idx][3] = rotation;
-    Vehicle_ColorInfo[idx][0] = color1;
-    Vehicle_ColorInfo[idx][1] = color2;
-    Vehicle_RespawnDelay[idx] = respawn_delay;
-    Vehicle_DimensionInfo[idx][DIMENSION_INTERIOR] = interior;
-    Vehicle_DimensionInfo[idx][DIMENSION_VIRTUAL_WORLD] = virtual_world;
-    Vehicle_Health[idx] = health;
+    Vehicle_gsModel[idx] = modelid;
+    Vehicle_gsPosition[idx][0] = x;
+    Vehicle_gsPosition[idx][1] = y;
+    Vehicle_gsPosition[idx][2] = z;
+    Vehicle_gsPosition[idx][3] = rotation;
+    Vehicle_gsColorInfo[idx][0] = color1;
+    Vehicle_gsColorInfo[idx][1] = color2;
+    Vehicle_gsRespawnDelay[idx] = respawn_delay;
+    Vehicle_gsDimensionInfo[idx][DIMENSION_INTERIOR] = interior;
+    Vehicle_gsDimensionInfo[idx][DIMENSION_VIRTUAL_WORLD] = virtual_world;
+    Vehicle_gsHealth[idx] = health;
     
-    strcopy(Vehicle_NumberPlate[idx], plate);
-    Vehicle_Handler[idx] = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay);
+    strcopy(Vehicle_gsNumberPlate[idx], plate);
+    Vehicle_gsHandler[idx] = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay);
     
-    SetVehicleHealth(Vehicle_Handler[idx], health);
-    SetVehicleNumberPlate(Vehicle_Handler[idx], plate);
-    SetVehicleVirtualWorld(Vehicle_Handler[idx], virtual_world);
-    LinkVehicleToInterior(Vehicle_Handler[idx], interior);
+    SetVehicleHealth(Vehicle_gsHandler[idx], health);
+    SetVehicleNumberPlate(Vehicle_gsHandler[idx], plate);
+    SetVehicleVirtualWorld(Vehicle_gsHandler[idx], virtual_world);
+    LinkVehicleToInterior(Vehicle_gsHandler[idx], interior);
 }
 
 // -- 
 // Engine 
 // --
 
-enum e_ENGINE_STATES {
+enum e_ENGINE_STATES 
+{
     E_ENGINE_STATE_OFF = 0,
     E_ENGINE_STATE_ON
 };
@@ -144,10 +147,11 @@ enum e_ENGINE_STATES {
  * <returns> Engine state. </returns>
  */
 
-stock e_ENGINE_STATES: Vehicle_GetEngineState(vehicleid) {
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+stock e_ENGINE_STATES: Vehicle_GetEngineState(vehicleid) 
+{
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
 
-    return Vehicle_Params[vehicleid][PARAMS_ENGINE];
+    return Vehicle_gsParams[vehicleid][PARAMS_ENGINE];
 }
 
 /**
@@ -157,11 +161,12 @@ stock e_ENGINE_STATES: Vehicle_GetEngineState(vehicleid) {
  * <returns> SetVehicleParamsEx values. </returns>
 */
 
-stock Vehicle_SetEngineState(vehicleid, e_ENGINE_STATES: engine_state) {
+stock Vehicle_SetEngineState(vehicleid, e_ENGINE_STATES: engine_state) 
+{
 
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
-    Vehicle_Params[vehicleid][PARAMS_ENGINE] = engine_state;
-    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
+    Vehicle_gsParams[vehicleid][PARAMS_ENGINE] = engine_state;
+    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
     
     return ret;
 }
@@ -182,10 +187,11 @@ enum e_BOOT_STATES
  * <returns> Engine state. </returns>
  */
 
-stock e_BOOT_STATES: Vehicle_GetBootState(vehicleid) {
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+stock e_BOOT_STATES: Vehicle_GetBootState(vehicleid) 
+{
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
 
-    return Vehicle_Params[vehicleid][PARAMS_BOOT];
+    return Vehicle_gsParams[vehicleid][PARAMS_BOOT];
 }
 
 /**
@@ -195,11 +201,12 @@ stock e_BOOT_STATES: Vehicle_GetBootState(vehicleid) {
  * <returns> SetVehicleParamsEx values. </returns>
 */
 
-stock Vehicle_SetBootState(vehicleid, e_BOOT_STATES: boot_state) {
+stock Vehicle_SetBootState(vehicleid, e_BOOT_STATES: boot_state) 
+{
 
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
-    Vehicle_Params[vehicleid][PARAMS_BOOT] = boot_state;
-    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
+    Vehicle_gsParams[vehicleid][PARAMS_BOOT] = boot_state;
+    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
     
     return ret;
 }
@@ -220,10 +227,11 @@ enum e_BONNET_STATES
  * <returns> Bonnet state. </returns>
  */
 
-stock e_BOOT_STATES: Vehicle_GetBonnetState(vehicleid) {
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+stock e_BOOT_STATES: Vehicle_GetBonnetState(vehicleid) 
+{
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
 
-    return Vehicle_Params[vehicleid][PARAMS_BONNET];
+    return Vehicle_gsParams[vehicleid][PARAMS_BONNET];
 }
 
 /**
@@ -233,11 +241,12 @@ stock e_BOOT_STATES: Vehicle_GetBonnetState(vehicleid) {
  * <returns> SetVehicleParamsEx values. </returns>
 */
 
-stock Vehicle_SetBonnetState(vehicleid, e_BONNET_STATES: bonnet_state) {
+stock Vehicle_SetBonnetState(vehicleid, e_BONNET_STATES: bonnet_state) 
+{
 
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
-    Vehicle_Params[vehicleid][PARAMS_BONNET] = bonnet_state;
-    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
+    Vehicle_gsParams[vehicleid][PARAMS_BONNET] = bonnet_state;
+    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
     
     return ret;
 }
@@ -258,10 +267,11 @@ enum e_OBJECTIVE_STATES
  * <returns> Objective state. </returns>
  */
 
-stock e_BOOT_STATES: Vehicle_GetObjectiveState(vehicleid) {
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+stock e_BOOT_STATES: Vehicle_GetObjectiveState(vehicleid) 
+{
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
 
-    return Vehicle_Params[vehicleid][PARAMS_OBJECTIVE];
+    return Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE];
 }
 
 /**
@@ -271,11 +281,12 @@ stock e_BOOT_STATES: Vehicle_GetObjectiveState(vehicleid) {
  * <returns> SetVehicleParamsEx values. </returns>
 */
 
-stock Vehicle_SetObjectiveState(vehicleid, e_BONNET_STATES: bonnet_state) {
+stock Vehicle_SetObjectiveState(vehicleid, e_BONNET_STATES: bonnet_state) 
+{
 
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
-    Vehicle_Params[vehicleid][PARAMS_OBJECTIVE] = bonnet_state;
-    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
+    Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE] = bonnet_state;
+    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
     
     return ret;
 }
@@ -285,23 +296,27 @@ stock Vehicle_SetObjectiveState(vehicleid, e_BONNET_STATES: bonnet_state) {
 // Lights
 // --
 
-enum e_LIGHT_STATES {
+enum e_LIGHT_STATES 
+{
     E_LIGHT_ON = 0,
     E_LIGHT_OFF
 };
 
-enum e_LIGHT_RUN_STATE {
+enum e_LIGHT_RUN_STATE 
+{
     E_LIGHTS_OFF,
     E_LIGHTS_ON    
 };
 
 // internal
 
-static stock vehicle_EncodeLights(front_left_light, front_right_light, back_lights) {
+static stock vehicle_EncodeLights(front_left_light, front_right_light, back_lights) 
+{
     return front_left_light | (front_right_light << 2) | (back_lights << 6);
 }
 
-static stock vehicle_DecodeLights(lights, &front_left_light, &front_right_light, &back_lights) {
+static stock vehicle_DecodeLights(lights, &front_left_light, &front_right_light, &back_lights) 
+{
     front_left_light = lights & 1;
     front_right_light = lights >> 2 & 1;
     back_lights = lights >> 6 & 1;
@@ -319,7 +334,8 @@ static stock vehicle_DecodeLights(lights, &front_left_light, &front_right_light,
 */
 
 
-stock Vehicle_SetLightsState(vehicleid, e_LIGHT_STATES: left_lights, e_LIGHT_STATES: right_lights, e_LIGHT_STATES: back_lights) {
+stock Vehicle_SetLightsState(vehicleid, e_LIGHT_STATES: left_lights, e_LIGHT_STATES: right_lights, e_LIGHT_STATES: back_lights) 
+{
     new 
         lights, 
         unnecessary_doors,
@@ -341,7 +357,8 @@ stock Vehicle_SetLightsState(vehicleid, e_LIGHT_STATES: left_lights, e_LIGHT_STA
  * <param name="&back_lights"> Back Ligth state to get.</param>
 */
 
-stock Vehicle_GetLightsState(vehicleid, &e_LIGHT_STATES: left_lights, &e_LIGHT_STATES: right_lights, &e_LIGHT_STATES: back_lights) {
+stock Vehicle_GetLightsState(vehicleid, &e_LIGHT_STATES: left_lights, &e_LIGHT_STATES: right_lights, &e_LIGHT_STATES: back_lights) 
+{    
     new 
         lights,
         unnecessary_params;
@@ -359,11 +376,12 @@ stock Vehicle_GetLightsState(vehicleid, &e_LIGHT_STATES: left_lights, &e_LIGHT_S
  * <returns> SetVehicleParamsEx values. </returns>
 */
 
-stock Vehicle_SetLightsRunState(vehicleid, e_LIGHT_RUN_STATE: light_state) {
+stock Vehicle_SetLightsRunState(vehicleid, e_LIGHT_RUN_STATE: light_state) 
+{
         
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
-    Vehicle_Params[vehicleid][PARAMS_LIGHTS] = light_state;
-    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
+    Vehicle_gsParams[vehicleid][PARAMS_LIGHTS] = light_state;
+    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
     
     return ret;
 }
@@ -374,16 +392,18 @@ stock Vehicle_SetLightsRunState(vehicleid, e_LIGHT_RUN_STATE: light_state) {
  * <returns> Lights' running state. </returns>
 */
 
-stock e_LIGHT_RUN_STATE: Vehicle_GetLightsRunState(vehicleid) {
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
-    return Vehicle_Params[vehicleid][PARAMS_LIGHTS];
+stock e_LIGHT_RUN_STATE: Vehicle_GetLightsRunState(vehicleid) 
+{
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
+    return Vehicle_gsParams[vehicleid][PARAMS_LIGHTS];
 }
 
 
 // --
 // Alarms
 // --
-enum e_ALARMS_STATE {
+enum e_ALARMS_STATE 
+{
     E_ALARMS_OFF = 0,
     E_ALARMS_ON
 };
@@ -394,11 +414,12 @@ enum e_ALARMS_STATE {
  * <returns> SetVehicleParamsEx values. </returns>
 */
 
-stock Vehicle_SetAlarms(vehicleid, e_ALARMS_STATE: alarm_state) {
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
-    Vehicle_Params[vehicleid][PARAMS_ALARM] = alarm_state;
+stock Vehicle_SetAlarms(vehicleid, e_ALARMS_STATE: alarm_state) 
+{
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
+    Vehicle_gsParams[vehicleid][PARAMS_ALARM] = alarm_state;
    
-    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
     return ret;
 }
 
@@ -408,21 +429,24 @@ stock Vehicle_SetAlarms(vehicleid, e_ALARMS_STATE: alarm_state) {
  * <returns> Alarms' state. </returns>
 */
 
-stock e_ALARMS_STATE: Vehicle_GetAlarms(vehicleid) {
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
-    return Vehicle_Params[vehicleid][PARAMS_ALARM];
+stock e_ALARMS_STATE: Vehicle_GetAlarms(vehicleid) 
+{
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
+    return Vehicle_gsParams[vehicleid][PARAMS_ALARM];
 }
 
 // ---
 // Doors
 // ---
 
-enum e_DOOR_LOCK_STATES {
+enum e_DOOR_LOCK_STATES 
+{
     E_DOOR_STATE_OFF = 0,
     E_DOOR_STATE_ON
 };
 
-enum e_DOOR_STATES {
+enum e_DOOR_STATES 
+{
     E_DOOR_STATE_NORMAL = 0,
     E_DOOR_STATE_OPEN = 1,
     E_DOOR_STATE_DAMAGED = 2,
@@ -431,12 +455,14 @@ enum e_DOOR_STATES {
 };
 
 //--
-static stock vehicle_EncodeDoors(bonnet, boot, driver_door, passenger_door) {
+static stock vehicle_EncodeDoors(bonnet, boot, driver_door, passenger_door) 
+{
     return bonnet | (boot << 8) | (driver_door << 16) | (passenger_door << 24);
 }
 
 
-static stock vehicle_DecodeDoors(doors, &bonnet, &boot, &driver_door, &passenger_door) {
+static stock vehicle_DecodeDoors(doors, &bonnet, &boot, &driver_door, &passenger_door) 
+{
     bonnet = doors & 7;
     boot = doors >> 8 & 7;
     driver_door = doors >> 16 & 7;
@@ -454,7 +480,8 @@ static stock vehicle_DecodeDoors(doors, &bonnet, &boot, &driver_door, &passenger
  * <returns> UpdateVehicleDamageStatus values. </returns>
 */
 
-stock Vehicle_SetDoorState(vehicleid, e_DOOR_STATES: hood, e_DOOR_STATES: trunk, e_DOOR_STATES: driver, e_DOOR_STATES: passenger) {
+stock Vehicle_SetDoorState(vehicleid, e_DOOR_STATES: hood, e_DOOR_STATES: trunk, e_DOOR_STATES: driver, e_DOOR_STATES: passenger) 
+{
     new
         doors,
         unnecessary_panels,
@@ -476,7 +503,8 @@ stock Vehicle_SetDoorState(vehicleid, e_DOOR_STATES: hood, e_DOOR_STATES: trunk,
  * <param name="&passenger"> Passenger-door state to get.</param>
 */
 
-stock Vehicle_GetDoorState(vehicleid, &e_DOOR_STATES: bonnet, &e_DOOR_STATES: boot, &e_DOOR_STATES: driver, &e_DOOR_STATES: passenger) {
+stock Vehicle_GetDoorState(vehicleid, &e_DOOR_STATES: bonnet, &e_DOOR_STATES: boot, &e_DOOR_STATES: driver, &e_DOOR_STATES: passenger) 
+{
     new 
         doors,
         unnecessary_params;
@@ -491,11 +519,12 @@ stock Vehicle_GetDoorState(vehicleid, &e_DOOR_STATES: bonnet, &e_DOOR_STATES: bo
  * <returns> Doors' lock state. </returns>
 */
 
-stock e_DOOR_LOCK_STATES: Vehicle_GetDoorsLockState(vehicleid) {
+stock e_DOOR_LOCK_STATES: Vehicle_GetDoorsLockState(vehicleid) 
+{
 
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
     
-    return Vehicle_Params[vehicleid][PARAMS_DOORS];
+    return Vehicle_gsParams[vehicleid][PARAMS_DOORS];
 }
 
 /**
@@ -505,10 +534,11 @@ stock e_DOOR_LOCK_STATES: Vehicle_GetDoorsLockState(vehicleid) {
  * <returns> SetVehicleParamsEx values. </returns>
 */
 
-stock Vehicle_SetDoorsLockState(vehicleid, e_DOOR_LOCK_STATES: door_state) {
-    GetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
-    Vehicle_Params[vehicleid][PARAMS_DOORS] = door_state;
-    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_Params[vehicleid][PARAMS_ENGINE], Vehicle_Params[vehicleid][PARAMS_LIGHTS], Vehicle_Params[vehicleid][PARAMS_ALARM], Vehicle_Params[vehicleid][PARAMS_DOORS], Vehicle_Params[vehicleid][PARAMS_BONNET], Vehicle_Params[vehicleid][PARAMS_BOOT], Vehicle_Params[vehicleid][PARAMS_OBJECTIVE]);
+stock Vehicle_SetDoorsLockState(vehicleid, e_DOOR_LOCK_STATES: door_state) 
+{
+    GetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
+    Vehicle_gsParams[vehicleid][PARAMS_DOORS] = door_state;
+    new const ret = SetVehicleParamsEx(vehicleid, Vehicle_gsParams[vehicleid][PARAMS_ENGINE], Vehicle_gsParams[vehicleid][PARAMS_LIGHTS], Vehicle_gsParams[vehicleid][PARAMS_ALARM], Vehicle_gsParams[vehicleid][PARAMS_DOORS], Vehicle_gsParams[vehicleid][PARAMS_BONNET], Vehicle_gsParams[vehicleid][PARAMS_BOOT], Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE]);
     return ret;
 }
 
@@ -518,7 +548,8 @@ stock Vehicle_SetDoorsLockState(vehicleid, e_DOOR_LOCK_STATES: door_state) {
 // Tires
 // ---
 
-enum e_TIRE_STATUS {
+enum e_TIRE_STATUS 
+{
     E_TIRE_INFLATED = 0,
     E_TIRE_POPPED
 };
@@ -533,7 +564,8 @@ enum e_TIRE_STATUS {
  * <returns> UpdateVehicleDamageStatus values. </returns>
 */
 
-stock Vehicle_SetTireState(vehicleid, e_TIRE_STATUS: rear_right_tire, e_TIRE_STATUS: front_right_tire, e_TIRE_STATUS: rear_left_tire, e_TIRE_STATUS: front_left_tire) {    
+stock Vehicle_SetTireState(vehicleid, e_TIRE_STATUS: rear_right_tire, e_TIRE_STATUS: front_right_tire, e_TIRE_STATUS: rear_left_tire, e_TIRE_STATUS: front_left_tire) 
+{    
     new
         tires,
         unnecessary_panels,
@@ -556,7 +588,8 @@ stock Vehicle_SetTireState(vehicleid, e_TIRE_STATUS: rear_right_tire, e_TIRE_STA
  * <param name="&front_left_tire"> Front Left Tire state to get.</param>
 */
 
-stock Vehicle_GetTireState(vehicleid, &e_TIRE_STATUS: rear_right_tire, &e_TIRE_STATUS: front_right_tire, &e_TIRE_STATUS: rear_left_tire, &e_TIRE_STATUS: front_left_tire) {    
+stock Vehicle_GetTireState(vehicleid, &e_TIRE_STATUS: rear_right_tire, &e_TIRE_STATUS: front_right_tire, &e_TIRE_STATUS: rear_left_tire, &e_TIRE_STATUS: front_left_tire) 
+{    
     new 
         tires,
         unnecessary_params;
@@ -592,8 +625,9 @@ static stock vehicle_DecodeTires(tires, &rear_right_tire, &front_right_tire, &re
  * <param name="len"> Size of the plate.</param>
 */
 
-stock Vehicle_GetNumberPlate(vehicleid, plate[], len = sizeof(plate)) {
-	format(plate, len, "%s", Vehicle_NumberPlate[vehicleid]);
+stock Vehicle_GetNumberPlate(vehicleid, plate[], len = sizeof(plate)) 
+{
+	format(plate, len, "%s", Vehicle_gsNumberPlate[vehicleid]);
 }
 
 /**
@@ -602,10 +636,11 @@ stock Vehicle_GetNumberPlate(vehicleid, plate[], len = sizeof(plate)) {
  * <param name="plate"> Plate to set.</param>
 */
 
-stock Vehicle_SetNumberPlate(vehicleid, const plate[]) {
+stock Vehicle_SetNumberPlate(vehicleid, const plate[]) 
+{
 
-	format(Vehicle_NumberPlate[vehicleid], MAX_NUMBER_PLATE, "%s", plate);
-	new const ret = SetVehicleNumberPlate(vehicleid, Vehicle_NumberPlate[vehicleid]);
+	format(Vehicle_gsNumberPlate[vehicleid], MAX_NUMBER_PLATE, "%s", plate);
+	new const ret = SetVehicleNumberPlate(vehicleid, Vehicle_gsNumberPlate[vehicleid]);
     return ret;
 }
 
@@ -613,7 +648,8 @@ stock Vehicle_SetNumberPlate(vehicleid, const plate[]) {
 // Windows 
 // --
 
-enum e_WINDOWS_STATES {
+enum e_WINDOWS_STATES 
+{
     E_WINDOW_NOT_SET = -1,
     E_WINDOW_OPENED = 0,
     E_WINDOW_CLOSED
@@ -628,12 +664,13 @@ enum e_WINDOWS_STATES {
  * <param name="backright"> Backright-window state to gset.</param>
 */
 
-stock Vehicle_SetWindows(vehicleid, e_WINDOWS_STATES: driver, e_WINDOWS_STATES: passenger, e_WINDOWS_STATES: backleft, e_WINDOWS_STATES: backright) {
-    Vehicle_Windows[vehicleid][WINDOWS_DRIVER] = driver;
-    Vehicle_Windows[vehicleid][WINDOWS_PASSENGER] = passenger;
-    Vehicle_Windows[vehicleid][WINDOWS_REAR_LEFT] = backleft;
-    Vehicle_Windows[vehicleid][WINDOWS_REAR_RIGHT] = backright;
-    SetVehicleParamsCarWindows(vehicleid, Vehicle_Windows[vehicleid][WINDOWS_DRIVER], Vehicle_Windows[vehicleid][WINDOWS_PASSENGER], Vehicle_Windows[vehicleid][WINDOWS_REAR_LEFT], Vehicle_Windows[vehicleid][WINDOWS_REAR_RIGHT]);
+stock Vehicle_SetWindows(vehicleid, e_WINDOWS_STATES: driver, e_WINDOWS_STATES: passenger, e_WINDOWS_STATES: backleft, e_WINDOWS_STATES: backright) 
+{
+    Vehicle_gsWindows[vehicleid][WINDOWS_DRIVER] = driver;
+    Vehicle_gsWindows[vehicleid][WINDOWS_PASSENGER] = passenger;
+    Vehicle_gsWindows[vehicleid][WINDOWS_REAR_LEFT] = backleft;
+    Vehicle_gsWindows[vehicleid][WINDOWS_REAR_RIGHT] = backright;
+    SetVehicleParamsCarWindows(vehicleid, Vehicle_gsWindows[vehicleid][WINDOWS_DRIVER], Vehicle_gsWindows[vehicleid][WINDOWS_PASSENGER], Vehicle_gsWindows[vehicleid][WINDOWS_REAR_LEFT], Vehicle_gsWindows[vehicleid][WINDOWS_REAR_RIGHT]);
 }
 
 /**
@@ -645,12 +682,13 @@ stock Vehicle_SetWindows(vehicleid, e_WINDOWS_STATES: driver, e_WINDOWS_STATES: 
  * <param name="&backright"> Backright-window state to get.</param>
 */
 
-stock Vehicle_GetWindows(vehicleid, &e_WINDOWS_STATES: driver, &e_WINDOWS_STATES: passenger, &e_WINDOWS_STATES: backleft, &e_WINDOWS_STATES: backright) {
-    GetVehicleParamsCarWindows(vehicleid, Vehicle_Windows[vehicleid][WINDOWS_DRIVER], Vehicle_Windows[vehicleid][WINDOWS_PASSENGER], Vehicle_Windows[vehicleid][WINDOWS_REAR_LEFT], Vehicle_Windows[vehicleid][WINDOWS_REAR_RIGHT]);
-    driver = Vehicle_Windows[vehicleid][WINDOWS_DRIVER];
-    passenger = Vehicle_Windows[vehicleid][WINDOWS_PASSENGER];
-    backleft = Vehicle_Windows[vehicleid][WINDOWS_REAR_LEFT];
-    backright = Vehicle_Windows[vehicleid][WINDOWS_REAR_RIGHT];
+stock Vehicle_GetWindows(vehicleid, &e_WINDOWS_STATES: driver, &e_WINDOWS_STATES: passenger, &e_WINDOWS_STATES: backleft, &e_WINDOWS_STATES: backright) 
+{
+    GetVehicleParamsCarWindows(vehicleid, Vehicle_gsWindows[vehicleid][WINDOWS_DRIVER], Vehicle_gsWindows[vehicleid][WINDOWS_PASSENGER], Vehicle_gsWindows[vehicleid][WINDOWS_REAR_LEFT], Vehicle_gsWindows[vehicleid][WINDOWS_REAR_RIGHT]);
+    driver = Vehicle_gsWindows[vehicleid][WINDOWS_DRIVER];
+    passenger = Vehicle_gsWindows[vehicleid][WINDOWS_PASSENGER];
+    backleft = Vehicle_gsWindows[vehicleid][WINDOWS_REAR_LEFT];
+    backright = Vehicle_gsWindows[vehicleid][WINDOWS_REAR_RIGHT];
 }
 
 // --
@@ -663,7 +701,8 @@ stock Vehicle_GetWindows(vehicleid, &e_WINDOWS_STATES: driver, &e_WINDOWS_STATES
         in any physical change on the vehicle.
 */
 
-enum e_PANEL_STATES {
+enum e_PANEL_STATES 
+{
     E_PANEL_UNDAMAGED = 0,
     E_PANEL_CRUSHED = 1,
     E_PANEL_HANGING_LOOSE = 2,
@@ -699,7 +738,8 @@ static stock vehicle_EncodePanels(front_left_panel, front_right_panel, rear_left
  * <param name="back_right_panel"> Back right state to set.</param>
 */
 
-stock Vehicle_SetPanelStates(vehicleid, e_PANEL_STATES: front_left_panel, e_PANEL_STATES: front_right_panel, e_PANEL_STATES: back_left_panel, e_PANEL_STATES: back_right_panel) {
+stock Vehicle_SetPanelStates(vehicleid, e_PANEL_STATES: front_left_panel, e_PANEL_STATES: front_right_panel, e_PANEL_STATES: back_left_panel, e_PANEL_STATES: back_right_panel) 
+{
     new
         panels,
         unnecessary_lights,
@@ -726,7 +766,8 @@ stock Vehicle_SetPanelStates(vehicleid, e_PANEL_STATES: front_left_panel, e_PANE
  * <param name="&back_right_panel"> Back right state to get.</param>
 */
 
-stock Vehicle_GetPanelStates(vehicleid, &e_PANEL_STATES: front_left_panel, &e_PANEL_STATES: front_right_panel, &e_PANEL_STATES: back_left_panel, &e_PANEL_STATES: back_right_panel) {
+stock Vehicle_GetPanelStates(vehicleid, &e_PANEL_STATES: front_left_panel, &e_PANEL_STATES: front_right_panel, &e_PANEL_STATES: back_left_panel, &e_PANEL_STATES: back_right_panel) 
+{
     new
         panels,
         unnecessary;
@@ -743,7 +784,8 @@ stock Vehicle_GetPanelStates(vehicleid, &e_PANEL_STATES: front_left_panel, &e_PA
  * <param name="back_left_panel"> Rear bumper state to set.</param>
 */
 
-stock Vehicle_SetBumperStates(vehicleid, e_PANEL_STATES: front_bumper, e_PANEL_STATES: rear_bumper) {
+stock Vehicle_SetBumperStates(vehicleid, e_PANEL_STATES: front_bumper, e_PANEL_STATES: rear_bumper) 
+{
     new
         panels,
         unnecessary_front_left, 
@@ -771,7 +813,8 @@ stock Vehicle_SetBumperStates(vehicleid, e_PANEL_STATES: front_bumper, e_PANEL_S
 */
 
 
-stock Vehicle_GetBumperStates(vehicleid, &e_PANEL_STATES: front_bumper, &e_PANEL_STATES: rear_bumper) {
+stock Vehicle_GetBumperStates(vehicleid, &e_PANEL_STATES: front_bumper, &e_PANEL_STATES: rear_bumper) 
+{
     new
         panels,
         unnecessary;
@@ -787,7 +830,8 @@ stock Vehicle_GetBumperStates(vehicleid, &e_PANEL_STATES: front_bumper, &e_PANEL
  * <param name="&windshield"> Windshield state to get.</param>
 */
 
-stock Vehicle_GetWindshieldState(vehicleid, &e_PANEL_STATES: windshield) {
+stock Vehicle_GetWindshieldState(vehicleid, &e_PANEL_STATES: windshield) 
+{
     new
         panels,
         unnecessary;
@@ -808,10 +852,14 @@ stock Vehicle_GetWindshieldState(vehicleid, &e_PANEL_STATES: windshield) {
 // and then turn engines on
 // When the player have exited vehicle turn off
 
-hook OnPlayerStateChange(playerid, newstate, oldstate) {
-    if(oldstate == PLAYER_STATE_ONFOOT && newstate == PLAYER_STATE_DRIVER && Vehicle_IsManual(GetPlayerVehicleID(playerid))) {
+hook OnPlayerStateChange(playerid, newstate, oldstate) 
+{
+    if(oldstate == PLAYER_STATE_ONFOOT && newstate == PLAYER_STATE_DRIVER && Vehicle_IsManual(GetPlayerVehicleID(playerid))) 
+    {
         Vehicle_SetEngineState(GetPlayerVehicleID(playerid), E_ENGINE_STATE_ON);
-    } else if(oldstate == PLAYER_STATE_DRIVER && newstate == PLAYER_STATE_ONFOOT && Vehicle_IsManual(GetPlayerVehicleID(playerid))) {
+    } 
+    else if(oldstate == PLAYER_STATE_DRIVER && newstate == PLAYER_STATE_ONFOOT && Vehicle_IsManual(GetPlayerVehicleID(playerid))) 
+    {
         Vehicle_SetEngineState(GetPlayerVehicleID(playerid), E_ENGINE_STATE_OFF);
     }
     return Y_HOOKS_CONTINUE_RETURN_1;
