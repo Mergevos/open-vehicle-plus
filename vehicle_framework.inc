@@ -82,6 +82,10 @@ static
 stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world) 
 {
     new idx = Iter_Alloc(Vehicle_gsIter);
+
+    if (idx == INVALID_ITERATOR_SLOT) {
+        return 0; // I don't see any coding style for errors.
+    }
     
     Vehicle_gsModel[idx] = modelid;
     Vehicle_gsPosition[idx][0] = x;
@@ -115,6 +119,10 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
 stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE]) 
 {
     new idx = Iter_Alloc(Vehicle_gsIter);
+
+    if (idx == INVALID_ITERATOR_SLOT) {
+        return 0; // I don't see any coding style for errors.
+    }
     
     Vehicle_gsModel[idx] = modelid;
     Vehicle_gsPosition[idx][0] = x;
