@@ -2,6 +2,7 @@
 #include <YSI_Data\y_foreach>
 #include <YSI_Coding\y_hooks>
 #include <YSI_Game\y_vehicledata>
+#include <YSI_Core\y_testing>
 
 #if defined UGMP_Enable
     #include <ugmp>
@@ -9,6 +10,10 @@
 
 #if defined EMPTY_DAMAGE 
     #include <weapon-config>
+#endif
+
+#if defined _YSF_included
+    #define YSF_Enable
 #endif
 
 // -- 
@@ -93,6 +98,7 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
     SetVehicleVirtualWorld(Vehicle_gsHandler[idx], virtual_world);
     LinkVehicleToInterior(Vehicle_gsHandler[idx], interior);
 }
+
 
 /**
  * <summary> Creates a vehicle with additional params.</summary>
@@ -509,7 +515,7 @@ stock Vehicle_GetDoorState(vehicleid, &e_DOOR_STATES: bonnet, &e_DOOR_STATES: bo
         doors,
         unnecessary_params;
 
-    GetVehicleDamageStatus(vehicleid, unnecessary_params, unnecessary_params, unnecessary_params, doors);
+    GetVehicleDamageStatus(vehicleid, unnecessary_params, doors, unnecessary_params, unnecessary_params);
     vehicle_DecodeDoors(doors, bonnet, boot, driver, passenger);
 }
 
