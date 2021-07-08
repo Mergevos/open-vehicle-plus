@@ -1,8 +1,10 @@
 #include <a_samp>
+//#define RUN_TESTS
 #include <YSI_Data\y_foreach>
 #include <YSI_Coding\y_hooks>
 #include <YSI_Game\y_vehicledata>
 #include <YSI_Core\y_testing>
+#include <YSF>
 
 #if defined UGMP_Enable
     #include <ugmp>
@@ -25,6 +27,23 @@
     #define MAX_NUMBER_PLATE 32
 #endif
 
+static const Vehicle_gscPaintjob[] = 
+{
+    483,
+    534,
+    535,
+    536,
+    558,
+    559,
+    560,
+    561,
+    562,
+    565,
+    567,
+    575,
+    576
+};
+
 static const 
     DIMENSION_INTERIOR = 0,
     DIMENSION_VIRTUAL_WORLD = 1;
@@ -34,13 +53,22 @@ static
     Vehicle_gsNumberPlate[MAX_VEHICLES][MAX_NUMBER_PLATE],
     Vehicle_gsRespawnDelay[MAX_VEHICLES],
     Vehicle_gsDimensionInfo[MAX_VEHICLES][2],
+    Vehicle_gsPaintjob[MAX_VEHICLES],
     Vehicle_gsColorInfo[MAX_VEHICLES][2],
-    Vehicle_gsHandler[MAX_VEHICLES],
-    
-    Iterator: Vehicle_gsIter<MAX_VEHICLES>,
+    Vehicle_gsLastDriver[MAX_VEHICLES],
+    Vehicle_gsOccupiedTick[MAX_VEHICLES],
+    Vehicle_gsSirenState[MAX_VEHICLES],
+    Vehicle_gsRespawnTick[MAX_VEHICLES],
+
+    Vehicle_gsIsOccupied[MAX_VEHICLES][4],
+    Vehicle_gsTrailer[MAX_VEHICLES][2],
+
     Float: Vehicle_gsHealth[MAX_VEHICLES],
     Float: Vehicle_gsPosition[MAX_VEHICLES][4];
-    
+
+static
+    Player_LastVehicleID[MAX_PLAYERS];
+
 
 // --
 // Params
@@ -79,14 +107,24 @@ static
   * <param name="respawn_delay">The time(ms) when the vehicle will be respawned again.</param>
   * <param name="interior">interior id, if you want to create a vehicle inside the building</param>
 */
-stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world) 
+stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, addsiren=0) 
 {
-    new idx = Iter_Alloc(Vehicle_gsIter);
-
-    if (idx == INVALID_ITERATOR_SLOT) {
-        return 0; // I don't see any coding style for errors.
+    new idx;
+    if(modelid == 537 || modelid == 538)
+    {
+        idx = AddStaticVehicleEx(modelid, x, y, z, rotation, color1, color2, respawn_delay, addsiren);
     }
-    
+    else 
+    {
+        idx = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay, addsiren); 
+    }
+
+    if(!IsValidVehicle(idx)) 
+    {
+        return INVALID_VEHICLE_ID;
+    }
+
+
     Vehicle_gsModel[idx] = modelid;
     Vehicle_gsPosition[idx][0] = x;
     Vehicle_gsPosition[idx][1] = y;
@@ -94,15 +132,26 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
     Vehicle_gsPosition[idx][3] = rotation;
     Vehicle_gsColorInfo[idx][0] = color1;
     Vehicle_gsColorInfo[idx][1] = color2;
+    Vehicle_gsPaintjob[idx] = -1;
+    Vehicle_gsSirenState[idx] = addsiren;
+    Vehicle_gsTrailer[idx][0] = 0;
+    Vehicle_gsTrailer[idx][1] = 0;
     Vehicle_gsRespawnDelay[idx] = respawn_delay;
     Vehicle_gsDimensionInfo[idx][DIMENSION_INTERIOR] = interior;
     Vehicle_gsDimensionInfo[idx][DIMENSION_VIRTUAL_WORLD] = virtual_world;
-    Vehicle_gsHandler[idx] = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay);
+    Vehicle_gsOccupiedTick[idx] = -1;
+    Vehicle_gsRespawnTick[idx] = gettime();
 
-    SetVehicleVirtualWorld(Vehicle_gsHandler[idx], virtual_world);
-    LinkVehicleToInterior(Vehicle_gsHandler[idx], interior);
+    Vehicle_gsLastDriver[idx] = -1;
+    Vehicle_gsIsOccupied[idx][0] = -1;
+    Vehicle_gsIsOccupied[idx][1] = -1;
+    Vehicle_gsIsOccupied[idx][2] = -1;
+    Vehicle_gsIsOccupied[idx][3] = -1;
+    
+    SetVehicleVirtualWorld(idx, virtual_world);
+    LinkVehicleToInterior(idx, interior);
+    return idx;
 }
-
 
 /**
  * <summary> Creates a vehicle with additional params.</summary>
@@ -116,12 +165,16 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
  * <param name="Float: health">vehicle health (damage)</param>
  * <param name="plate">the text that will appear on the vehicle plates</param>
 */
-stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE]) 
+stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE], addsiren=0) 
 {
-    new idx = Iter_Alloc(Vehicle_gsIter);
-
-    if (idx == INVALID_ITERATOR_SLOT) {
-        return 0; // I don't see any coding style for errors.
+    new idx;
+    if(modelid == 537 || modelid == 538)
+    {
+        idx = AddStaticVehicleEx(modelid, x, y, z, rotation, color1, color2, respawn_delay, addsiren);
+    }
+    else 
+    {
+        idx = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay, addsiren);
     }
     
     Vehicle_gsModel[idx] = modelid;
@@ -129,20 +182,32 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
     Vehicle_gsPosition[idx][1] = y;
     Vehicle_gsPosition[idx][2] = z;
     Vehicle_gsPosition[idx][3] = rotation;
+    Vehicle_gsSirenState[idx] = addsiren;
     Vehicle_gsColorInfo[idx][0] = color1;
     Vehicle_gsColorInfo[idx][1] = color2;
+    Vehicle_gsPaintjob[idx] = -1;
+    Vehicle_gsTrailer[idx][0] = 0;
+    Vehicle_gsTrailer[idx][1] = 0;
     Vehicle_gsRespawnDelay[idx] = respawn_delay;
     Vehicle_gsDimensionInfo[idx][DIMENSION_INTERIOR] = interior;
     Vehicle_gsDimensionInfo[idx][DIMENSION_VIRTUAL_WORLD] = virtual_world;
     Vehicle_gsHealth[idx] = health;
+    Vehicle_gsOccupiedTick[idx] = -1;
+    Vehicle_gsRespawnTick[idx] = gettime();
+
+    Vehicle_gsLastDriver[idx] = -1;
+    Vehicle_gsIsOccupied[idx][0] = -1;
+    Vehicle_gsIsOccupied[idx][1] = -1;
+    Vehicle_gsIsOccupied[idx][2] = -1;
+    Vehicle_gsIsOccupied[idx][3] = -1;
     
     strcopy(Vehicle_gsNumberPlate[idx], plate);
-    Vehicle_gsHandler[idx] = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay);
     
-    SetVehicleHealth(Vehicle_gsHandler[idx], health);
-    SetVehicleNumberPlate(Vehicle_gsHandler[idx], plate);
-    SetVehicleVirtualWorld(Vehicle_gsHandler[idx], virtual_world);
-    LinkVehicleToInterior(Vehicle_gsHandler[idx], interior);
+    SetVehicleHealth(idx, health);
+    SetVehicleNumberPlate(idx, plate);
+    SetVehicleVirtualWorld(idx, virtual_world);
+    LinkVehicleToInterior(idx, interior);
+    return idx;
 }
 
 // -- 
@@ -152,7 +217,7 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
 enum e_ENGINE_STATES 
 {
     E_ENGINE_STATE_OFF = 0,
-    E_ENGINE_STATE_ON
+    E_ENGINE_STATE_ON,
 };
 
 /**
@@ -641,7 +706,11 @@ static stock vehicle_DecodeTires(tires, &rear_right_tire, &front_right_tire, &re
 
 stock Vehicle_GetNumberPlate(vehicleid, plate[], len = sizeof(plate)) 
 {
-	format(plate, len, "%s", Vehicle_gsNumberPlate[vehicleid]);
+    #if defined YSF_Enable
+        GetVehicleNumberPlate(vehicleid, plate, len);
+    #else
+        format(plate, len, "%s", Vehicle_gsNumberPlate[vehicleid]);
+    #endif
 }
 
 /**
@@ -856,6 +925,222 @@ stock Vehicle_GetWindshieldState(vehicleid, &e_PANEL_STATES: windshield)
 }
 
 // --
+// Colors
+// --
+
+// here no summary
+
+stock Vehicle_SetColor(vehicleid, color1, color2)
+{
+    Vehicle_gsColorInfo[vehicleid][0] = color1;
+    Vehicle_gsColorInfo[vehicleid][1] = color2;
+    ChangeVehicleColor(vehicleid, Vehicle_gsColorInfo[vehicleid][0], Vehicle_gsColorInfo[vehicleid][1]);
+}
+
+stock Vehicle_GetColor(vehicleid, &color1, &color2) 
+{
+    #if !defined YSF_Enable
+        color1 = Vehicle_gsColorInfo[vehicleid][0];
+        color2 = Vehicle_gsColorInfo[vehicleid][1];
+    #else
+        GetVehicleColor(vehicleid, color1, color2);
+    #endif
+}
+
+// --
+// Dimensions
+// --
+
+stock Vehicle_SetInterior(vehicleid, interiorid) 
+{
+    Vehicle_gsDimensionInfo[vehicleid][DIMENSION_INTERIOR] = interiorid;
+    LinkVehicleToInterior(vehicleid, Vehicle_gsDimensionInfo[vehicleid][DIMENSION_INTERIOR]);
+}
+
+stock Vehicle_GetInterior(vehicleid) 
+{
+    #if !defined YSF_Enable
+        return Vehicle_gsDimensionInfo[vehicleid][DIMENSION_INTERIOR];
+    #else
+        GetVehicleInterior(vehicleid);
+    #endif
+}
+
+stock Vehicle_SetVirtualWorld(vehicleid, virtual_world)
+{
+    Vehicle_gsDimensionInfo[vehicleid][DIMENSION_VIRTUAL_WORLD] = virtual_world;
+    SetVehicleVirtualWorld(vehicleid, virtual_world);
+}
+
+stock Vehicle_GetVirtualWorld(vehicleid) 
+{
+    return Vehicle_gsDimensionInfo[vehicleid][DIMENSION_VIRTUAL_WORLD];
+}
+
+stock Vehicle_SetDimensionInfo(vehicleid, interiorid, virtual_world)
+{
+    Vehicle_gsDimensionInfo[vehicleid][DIMENSION_INTERIOR] = interiorid;
+    Vehicle_gsDimensionInfo[vehicleid][DIMENSION_VIRTUAL_WORLD] = virtual_world;
+    LinkVehicleToInterior(vehicleid, Vehicle_gsDimensionInfo[vehicleid][DIMENSION_INTERIOR]);
+    SetVehicleVirtualWorld(vehicleid, Vehicle_gsDimensionInfo[vehicleid][DIMENSION_VIRTUAL_WORLD]);
+}
+
+stock Vehicle_GetDimensionInfo(vehicleid, &interiorid, &virtualworld) 
+{
+    if(GetVehicleVirtualWorld(vehicleid) != Vehicle_GetVirtualWorld(vehicleid)) 
+    {
+        return;
+    }
+    interiorid = Vehicle_GetInterior(vehicleid);
+    virtualworld = Vehicle_GetVirtualWorld(vehicleid);
+}
+
+// --
+// Paintjobs
+// --
+
+stock Vehicle_SetPaintjob(vehicleid, paintjobid)
+{
+    if(GetVehicleModel(vehicleid) == 483 && (paintjobid != 0 || paintjobid != 3)) 
+    {
+        return 0;
+    }
+    else if(GetVehicleModel(vehicleid) == 575 && (paintjobid != 0 || paintjobid != 1 || paintjobid != 3)) 
+    {
+        return 0;
+    }
+ 
+    for(new i = 0; i < sizeof(Vehicle_gscPaintjob); i++)
+    {
+        if(GetVehicleModel(vehicleid) != Vehicle_gscPaintjob[i])
+        {
+            continue;
+        }
+        Vehicle_gsPaintjob[vehicleid] = paintjobid;
+        ChangeVehiclePaintjob(vehicleid, paintjobid);
+        break;
+    }
+    return 1;
+}
+
+stock Vehicle_GetPaintjob(vehicleid)
+{
+    #if !defined YSF_Enable 
+        return Vehicle_gsPaintjob[vehicleid];
+    #else 
+        return GetVehiclePaintjob(vehicleid);
+    #endif
+}
+
+// --
+// Occupied state
+// --
+
+stock Vehicle_IsOccupied(vehicleid)
+{
+    #if defined YSF_Enable
+        return IsVehicleOccupied(vehicleid);
+    #else
+        if(Vehicle_gsIsOccupied[vehicleid][0] != -1 || Vehicle_gsIsOccupied[vehicleid][1] != -1 || Vehicle_gsIsOccupied[vehicleid][2] != -1 || Vehicle_gsIsOccupied[vehicleid][3] != -1)
+        {
+            return true;
+        }
+        return false;
+    #endif
+}
+
+stock Vehicle_GetLastDriver(vehicleid)
+{
+    #if defined YSF_Enable
+        return GetVehicleLastDriver(vehicleid);
+    #else
+        return Vehicle_gsLastDriver[vehicleid];
+    #endif
+}
+
+// --
+// Trailers
+// --
+
+stock Vehicle_AttachTrailer(vehicleid, trailerid)
+{
+    if(!IsValidVehicle(vehicleid) || !IsValidVehicle(trailerid) || trailerid == vehicleid)
+    {
+        return 0;
+    }
+    Vehicle_gsTrailer[vehicleid][0] = trailerid;
+    Vehicle_gsTrailer[trailerid][1] = vehicleid;
+    AttachTrailerToVehicle(trailerid, vehicleid);
+    return 1;
+}
+
+stock Vehicle_DetachTrailer(vehicleid)
+{
+    new trailer = Vehicle_gsTrailer[vehicleid][0];
+    Vehicle_gsTrailer[vehicleid][0] = 0;
+    Vehicle_gsTrailer[trailer][1] = 0;
+    DetachTrailerFromVehicle(vehicleid);
+    return 1;
+}
+
+stock Vehicle_GetTrailer(vehicleid)
+{
+    if(GetVehicleTrailer(vehicleid) != Vehicle_gsTrailer[vehicleid][0]) 
+    {
+        return -1;
+    }
+    return Vehicle_gsTrailer[vehicleid][0];
+}
+
+stock Vehicle_GetTrailerCab(trailerid)
+{
+    return Vehicle_gsTrailer[trailerid][1];
+}
+
+
+// --
+// Time functions
+// --
+
+#if defined YSF_Enable
+    stock Vehicle_SetRespawnDelay(vehicleid, respawn_delay)
+    {
+        Vehicle_gsRespawnDelay[vehicleid] = respawn_delay;
+        SetVehicleRespawnDelay(vehicleid, respawn_delay);
+    }
+#endif
+
+stock Vehicle_GetRespawnDelay(vehicleid)
+{
+    #if defined YSF_Enable
+        return GetVehicleRespawnDelay(vehicleid);
+    #else
+        return Vehicle_gsRespawnDelay[vehicleid];
+    #endif
+}
+
+stock Vehicle_GetOccupiedTime(vehicleid)
+{
+    if(Vehicle_IsOccupied(vehicleid))
+    {
+        return ((gettime() - Vehicle_gsOccupiedTick[vehicleid]) * 1000);
+    }
+    return -1;
+}
+
+stock Vehicle_GetRespawnedTime(vehicleid)
+{
+    return ((gettime() - Vehicle_gsRespawnTick[vehicleid]) * 1000);
+}
+
+// --
+// Sirens 
+// --
+
+stock Vehicle_GetSirenEnable(vehicleid)
+{
+    return Vehicle_gsSirenState[vehicleid];
+}
 
 // --
 // Hooks
@@ -864,18 +1149,77 @@ stock Vehicle_GetWindshieldState(vehicleid, &e_PANEL_STATES: windshield)
 // By default, all vehicles have engines. 
 // Bypass: Hook a callback to check if player is riding a manual vehicle (pedal power)
 // and then turn engines on
-// When the player have exited vehicle turn off
+// When the player have exited vehicle turn offV
 
 hook OnPlayerStateChange(playerid, newstate, oldstate) 
 {
-    if(oldstate == PLAYER_STATE_ONFOOT && newstate == PLAYER_STATE_DRIVER && Vehicle_IsManual(GetPlayerVehicleID(playerid))) 
+    static seat;
+    if(oldstate == PLAYER_STATE_ONFOOT && (newstate == PLAYER_STATE_DRIVER || newstate == PLAYER_STATE_PASSENGER))
     {
-        Vehicle_SetEngineState(GetPlayerVehicleID(playerid), E_ENGINE_STATE_ON);
-    } 
-    else if(oldstate == PLAYER_STATE_DRIVER && newstate == PLAYER_STATE_ONFOOT && Vehicle_IsManual(GetPlayerVehicleID(playerid))) 
+        if(Vehicle_IsManual(GetPlayerVehicleID(playerid))) 
+        {
+            Vehicle_SetEngineState(GetPlayerVehicleID(playerid), E_ENGINE_STATE_ON);
+        } 
+        Player_LastVehicleID[playerid] = GetPlayerVehicleID(playerid);
+        seat = GetPlayerVehicleSeat(playerid);
+        if(seat == 0) 
+        {
+            Vehicle_gsLastDriver[Player_LastVehicleID[playerid]] = playerid;
+        }
+        Vehicle_gsIsOccupied[Player_LastVehicleID[playerid]][seat] = playerid;
+        Vehicle_gsOccupiedTick[Player_LastVehicleID[playerid]] = gettime();
+    }
+    else if((oldstate == PLAYER_STATE_DRIVER || oldstate == PLAYER_STATE_PASSENGER) && newstate == PLAYER_STATE_ONFOOT) 
     {
-        Vehicle_SetEngineState(GetPlayerVehicleID(playerid), E_ENGINE_STATE_OFF);
+        if(Vehicle_IsManual(Player_LastVehicleID[playerid]))
+        {
+            Vehicle_SetEngineState(Player_LastVehicleID[playerid], E_ENGINE_STATE_OFF);
+        }
+        Vehicle_gsIsOccupied[Player_LastVehicleID[playerid]][seat] = -1;
+        Vehicle_gsOccupiedTick[Player_LastVehicleID[playerid]] = -1;
+    }
+    else if((oldstate == PLAYER_STATE_DRIVER || oldstate == PLAYER_STATE_PASSENGER) && newstate == PLAYER_STATE_WASTED)
+    {
+        Vehicle_gsIsOccupied[Player_LastVehicleID[playerid]][seat] = -1; 
+        Vehicle_gsOccupiedTick[Player_LastVehicleID[playerid]] = -1;
     }
     return Y_HOOKS_CONTINUE_RETURN_1;
 }
 
+hook OnVehicleSpawn(vehicleid)
+{
+    Vehicle_gsParams[vehicleid][PARAMS_ENGINE] = E_ENGINE_STATE_OFF;
+    Vehicle_gsParams[vehicleid][PARAMS_LIGHTS] = E_LIGHTS_OFF;
+    Vehicle_gsParams[vehicleid][PARAMS_DOORS] = E_DOOR_STATE_OFF;
+    Vehicle_gsParams[vehicleid][PARAMS_ALARM] = E_ALARMS_OFF;
+    Vehicle_gsParams[vehicleid][PARAMS_BOOT] = E_BOOT_CLOSED;
+    Vehicle_gsParams[vehicleid][PARAMS_BONNET] = E_BONNET_CLOSED;
+    Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE] = E_OBJECTIVE_OFF;
+
+    Vehicle_gsWindows[vehicleid][WINDOWS_DRIVER] = E_WINDOW_NOT_SET;
+    Vehicle_gsWindows[vehicleid][WINDOWS_PASSENGER] = E_WINDOW_NOT_SET;
+    Vehicle_gsWindows[vehicleid][WINDOWS_REAR_LEFT] = E_WINDOW_NOT_SET;
+    Vehicle_gsWindows[vehicleid][WINDOWS_REAR_RIGHT] = E_WINDOW_NOT_SET;
+
+    Vehicle_gsRespawnTick[vehicleid] = gettime();
+
+    if(Vehicle_IsOccupied(vehicleid))
+    {
+        Vehicle_gsIsOccupied[vehicleid][0] = -1;
+        Vehicle_gsIsOccupied[vehicleid][1] = -1;
+        Vehicle_gsIsOccupied[vehicleid][2] = -1;
+        Vehicle_gsIsOccupied[vehicleid][3] = -1;
+    }
+    Vehicle_gsOccupiedTick[vehicleid] = -1;
+    return 1;
+}
+
+hook OnPlayerDisconnect(playerid, reason)
+{
+    if(GetPlayerState(playerid) == PLAYER_STATE_PASSENGER || GetPlayerState(playerid) == PLAYER_STATE_DRIVER)
+    {
+        Vehicle_gsIsOccupied[Player_LastVehicleID[playerid]][GetPlayerVehicleSeat(playerid)] = -1;
+        Player_LastVehicleID[playerid] = -1;
+    }
+    return 1;
+}
