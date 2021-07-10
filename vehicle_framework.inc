@@ -18,6 +18,10 @@
     #define YSF_Enable
 #endif
 
+#if !defined isnull
+    #define isnull(%1) ((!(%1[0])) || (((%1[0]) == '\1') && (!(%1[1]))))
+#endif
+
 // -- 
 // Script-Side
 // --
@@ -25,6 +29,10 @@
 
 #if !defined MAX_NUMBER_PLATE
     #define MAX_NUMBER_PLATE 32
+#endif
+
+#if !defined MAX_VEHICLE_GROUPS
+    #define MAX_VEHICLE_GROUPS 12
 #endif
 
 static const Vehicle_gscPaintjob[] = 
@@ -208,6 +216,92 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
     SetVehicleVirtualWorld(idx, virtual_world);
     LinkVehicleToInterior(idx, interior);
     return idx;
+}
+
+// --
+// Groups 
+// --
+
+#define VEHICLE_FRAMEWORK_TAGS \
+    {_, VehicleGroup}
+
+#define INVALID_VEHICLE_GROUP_ID -1
+
+static
+    Vehicle_gsGroupName[VehicleGroup: MAX_VEHICLE_GROUPS][24],
+    Vehicle_gsGroupIsActive[VehicleGroup: MAX_VEHICLE_GROUPS],
+    Iterator: Vehicle_gsActGps<MAX_VEHICLE_GROUPS>,
+    Iterator: Vehicle_gsGroups[VehicleGroup: MAX_VEHICLE_GROUPS]<MAX_VEHICLES>;
+
+stock bool: Vehicle_IsGroupActive(VehicleGroup: groupid)
+{
+    if(Vehicle_gsGroupIsActive[groupid] == 1) 
+    {
+        return true;
+    }
+    return false;
+}
+
+stock VehicleGroup: Vehicle_GetGroupByName(const name[])
+{
+    foreach(new i : Vehicle_gsActGps) 
+    {
+        if(!strcmp(name, Vehicle_gsGroupName[VehicleGroup: i]) && !isnull(name)) 
+        {
+            return VehicleGroup: i;
+        }
+    }
+    return VehicleGroup: INVALID_VEHICLE_GROUP_ID;
+}
+
+stock bool: Vehicle_GroupHas(VehicleGroup: groupid, vehicleid)
+{
+    if(Vehicle_IsGroupActive(groupid) && IsValidVehicle(vehicleid) && Iter_Contains(Vehicle_gsGroups[groupid], vehicleid))
+    {
+        return true;
+    }
+    return false;
+}
+
+stock VehicleGroup: Vehicle_GroupInit(const name[]) 
+{
+    new VehicleGroup: idx = VehicleGroup: Iter_Alloc(Vehicle_gsActGps);
+    if(idx == VehicleGroup: INVALID_ITERATOR_SLOT || Vehicle_GetGroupByName(name) == VehicleGroup: INVALID_VEHICLE_GROUP_ID)
+    {
+        return VehicleGroup: INVALID_VEHICLE_GROUP_ID;
+    }
+    strcopy(Vehicle_gsGroupName[idx], name);
+    Vehicle_gsGroupIsActive[idx] = 1;
+    return idx;
+}
+
+stock bool: Vehicle_IsValidGroup(VehicleGroup: groupid)
+{
+    if(groupid == VehicleGroup: INVALID_VEHICLE_GROUP_ID)
+    {
+        return false;
+    }
+    return true;
+}
+
+stock Vehicle_AddToGroup(VehicleGroup: groupid, vehicleid)
+{
+    if(!Vehicle_IsGroupActive(groupid) || !IsValidVehicle(vehicleid))
+    {
+        return 0;
+    }
+    Iter_Add(Vehicle_gsGroups[groupid], vehicleid);
+    return 1;
+}
+
+stock Vehicle_RemoveFromGroup(VehicleGroup: groupid, vehicleid)
+{
+    if(!Vehicle_IsGroupActive(groupid) || !Iter_Contains(Vehicle_gsGroups[groupid], vehicleid))
+    {
+        return 0;
+    }
+    Iter_Remove(Vehicle_gsGroups[groupid], vehicleid);
+    return 1;
 }
 
 // -- 
@@ -930,11 +1024,24 @@ stock Vehicle_GetWindshieldState(vehicleid, &e_PANEL_STATES: windshield)
 
 // here no summary
 
-stock Vehicle_SetColor(vehicleid, color1, color2)
+stock Vehicle_SetColor(VEHICLE_FRAMEWORK_TAGS: vehicleid, color1, color2, tag=tagof(vehicleid))
 {
-    Vehicle_gsColorInfo[vehicleid][0] = color1;
-    Vehicle_gsColorInfo[vehicleid][1] = color2;
-    ChangeVehicleColor(vehicleid, Vehicle_gsColorInfo[vehicleid][0], Vehicle_gsColorInfo[vehicleid][1]);
+    if(tag == tagof(_:))
+    {
+        Vehicle_gsColorInfo[vehicleid][0] = color1;
+        Vehicle_gsColorInfo[vehicleid][1] = color2;
+        
+        ChangeVehicleColor(vehicleid, Vehicle_gsColorInfo[vehicleid][0], Vehicle_gsColorInfo[vehicleid][1]);
+    }
+    else if(tag == tagof(VehicleGroup:)) 
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: vehicleid])
+        {
+            Vehicle_gsColorInfo[i][0] = color1;
+            Vehicle_gsColorInfo[i][1] = color2;
+            ChangeVehicleColor(i, Vehicle_gsColorInfo[i][0], Vehicle_gsColorInfo[i][1]);
+        }
+    }
 }
 
 stock Vehicle_GetColor(vehicleid, &color1, &color2) 
