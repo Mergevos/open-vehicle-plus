@@ -45,7 +45,7 @@ native Framework_CallLocalFunction(const function[], const format[], {VehicleGro
     #define MAX_VEHICLE_GROUPS 12
 #endif
 
-
+/*
 static const Float:Vehicle_gscPayNSprayLocations[10][3] = {
     {1025.05, -1024.23, 32.1}, 	// LS Temple
     {487.68, -1740.87, 11.13}, 	// LS Santa Maria
@@ -57,7 +57,7 @@ static const Float:Vehicle_gscPayNSprayLocations[10][3] = {
     {-99.55, 1118.36, 19.44}, 	// Fort Carson
     {721.07, -455.94, 16.04}, 	// Dillimore
     {2393.74, 1493.01, 10.52} 	// LV Unused (Pyramid)
-};
+};*/
 
 static const 
     DIMENSION_INTERIOR = 0,
@@ -85,6 +85,254 @@ static
 
 static
     Player_LastVehicleID[MAX_PLAYERS];
+
+
+// --
+// Vehicle Info
+// --
+
+enum e_VEHICLE_INFO
+{
+	E_VEHICLE_NAME[27],
+	E_VEHICLE_WINDOWS_NUMBER,
+	Float:E_VEHICLE_MASS,
+	E_VEHICLE_DRIVE_TYPE,
+	E_VEHICLE_ENGINE_TYPE
+};
+
+static const Vehicle_Info[212][e_VEHICLE_INFO] = 
+{
+    {"Landstalker", 4, 1700.0, '4', 'D'},
+    {"Bravura", 2, 1300.0, 'F', 'P'},
+    {"Buffalo", 2, 1500.0, 'R', 'P'},
+    {"Linerunner", 2, 3800.0, 'R', 'D'},
+    {"Perennial", 4, 1200.0, 'F', 'P'},
+    {"Sentinel", 4, 1600.0, 'R', 'P'},
+    {"Dumper", 1, 20000.0, 'R', 'D'},
+    {"Firetruck", 2, 6500.0, 'R', 'D'},
+    {"Trashmaster", 2, 5500.0, 'R', 'D'},
+    {"Stretch", 4, 2200.0, 'R', 'P'},
+    {"Manana", 2, 1000.0, 'F', 'P'},
+    {"Infernus", 2, 1400.0, '4', 'P'},
+    {"Voodoo", 2, 1800.0, 'R', 'P'},
+    {"Pony", 4, 2600.0, 'R', 'D'},
+    {"Mule", 2, 3500.0, 'R', 'D'},
+    {"Cheetah", 2, 1200.0, 'R', 'P'},
+    {"Ambulance", 4, 2600.0, '4', 'D'},
+    {"Leviathan", 2, 15000.0, '4', 'P'}, 
+    {"Moonbeam", 4, 2000.0, 'R', 'D'},
+    {"Esperanto", 2, 1800.0, 'R', 'P'},
+    {"Taxi", 4, 1450.0, 'F', 'P'},
+    {"Washington", 2, 1850.0, 'R', 'P'},
+    {"Bobcat", 2, 1700.0, '4', 'D'},
+    {"Mr. Whoopee", 2, 1700.0, 'R', 'D'},
+    {"BF Injection", 0, 1200.0, 'R', 'P'},
+    {"Hunter", 1, 10000.0, '4', 'P'}, 
+    {"Premier", 4, 1600.0, 'R', 'P'},
+    {"Enforcer", 4, 4000.0, 'R', 'D'},
+    {"Securicar", 2, 7000.0, 'R', 'D'},
+    {"Banshee", 2, 1400.0, 'R', 'P'},
+    {"Predator", 0, 2200.0, 'R', 'P'}, 
+    {"Bus", 2, 5500.0, 'R', 'D'},
+    {"Rhino", 0, 25000.0, '4', 'D'},
+    {"Barracks", 2, 10500.0, '4', 'D'},
+    {"Hotknife", 2, 1400.0, 'R', 'P'},
+    {"Article Trailer", 0, 3800.0, 'R', 'D'},
+    {"Previon", 2, 1400.0, 'F', 'P'},
+    {"Coach", 0, 9500.0, 'R', 'D'},
+    {"Cabbie", 4, 1750.0, 'R', 'P'},
+    {"Stallion", 2, 1600.0, 'R', 'P'},
+    {"Rumpo", 4, 2000.0, 'F', 'P'},
+    {"RC Bandit", 0, 100.0, '4', 'E'},
+    {"Romero", 2, 2500.0, 'R', 'P'},
+    {"Packer", 2, 8000.0, 'R', 'D'},
+    {"Monster", 2, 5000.0, '4', 'P'},
+    {"Admiral", 4, 1650.0, 'F', 'P'},
+    {"Squallo", 0, 2200.0, 'R', 'P'}, 
+    {"Seasparrow", 2, 3000.0, '4', 'P'}, 
+    {"Pizzaboy", 0, 350.0, 'R', 'P'}, 
+    {"Tram", 0, 1900.0, 'R', 'P'}, 
+    {"Article Trailer 2", 0, 3800.0, 'R', 'D'},
+    {"Turismo", 2, 1400.0, '4', 'P'},
+    {"Speeder", 0, 2200.0, 'R', 'P'}, 
+    {"Reefer", 0, 5000.0, 'R', 'P'},
+    {"Tropic", 0, 2200.0, 'R', 'P'}, 
+    {"Flatbed", 2, 8500.0, 'R', 'D'},
+    {"Yankee", 2, 4500.0, 'R', 'D'},
+    {"Caddy", 0, 1000.0, '4', 'E'},
+    {"Solair", 4, 2000.0, 'R', 'P'},
+    {"Topfun Van (Berkley's RC)", 4, 1900.0, 'R', 'D'},
+    {"Skimmer", 2, 5000.0, '4', 'P'},
+    {"PCJ-600", 0, 500.0, 'R', 'P'},
+    {"Faggio", 0, 350.0, 'R', 'P'},
+    {"Freeway", 0, 800.0, 'R', 'P'},
+    {"RC Baron", 0, 100.0, 'F', 'P'},
+    {"RC Raider", 0, 100.0, '4', 'P'},
+    {"Glendale", 4, 1600.0, 'R', 'P'},
+    {"Oceanic", 4, 1900.0, 'R', 'P'},
+    {"Sanchez", 0, 500.0, 'R', 'P'},
+    {"Sparrow", 2, 2500.0, '4', 'P'},
+    {"Patriot", 4, 2500.0, '4', 'P'},
+    {"Quad", 0, 400.0, '4', 'P'},
+    {"Coastguard", 0, 1200.0, 'R', 'P'},
+    {"Dinghy", 0, 800.0, 'R', 'P'},
+    {"Hermes", 2, 1950.0, 'F', 'P'},
+    {"Sabre", 2, 1700.0, 'R', 'P'},
+    {"Rustler", 1, 5000.0, '4', 'P'},
+    {"ZR-350", 2, 1400.0, 'R', 'P'},
+    {"Walton", 2, 1850.0, '4', 'D'},
+    {"Regina", 4, 1500.0, 'F', 'P'},
+    {"Comet", 2, 1400.0, '4', 'P'},
+    {"BMX", 0, 100.0, 'R', 'P'},
+    {"Burrito", 4, 1900.0, 'R', 'P'},
+    {"Camper", 3, 1900.0, 'R', 'P'},
+    {"Marquis", 0, 5000.0, 'R', 'P'},
+    {"Baggage", 0, 1000.0, 'R', 'E'},
+    {"Dozer", 0, 10000.0, '4', 'D'},
+    {"Maverick", 4, 5000.0, '4', 'P'}, 
+    {"News Chopper", 2, 3500.0, '4', 'P'}, 
+    {"Rancher", 2, 2500.0, '4', 'P'},
+    {"FBI Rancher", 4, 3500.0, '4', 'P'},
+    {"Virgo", 2, 1700.0, 'R', 'P'},
+    {"Greenwood", 4, 1600.0, 'R', 'P'},
+    {"Jetmax", 0, 3000.0, 'R', 'P'}, 
+    {"Hotring Racer", 2, 1600.0, 'R', 'P'},
+    {"Sandking", 2, 2000.0, '4', 'P'},
+    {"Blista Compact", 2, 1000.0, 'F', 'P'},
+    {"Police Maverick", 4, 4500.0, '4', 'P'}, 
+    {"Boxville", 2, 5500.0, 'R', 'D'},
+    {"Benson", 2, 3500.0, 'R', 'D'},
+    {"Mesa", 2, 1300.0, '4', 'D'},
+    {"RC Goblin", 0, 100.0, '4', 'P'},
+    {"Hotring Racer A", 2, 1600.0, 'R', 'P'},
+    {"Hotring Racer B", 2, 1600.0, 'R', 'P'},
+    {"Bloodring Banger", 2, 2100.0, 'R', 'P'},
+    {"Rancher (Lure)", 2, 2500.0, '4', 'P'},
+    {"Super GT", 2, 1400.0, 'R', 'P'},
+    {"Elegant", 4, 2200.0, 'R', 'P'},
+    {"Journey", 3, 3500.0, 'R', 'D'},
+    {"Bike", 0, 100.0, 'R', 'P'}, 
+    {"Mountain Bike", 0, 100.0, 'R', 'P'}, 
+    {"Beagle", 2, 10000.0, '4', 'P'}, 
+    {"Cropduster", 1, 5000.0, '4', 'P'}, 
+    {"Stuntplane", 1, 5000.0, '4', 'P'}, 
+    {"Tanker", 2, 3800.0, 'R', 'D'},
+    {"Roadtrain", 2, 5000.0, 'R', 'D'},
+    {"Nebula", 4, 1400.0, 'F', 'P'},
+    {"Majestic", 2, 1400.0, 'R', 'P'},
+    {"Buccaneer", 2, 1700.0, 'R', 'P'},
+    {"Shamal", 0, 15000.0, '4', 'P'}, 
+    {"Hydra", 1, 9000.0, '4', 'P'}, 
+    {"FCR-900", 0, 500.0, 'R', 'P'}, 
+    {"NRG-500", 0, 400.0, 'R', 'P'}, 
+    {"HPV1000", 0, 500.0, 'R', 'P'}, 
+    {"Cement Truck", 2, 5500.0, 'R', 'D'},
+    {"Towtruck", 2, 3500.0, 'R', 'D'},
+    {"Fortune", 2, 1700.0, 'R', 'P'},
+    {"Cadrona", 2, 1200.0, 'R', 'P'},
+    {"FBI Truck", 2, 4000.0, '4', 'D'},
+    {"Willard", 4, 1800.0, 'R', 'P'},
+    {"Forklift", 0, 1000.0, 'F', 'E'},
+    {"Tractor", 0, 2000.0, 'R', 'D'},
+    {"Combine Harvester", 1, 8500.0, '4', 'D'},
+    {"Feltzer", 2, 1600.0, 'R', 'P'},
+    {"Remington", 2, 1800.0, 'R', 'P'},
+    {"Slamvan", 2, 1950.0, 'R', 'P'},
+    {"Blade", 2, 1500.0, 'R', 'P'},
+    {"Freight", 0, 5500.0, 'R', 'D'},
+    {"Brown Streak", 0, 5500.0, 'R', 'D'},
+    {"Vortex", 0, 1900.0, 'R', 'P'},
+    {"Vincent", 4, 1800.0, 'F', 'P'},
+    {"Bullet", 2, 1200.0, 'R', 'P'},
+    {"Clover", 2, 1600.0, 'R', 'P'},
+    {"Sadler", 2, 1700.0, '4', 'D'},
+    {"Firetruck (ladder variant)", 2, 6500.0, 'R', 'D'},
+    {"Hustler", 2, 1700.0, 'R', 'P'},
+    {"Intruder", 4, 1800.0, 'R', 'P'},
+    {"Primo", 4, 1600.0, 'R', 'P'},
+    {"Cargobob", 2, 20000.0, '4', 'P'}, 
+    {"Tampa", 2, 1700.0, 'R', 'P'},
+    {"Sunrise", 4, 1600.0, 'F', 'P'},
+    {"Merit", 4, 1800.0, 'R', 'P'},
+    {"Utility Van", 2, 2600.0, 'R', 'D'},
+    {"Nevada", 0, 25000.0, '4', 'P'}, 
+    {"Yosemite", 2, 3000.0, 'R', 'P'},
+    {"Windsor", 2, 1500.0, 'R', 'P'},
+    {"Monster A", 2, 5000.0, '4', 'P'},
+    {"Monster B", 2, 5000.0, '4', 'P'},
+    {"Uranus", 2, 1400.0, 'R', 'P'},
+    {"Jester", 2, 1500.0, 'F', 'P'},
+    {"Sultan", 4, 1400.0, '4', 'P'},
+    {"Stratum", 4, 1800.0, 'R', 'P'},
+    {"Elegy", 2, 1500.0, 'R', 'P'},
+    {"Raindance", 2, 10000.0, '4', 'P'}, 
+    {"RC Tiger", 0, 100.0, '4', 'E'},
+    {"Flash", 2, 1400.0, 'F', 'P'},
+    {"Tahoma", 4, 1800.0, 'R', 'P'},
+    {"Savanna", 2, 1500.0, 'R', 'P'},
+    {"Bandito", 0, 1000.0, 'R', 'P'},
+    {"Freight Flat Trailer", 0, 5500.0, 'R', 'D'},
+    {"Brown Streak Trailer", 0, 5500.0, 'R', 'D'},
+    {"Kart", 0, 300.0, 'R', 'P'},
+    {"Mower", 0, 800.0, 'R', 'P'},
+    {"Dune", 2, 10000.0, '4', 'P'},
+    {"Sweeper", 2, 800.0, 'R', 'P'},
+    {"Broadway", 2, 1700.0, 'R', 'P'},
+    {"Tornado", 2, 1700.0, 'R', 'P'},
+    {"AT-400", 0, 60000.0, '4', 'P'}, 
+    {"DFT-30", 2, 5500.0, 'R', 'D'},
+    {"Huntley", 4, 2500.0, '4', 'P'},
+    {"Stafford", 4, 2200.0, 'R', 'P'},
+    {"BF-400", 0, 500.0, 'R', 'P'}, 
+    {"Newsvan", 3, 1900.0, 'R', 'D'},
+    {"Tug", 0, 800.0, 'R', 'P'},
+    {"Petrol Trailer", 0, 3800.0, 'R', 'D'},
+    {"Emperor", 4, 1800.0, 'R', 'P'},
+    {"Wayfarer", 0, 800.0, 'R', 'P'}, 
+    {"Euros", 2, 1400.0, '4', 'P'},
+    {"Hotdog", 2, 5500.0, 'R', 'D'},
+    {"Club", 2, 1400.0, 'F', 'P'},
+    {"Freight Box Trailer", 0, 5500.0, 'R', 'D'},
+    {"Article Trailer 3", 0, 3800.0, 'R', 'D'},
+    {"Andromada", 0, 40000.0, '4', 'P'}, 
+    {"Dodo", 2, 5000.0, '4', 'P'}, 
+    {"RC Cam", 0, 100.0, '4', 'E'},
+    {"Launch", 0, 2200.0, 'R', 'P'}, 
+    {"Police Car (LSPD)", 4, 1600.0, 'R', 'P'},
+    {"Police Car (SFPD)", 4, 1600.0, 'R', 'P'},
+    {"Police Car (LVPD)", 4, 1600.0, 'R', 'P'},
+    {"Ranger", 2, 2500.0, '4', 'D'},
+    {"Picador", 2, 1600.0, 'R', 'D'},
+    {"S.W.A.T.", 0, 5000.0, '4', 'D'},
+    {"Alpha", 2, 1500.0, 'R', 'P'},
+    {"Phoenix", 2, 1500.0, 'R', 'P'},
+    {"Glendale (destroyed)", 4, 1600.0, 'R', 'D'},
+    {"Sadler (destroyed)", 2, 1700.0, '4', 'D'},
+    {"Baggage Trailer A", 0, 1000.0, 'R', 'E'},
+    {"Baggage Trailer B", 0, 1000.0, 'R', 'E'},
+    {"Tug Stairs Trailer", 0, 1000.0, 'R', 'E'},
+    {"Boxville (burglary)", 2, 5500.0, 'R', 'D'},
+    {"Farm Trailer", 0, 400.0, 'R', 'E'},
+    {"Utility Trailer", 0, 1000.0, 'R', 'E'}
+};
+
+/**
+ * <summary> Returns vehicle name</summary>
+ */
+
+stock Vehicle_ReturnName(vehicleid, name[], len=sizeof(name)) 
+{
+    return strcopy(name, Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_NAME], len);
+}
+
+/**
+ * <summary> Gets vehicle mass</summary>
+ */
+
+stock Float: Vehicle_GetMass(vehicleid) 
+{
+    return Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_MASS];
+}
 
 
 // --
@@ -859,6 +1107,20 @@ enum e_ENGINE_STATES
     E_ENGINE_STATE_ON,
 };
 
+enum e_DRIVE_TYPE 
+{
+    E_DRIVE_4WD = 1,
+    E_DRIVE_FWD = 2,
+    E_DRIVE_RWD
+};
+
+enum e_ENGINE_TYPE
+{
+    E_ENGINE_PETROL = 1,
+    E_ENGINE_DIESEL = 2,
+    E_ENGINE_ELECTRIC
+};
+
 /**
  * <summary> Gets the engine state.</summary>
  * <param name="vehicleid"> Vehicle from which we get engine state.</param>
@@ -883,13 +1145,14 @@ stock Vehicle_SetEngineState(VEHICLE_FRAMEWORK_TAGS: id, e_ENGINE_STATES: engine
 {
     if(tag==tagof(_:))
     {
-        if(!IsValidVehicle(id))
-        {
-            return;
-        }
         GetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        new const ret = SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        if(ret == 0) 
+        {
+            return ret;
+        } 
         Vehicle_gsParams[id][PARAMS_ENGINE] = engine_state;
-        SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        return ret;
     }
     else if(tag==tagof(VehicleGroup:))
     {
@@ -900,6 +1163,51 @@ stock Vehicle_SetEngineState(VEHICLE_FRAMEWORK_TAGS: id, e_ENGINE_STATES: engine
             SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
         }
     }
+    return 1;
+}
+
+/**
+ * <summary> Gets vehicle drive type
+ */
+
+stock e_DRIVE_TYPE: Vehicle_GetDriveType(vehicleid) 
+{
+    new model = GetVehicleModel(vehicleid) - 400;
+    if(Vehicle_Info[model][E_VEHICLE_DRIVE_TYPE] == 'R') 
+    {
+        return E_DRIVE_RWD;
+    }
+    else if(Vehicle_Info[model][E_VEHICLE_DRIVE_TYPE] == 'F') 
+    {
+        return E_DRIVE_FWD;
+    }
+    else if(Vehicle_Info[model][E_VEHICLE_DRIVE_TYPE] == '4') 
+    {
+        return E_DRIVE_4WD;
+    }
+    return e_DRIVE_TYPE:0;
+}
+
+/**
+ * <summary> Gets vehicle engine type
+ */
+
+stock e_ENGINE_TYPE: Vehicle_GetEngineType(vehicleid) 
+{
+    new model = GetVehicleModel(vehicleid) - 400;
+    if(Vehicle_Info[model][E_VEHICLE_ENGINE_TYPE] == 'D') 
+    {
+        return E_ENGINE_DIESEL;
+    }
+    else if(Vehicle_Info[model][E_VEHICLE_ENGINE_TYPE] == 'P') 
+    {
+        return E_ENGINE_PETROL;
+    }
+    else if(Vehicle_Info[model][E_VEHICLE_ENGINE_TYPE] == 'E') 
+    {
+        return E_ENGINE_ELECTRIC;
+    }
+    return e_ENGINE_TYPE: 0;
 }
 
 // --
@@ -1479,6 +1787,15 @@ enum e_WINDOWS_STATES
     E_WINDOW_OPENED = 0,
     E_WINDOW_CLOSED
 };
+
+/**
+ * <summary> Gets the vehicle's windows number.</summary>
+ */
+
+stock Vehicle_GetWindowsNumber(vehicleid) 
+{
+    return Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_WINDOWS_NUMBER];
+}
 
 /**
  * <summary> Sets the vehicle's windows states.</summary>
@@ -2229,7 +2546,7 @@ hook OnEnterExitModShop(playerid, enterexit, interiorid)
     }
     return Y_HOOKS_CONTINUE_RETURN_1;
 }
-
+/*
 hook OnVehicleRespray(playerid, vehicleid, color1, color2)
 {
     if(GetPlayerMoney(playerid) < 100 || GetPVarInt(playerid, "Player_IsInModShop") == 1 || (color1 == Vehicle_gsColorInfo[vehicleid][0] && color2 == Vehicle_gsColorInfo[vehicleid][1] && !IsPlayerInsidePaySpray(playerid)))
@@ -2240,7 +2557,7 @@ hook OnVehicleRespray(playerid, vehicleid, color1, color2)
     Vehicle_gsColorInfo[vehicleid][0] = color1;
     Vehicle_gsColorInfo[vehicleid][1] = color2;
     return Y_HOOKS_CONTINUE_RETURN_1;
-}
+}*/
 
 
 hook OnVehicleSpawn(vehicleid)
@@ -2390,6 +2707,24 @@ hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 }
 
 // --
+// Components
+// --
+/*
+not yet
+stock Vehicle_AddComponent(VEHICLE_FRAMEWORK_TAGS: id, componentid, tag=tagof(id)) 
+{
+    if(tag == tagof(_:))
+    {
+        if(VehicleCanHaveComponent(vehicleid, componentid))
+        {
+            return 0;
+        }
+        new ret = AddVehicleComponent(vehicleid, componentid);
+
+        
+}
+*/
+// --
 // Health
 // --
 
@@ -2447,6 +2782,8 @@ timer Vehicle_HealthTrack[500](vehicleid)
     }
 }
 
+/*
+
 ptask Vehicle_TrackPayNSpray[700](playerid) 
 {
     
@@ -2487,4 +2824,4 @@ static stock IsPlayerInsidePaySpray(playerid)
         }
     }
     return 0;
-}
+}*/
