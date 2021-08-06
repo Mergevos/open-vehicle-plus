@@ -17,10 +17,10 @@ static e;
 public OnGameModeInit()
 {
     SetWorldTime(0);
-    e = AddStaticVehicle(482, 0, 0, 7, 0, -1, -1);
+    e = AddStaticVehicle(411, 0, 0, 7, 0, -1, -1);
 
     printf("%d", e);
-    printf("Vehicle alarm %d", Vehicle_IsManual(1));
+    printf("Is manual %d", Vehicle_IsManual(e));
     ManualVehicleEngineAndLights();
     return 1;
 }
@@ -42,7 +42,7 @@ CMD:testengoff(playerid, params[])
 CMD:testl1on(playerid, params[])
 {
     new e_LIGHT_STATES: lights[3];
-    Vehicle_SetLightsState(GetPlayerVehicleID(playerid),  e_LIGHT_STATES: 0,  e_LIGHT_STATES: 1,  e_LIGHT_STATES: 1);
+    Vehicle_SetLightsState(GetPlayerVehicleID(playerid),  E_LIGHT_ON, E_LIGHT_OFF, E_LIGHT_ON);
     Vehicle_SetLightsRunState(GetPlayerVehicleID(playerid), E_LIGHTS_ON);
 
     Vehicle_GetLightsState(GetPlayerVehicleID(playerid), lights[0], lights[1], lights[2]);
@@ -72,6 +72,14 @@ CMD:testalarmsoff(playerid, params[])
 CMD:testtires(playerid, params[])
 {
     Vehicle_SetTireState(GetPlayerVehicleID(playerid), E_TIRE_POPPED, E_TIRE_POPPED, E_TIRE_INFLATED, E_TIRE_INFLATED);
+    new e_TIRE_STATUS: tires[4];
+    Vehicle_GetTireState(GetPlayerVehicleID(playerid), tires[0], tires[1], tires[2], tires[3]);
+    printf("Back rght: %d, Front rght %d, back left %d, front left %d", tires[0], tires[1], tires[2], tires[3]);
+    return 1;
+}
+
+CMD:gettires(playerid, params[])
+{
     new e_TIRE_STATUS: tires[4];
     Vehicle_GetTireState(GetPlayerVehicleID(playerid), tires[0], tires[1], tires[2], tires[3]);
     printf("Back rght: %d, Front rght %d, back left %d, front left %d", tires[0], tires[1], tires[2], tires[3]);
@@ -192,5 +200,14 @@ CMD:getwindshieldtest(playerid, params[])
     new str[128];
     format(str, sizeof(str), "W: %d", winds);
     SendClientMessageToAll(-1, str);
+    return 1;
+}
+
+CMD:weapon(playerid, params[])
+{
+    if(isnull(params)) {
+        return 0;
+    }
+    GivePlayerWeapon(playerid, strval(params), 600);
     return 1;
 }
