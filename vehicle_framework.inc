@@ -1411,7 +1411,8 @@ stock Vehicle_SetLightsState(VEHICLE_FRAMEWORK_TAGS: id, e_LIGHT_STATES: left_li
     if(tag == tagof(_:))
     {
         GetVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);
-        UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, vehicle_EncodeLights(left_lights, right_lights, back_lights), unnecessary_tires);
+        new ret = UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, vehicle_EncodeLights(left_lights, right_lights, back_lights), unnecessary_tires);
+        return ret;
     }
     else if(tag == tagof(VehicleGroup:))
     {
@@ -1421,6 +1422,7 @@ stock Vehicle_SetLightsState(VEHICLE_FRAMEWORK_TAGS: id, e_LIGHT_STATES: left_li
             UpdateVehicleDamageStatus(i, unnecessary_panels, unnecessary_doors, vehicle_EncodeLights(left_lights, right_lights, back_lights), unnecessary_tires);
         }
     }
+    return 1;
 }
 
 
@@ -1438,8 +1440,13 @@ stock Vehicle_GetLightsState(vehicleid, &e_LIGHT_STATES: left_lights, &e_LIGHT_S
         lights,
         unnecessary_params;
         
-    GetVehicleDamageStatus(vehicleid, unnecessary_params, unnecessary_params, lights, unnecessary_params);
+    new ret = GetVehicleDamageStatus(vehicleid, unnecessary_params, unnecessary_params, lights, unnecessary_params);
+    if(ret == 0)
+    {
+        return 0;
+    }
     vehicle_DecodeLights(lights, left_lights, right_lights, back_lights);
+    return ret;
 
 }
 
@@ -2709,21 +2716,66 @@ hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 // --
 // Components
 // --
-/*
-not yet
+
+enum e_VEHICLE_COMPONENT_SLOT
+{
+    E_COMPONENT_SPOILER,
+    E_COMPONENT_HOOD,
+    E_COMPONENT_ROOF,
+    E_COMPONENT_SIDESKIRT,
+    E_COMPONENT_LAMPS,
+    E_COMPONENT_NITRO,
+    E_COMPONENT_EXHAUST,
+    E_COMPONENT_WHEELS,
+    E_COMPONENT_STEREO,
+    E_COMPONENT_HYDRAULICS,
+    E_COMPONENT_FRONT_BUMPER,
+    E_COMPONENT_REAR_BUMPER,
+    E_COMPONENT_VENT_RIGHT,
+    E_COMPONENT_VENT_LEFT,
+    E_COMPONENT_FRONT_BULLBAR,
+    E_COMPONENT_REAR_BULLBAR
+};
+
 stock Vehicle_AddComponent(VEHICLE_FRAMEWORK_TAGS: id, componentid, tag=tagof(id)) 
 {
     if(tag == tagof(_:))
     {
-        if(VehicleCanHaveComponent(vehicleid, componentid))
+        if(!VehicleCanHaveComponent(id, componentid))
         {
             return 0;
         }
-        new ret = AddVehicleComponent(vehicleid, componentid);
-
-        
+        new ret = AddVehicleComponent(id, componentid);
+        return ret;
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            if(!VehicleCanHaveComponent(id, componentid))
+            {
+                continue;
+            }
+            AddVehicleComponent(id, componentid);
+        }
+    }
 }
-*/
+
+stock bool: Vehicle_CanHaveComponent(vehicleid, componentid)
+{
+    return VehicleCanHaveComponent(vehicleid, componentid);
+}
+
+stock Vehicle_GetComponentInSlot(vehicleid, e_VEHICLE_COMPONENT_SLOT: slot) 
+{
+    return GetVehicleComponentInSlot(vehicleid, _:slot);
+}
+
+
+stock e_VEHICLE_COMPONENT_SLOT: Vehicle_GetComponentType(vehicleid, componentid)
+{
+    return e_VEHICLE_COMPONENT_SLOT: GetVehicleComponentType(componentid);
+}
 // --
 // Health
 // --
