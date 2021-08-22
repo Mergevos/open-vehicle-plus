@@ -2761,6 +2761,11 @@ stock Vehicle_AddComponent(VEHICLE_FRAMEWORK_TAGS: id, componentid, tag=tagof(id
     }
 }
 
+stock Vehicle_RemoveComponent(vehicleid, componentid)
+{
+    return RemoveVehicleComponent(vehicleid, componentid);
+}
+
 stock bool: Vehicle_CanHaveComponent(vehicleid, componentid)
 {
     return VehicleCanHaveComponent(vehicleid, componentid);
