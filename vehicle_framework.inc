@@ -1146,7 +1146,7 @@ stock Vehicle_SetEngineState(VEHICLE_FRAMEWORK_TAGS: id, e_ENGINE_STATES: engine
     if(tag==tagof(_:))
     {
         GetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
-        new const ret = SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        new const ret = SetVehicleParamsEx(id, (Vehicle_gsParams[id][PARAMS_ENGINE] == E_ENGINE_STATE_ON ? E_ENGINE_STATE_OFF : E_ENGINE_STATE_ON), Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
         if(ret == 0) 
         {
             return ret;
@@ -1460,11 +1460,16 @@ stock Vehicle_GetLightsState(vehicleid, &e_LIGHT_STATES: left_lights, &e_LIGHT_S
 
 stock Vehicle_SetLightsRunState(VEHICLE_FRAMEWORK_TAGS: id, e_LIGHT_RUN_STATE: light_state, tag=tagof(id)) 
 {
-   if(tag==tagof(_:)) 
+    if(tag==tagof(_:)) 
     {        
         GetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        new const ret = SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS] == E_LIGHTS_ON ? E_LIGHTS_OFF : E_LIGHTS_ON, Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        if(ret == 0)
+        {
+            return ret;
+        }
         Vehicle_gsParams[id][PARAMS_LIGHTS] = light_state;
-        SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        return ret;
     }
     else if(tag==tagof(VehicleGroup:))
     {
@@ -1475,6 +1480,7 @@ stock Vehicle_SetLightsRunState(VEHICLE_FRAMEWORK_TAGS: id, e_LIGHT_RUN_STATE: l
             SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
         }
     }
+    return 1;
 }
 
 /**
@@ -1510,8 +1516,13 @@ stock Vehicle_SetAlarms(VEHICLE_FRAMEWORK_TAGS: id, e_ALARMS_STATE: alarm_state,
     if(tag==tagof(_:)) 
     {        
         GetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        new ret = SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], (Vehicle_gsParams[id][PARAMS_ALARM] == E_ALARMS_ON ? E_ALARMS_OFF : E_ALARMS_ON), Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        if(ret == 0)
+        {
+            return ret;
+        }
         Vehicle_gsParams[id][PARAMS_ALARM] = alarm_state;
-        SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        return ret;
     }
     else if(tag==tagof(VehicleGroup:))
     {
@@ -1522,6 +1533,7 @@ stock Vehicle_SetAlarms(VEHICLE_FRAMEWORK_TAGS: id, e_ALARMS_STATE: alarm_state,
             SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
         }
     }
+    return 1;
 }
 
 /**
@@ -1754,11 +1766,16 @@ static stock vehicle_DecodeTires(tires, &rear_right_tire, &front_right_tire, &re
 
 stock Vehicle_GetNumberPlate(vehicleid, plate[], len = sizeof(plate)) 
 {
+    if(!IsValidVehicle(vehicleid)) 
+    {
+        return 0;
+    }
     #if defined YSF_Enable
         GetVehicleNumberPlate(vehicleid, plate, len);
     #else
-        format(plate, len, "%s", Vehicle_gsNumberPlate[vehicleid]);
+        strcopy(plate, Vehicle_gsNumberPlate[vehicleid], len);
     #endif
+    return 1;
 }
 
 /**
@@ -1771,14 +1788,14 @@ stock Vehicle_SetNumberPlate(VEHICLE_FRAMEWORK_TAGS: id, const plate[], tag=tago
 {
     if(tag == tagof(_:))
     {
-        format(Vehicle_gsNumberPlate[id], MAX_NUMBER_PLATE, "%s", plate);
+        strcopy(Vehicle_gsNumberPlate[id], plate);
         SetVehicleNumberPlate(id, Vehicle_gsNumberPlate[id]);
     }
     else if(tag == tagof(VehicleGroup:))
     {   
         foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
         {
-            format(Vehicle_gsNumberPlate[i], MAX_NUMBER_PLATE, "%s", plate);
+            strcopy(Vehicle_gsNumberPlate[id], plate);
             SetVehicleNumberPlate(i, Vehicle_gsNumberPlate[i]);
         } 
     }
