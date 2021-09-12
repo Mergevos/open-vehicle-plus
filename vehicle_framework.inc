@@ -374,6 +374,7 @@ static
     Vehicle_gsWindows[MAX_VEHICLES][WINDOWS];
 
 forward OnVehicleFirstSpawn(vehicleid);
+forward OnVehicleDestroy(vehicleid);
 
 /**
   * <summary> Creates a vehicle.</summary>
@@ -490,7 +491,6 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
     Vehicle_gsIsOccupied[idx][2] = -1;
     Vehicle_gsIsOccupied[idx][3] = -1;
     repeat Vehicle_HealthTrack(idx);
-    CallLocalFunction("OnVehicleFirstSpawn", "i", idx);
     strcopy(Vehicle_gsNumberPlate[idx], plate);
     
     SetVehicleHealth(idx, health);
@@ -501,11 +501,6 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
     return idx;
 }
 
-
-stock Vehicle_Destroy(vehicleid)
-{
-    return 1;
-}
 // --
 // Groups 
 // --
@@ -557,7 +552,7 @@ stock VehicleGroup: Vehicle_GetGroupByName(const name[])
  * <returns> Returns true if has, else false. </returns>
 */
 
-stock bool: Vehicle_GroupHas(VehicleGroup: groupid, vehicleid)
+stock Vehicle_GroupHas(VehicleGroup: groupid, vehicleid)
 {
     if(Iter_Contains(Vehicle_gsActGps, _:groupid) && IsValidVehicle(vehicleid) && Iter_Contains(Vehicle_gsGroups[groupid], vehicleid))
     {
@@ -696,6 +691,59 @@ stock Vehicle_GroupDestroy(VehicleGroup: groupid)
         Iter_SafeRemove(Vehicle_gsGroups[groupid], i, i);
     }
     Iter_Remove(Vehicle_gsActGps, _:groupid);
+}
+
+// --
+// Destroy Vehicle
+// --
+
+/**
+ * <summary> Destroys vehicle. </summary>
+*/
+
+
+
+stock Vehicle_Destroy(idx)
+{
+    if(!IsValidVehicle(idx)) 
+    {
+        return 0;
+    }
+    Vehicle_gsModel[idx] = -1;
+    Vehicle_gsPosition[idx][0] = -1;
+    Vehicle_gsPosition[idx][1] = -1;
+    Vehicle_gsPosition[idx][2] = -1;
+    Vehicle_gsPosition[idx][3] = -1;
+    Vehicle_gsSirenState[idx] = -1;
+    Vehicle_gsColorInfo[idx][0] = -1;
+    Vehicle_gsColorInfo[idx][1] = -1;
+    Vehicle_gsPaintjob[idx] = -1;
+    Vehicle_gsTrailer[idx][0] = -1;
+    Vehicle_gsTrailer[idx][1] = -1;
+    Vehicle_gsRespawnDelay[idx] = -1;
+    Vehicle_gsDimensionInfo[idx][DIMENSION_INTERIOR] = -1;
+    Vehicle_gsDimensionInfo[idx][DIMENSION_VIRTUAL_WORLD] = -1;
+    Vehicle_gsHealth[idx] = -1;
+    Vehicle_gsOccupiedTick[idx] = -1;
+    Vehicle_gsRespawnTick[idx] = -1;
+
+    Vehicle_gsLastDriver[idx] = -1;
+    
+    Vehicle_gsBlinkSide[idx] = E_BLINK_NOT_SET;
+    Vehicle_gsIsOccupied[idx][0] = -1;
+    Vehicle_gsIsOccupied[idx][1] = -1;
+    Vehicle_gsIsOccupied[idx][2] = -1;
+    Vehicle_gsIsOccupied[idx][3] = -1;
+    CallLocalFunction("OnVehicleDestroy", "i", idx);
+    foreach(new i : Vehicle_gsActGps)
+    {
+        if(Vehicle_GroupHas(VehicleGroup: i, idx)) 
+        {
+            Vehicle_RemoveFromGroup(VehicleGroup: i, idx);
+        }
+    }
+    DestroyVehicle(idx);
+    return 1;
 }
 
 // --
