@@ -8,10 +8,6 @@
 #include <streamer>
 
 
-#if defined UGMP_Enable
-    #include <ugmp>
-#endif // not yet finished
-
 #if !defined RELEASED
 	#define RELEASED(%0)			(((newkeys & (%0)) != (%0)) && ((oldkeys & (%0)) == (%0)))
 #endif
@@ -28,7 +24,7 @@
     #define isnull(%1) ((!(%1[0])) || (((%1[0]) == '\1') && (!(%1[1]))))
 #endif
 
-native Framework_CallLocalFunction(const function[], const format[], {VehicleGroup, Float,_}:...) = CallLocalFunction;
+native _Framework_CallLocalFunction(const function[], const format[], {VehicleGroup, Float,_}:...) = CallLocalFunction;
 
 // -- 
 // Script-Side
@@ -378,6 +374,7 @@ static
     Vehicle_gsWindows[MAX_VEHICLES][WINDOWS];
 
 forward OnVehicleFirstSpawn(vehicleid);
+forward OnVehicleDestroy(vehicleid);
 
 /**
   * <summary> Creates a vehicle.</summary>
@@ -494,7 +491,6 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
     Vehicle_gsIsOccupied[idx][2] = -1;
     Vehicle_gsIsOccupied[idx][3] = -1;
     repeat Vehicle_HealthTrack(idx);
-    CallLocalFunction("OnVehicleFirstSpawn", "i", idx);
     strcopy(Vehicle_gsNumberPlate[idx], plate);
     
     SetVehicleHealth(idx, health);
@@ -556,7 +552,7 @@ stock VehicleGroup: Vehicle_GetGroupByName(const name[])
  * <returns> Returns true if has, else false. </returns>
 */
 
-stock bool: Vehicle_GroupHas(VehicleGroup: groupid, vehicleid)
+stock Vehicle_GroupHas(VehicleGroup: groupid, vehicleid)
 {
     if(Iter_Contains(Vehicle_gsActGps, _:groupid) && IsValidVehicle(vehicleid) && Iter_Contains(Vehicle_gsGroups[groupid], vehicleid))
     {
@@ -585,7 +581,7 @@ stock VehicleGroup: Vehicle_GroupInit(const name[])
     }
     strcopy(Vehicle_gsGroupName[idx], name);
     Iter_Add(Vehicle_gsActGps, _:idx); 
-    Framework_CallLocalFunction("OnGroupInitialize", "i", idx);
+    _Framework_CallLocalFunction("OnGroupInitialize", "i", idx);
 
     return idx;
 }
@@ -619,7 +615,7 @@ stock Vehicle_AddToGroup(VehicleGroup: groupid, vehicleid)
         return INVALID_VEHICLE_GROUP_ID;
     }
     Iter_Add(Vehicle_gsGroups[groupid], vehicleid);
-    Framework_CallLocalFunction("OnGroupAddMember", "ii", groupid, vehicleid);
+    _Framework_CallLocalFunction("OnGroupAddMember", "ii", groupid, vehicleid);
     return 1;
 }
 
@@ -639,7 +635,7 @@ stock Vehicle_RemoveFromGroup(VehicleGroup: groupid, vehicleid)
         return INVALID_VEHICLE_GROUP_ID;
     }
     Iter_Remove(Vehicle_gsGroups[groupid], vehicleid);
-    Framework_CallLocalFunction("OnGroupRemoveMember", "ii", groupid, vehicleid);
+    _Framework_CallLocalFunction("OnGroupRemoveMember", "ii", groupid, vehicleid);
     return 1;
 }
 
@@ -658,7 +654,7 @@ stock Vehicle_ClearGroup(VehicleGroup: groupid)
     {
         Iter_SafeRemove(Vehicle_gsGroups[groupid], i, i);
     }
-    Framework_CallLocalFunction("OnGroupClear", "i", groupid);
+    _Framework_CallLocalFunction("OnGroupClear", "i", groupid);
 }
 
 /**
@@ -695,6 +691,59 @@ stock Vehicle_GroupDestroy(VehicleGroup: groupid)
         Iter_SafeRemove(Vehicle_gsGroups[groupid], i, i);
     }
     Iter_Remove(Vehicle_gsActGps, _:groupid);
+}
+
+// --
+// Destroy Vehicle
+// --
+
+/**
+ * <summary> Destroys vehicle. </summary>
+*/
+
+
+
+stock Vehicle_Destroy(idx)
+{
+    if(!IsValidVehicle(idx)) 
+    {
+        return 0;
+    }
+    Vehicle_gsModel[idx] = -1;
+    Vehicle_gsPosition[idx][0] = -1;
+    Vehicle_gsPosition[idx][1] = -1;
+    Vehicle_gsPosition[idx][2] = -1;
+    Vehicle_gsPosition[idx][3] = -1;
+    Vehicle_gsSirenState[idx] = -1;
+    Vehicle_gsColorInfo[idx][0] = -1;
+    Vehicle_gsColorInfo[idx][1] = -1;
+    Vehicle_gsPaintjob[idx] = -1;
+    Vehicle_gsTrailer[idx][0] = -1;
+    Vehicle_gsTrailer[idx][1] = -1;
+    Vehicle_gsRespawnDelay[idx] = -1;
+    Vehicle_gsDimensionInfo[idx][DIMENSION_INTERIOR] = -1;
+    Vehicle_gsDimensionInfo[idx][DIMENSION_VIRTUAL_WORLD] = -1;
+    Vehicle_gsHealth[idx] = -1;
+    Vehicle_gsOccupiedTick[idx] = -1;
+    Vehicle_gsRespawnTick[idx] = -1;
+
+    Vehicle_gsLastDriver[idx] = -1;
+    
+    Vehicle_gsBlinkSide[idx] = E_BLINK_NOT_SET;
+    Vehicle_gsIsOccupied[idx][0] = -1;
+    Vehicle_gsIsOccupied[idx][1] = -1;
+    Vehicle_gsIsOccupied[idx][2] = -1;
+    Vehicle_gsIsOccupied[idx][3] = -1;
+    CallLocalFunction("OnVehicleDestroy", "i", idx);
+    foreach(new i : Vehicle_gsActGps)
+    {
+        if(Vehicle_GroupHas(VehicleGroup: i, idx)) 
+        {
+            Vehicle_RemoveFromGroup(VehicleGroup: i, idx);
+        }
+    }
+    DestroyVehicle(idx);
+    return 1;
 }
 
 // --
@@ -1146,7 +1195,7 @@ stock Vehicle_SetEngineState(VEHICLE_FRAMEWORK_TAGS: id, e_ENGINE_STATES: engine
     if(tag==tagof(_:))
     {
         GetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
-        new const ret = SetVehicleParamsEx(id, (Vehicle_gsParams[id][PARAMS_ENGINE] == E_ENGINE_STATE_ON ? E_ENGINE_STATE_OFF : E_ENGINE_STATE_ON), Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        new const ret = SetVehicleParamsEx(id, (Vehicle_gsParams[id][PARAMS_ENGINE] == E_ENGINE_STATE_OFF ? E_ENGINE_STATE_ON : E_ENGINE_STATE_ON), Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
         if(ret == 0) 
         {
             return ret;
@@ -2754,11 +2803,18 @@ enum e_VEHICLE_COMPONENT_SLOT
     E_COMPONENT_REAR_BULLBAR
 };
 
+/**
+ * <summary> Adds a component to vehicle.</summary>
+ * <param name="id"> Vehicle or a group which we set the component to.</param>
+ * <param name="componentid"> componentid to set.</param>
+ * <returns> 0 if function fails, eg. vehicle is not created or vehicle can't have the component, else 1.</param>
+*/
+
 stock Vehicle_AddComponent(VEHICLE_FRAMEWORK_TAGS: id, componentid, tag=tagof(id)) 
 {
     if(tag == tagof(_:))
     {
-        if(!VehicleCanHaveComponent(id, componentid))
+        if(!Vehicle_CanHaveComponent(id, componentid))
         {
             return 0;
         }
@@ -2769,30 +2825,59 @@ stock Vehicle_AddComponent(VEHICLE_FRAMEWORK_TAGS: id, componentid, tag=tagof(id
     {
         foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
         {
-            if(!VehicleCanHaveComponent(id, componentid))
+            if(!Vehicle_CanHaveComponent(id, componentid))
             {
                 continue;
             }
             AddVehicleComponent(id, componentid);
         }
     }
+    return 1;
 }
+
+
+/**
+ * <summary> Removes a component from vehicle.</summary>
+ * <param name="vehicleid"> Vehicle we remove component from.</param>
+ * <param name="componentid"> Component to remove.</param>
+ * <returns> 0 if function fails, eg. vehicle is not created, else 1.</param>
+*/
 
 stock Vehicle_RemoveComponent(vehicleid, componentid)
 {
     return RemoveVehicleComponent(vehicleid, componentid);
 }
 
-stock bool: Vehicle_CanHaveComponent(vehicleid, componentid)
+/**
+ * <summary> Checks whether vehicle supports the component.</summary>
+ * <param name="vehicleid"> Vehicle we check.</param>
+ * <param name="componentid"> Component to check.</param>
+ * <returns> 0 if doesn't support, else 1.</param>
+*/
+
+stock Vehicle_CanHaveComponent(vehicleid, componentid)
 {
-    return VehicleCanHaveComponent(vehicleid, componentid);
+    return VehicleCanHaveComponent(GetVehicleModel(vehicleid), componentid);
 }
+
+/**
+ * <summary> Checks if vehicle has the component in specified slot.</summary>
+ * <param name="vehicleid"> Vehicle we check.</param>
+ * <param name="slot"> Slot to check.</param>
+ * <returns> ID of the component in slot.</param>
+*/
 
 stock Vehicle_GetComponentInSlot(vehicleid, e_VEHICLE_COMPONENT_SLOT: slot) 
 {
     return GetVehicleComponentInSlot(vehicleid, _:slot);
 }
 
+/**
+ * <summary> Gets vehicle component's slot.</summary>
+ * <param name="vehicleid"> Vehicle we check.</param>
+ * <param name="componentid"> Component to check.</param>
+ * <returns> Component slot.</param>
+*/
 
 stock e_VEHICLE_COMPONENT_SLOT: Vehicle_GetComponentType(vehicleid, componentid)
 {
@@ -2803,6 +2888,13 @@ stock e_VEHICLE_COMPONENT_SLOT: Vehicle_GetComponentType(vehicleid, componentid)
 // --
 
 forward OnVehicleHealthChange(vehicleid, Float:health);
+
+/**
+ * <summary> Sets vehicle health.</summary>
+ * <param name="vehicleid"> Vehicle we set health to.</param>
+ * <param name="health"> Health to set.</param>
+ * <returns> 1 on success, 0 otherwise.</param>
+*/
 
 stock Vehicle_SetHealth(vehicleid, Float:health)
 {
@@ -2819,6 +2911,13 @@ stock Vehicle_SetHealth(vehicleid, Float:health)
     
 }
 
+/**
+ * <summary> Gets vehicle health.</summary>
+ * <param name="vehicleid"> Vehicle we get health from.</param>
+ * <param name="&health"> Optional variable to store value into.</param>
+ * <returns> 0.0 on fail, else vehicle health or stores health in referred variable.</param>
+*/
+
 stock Float:Vehicle_GetHealth(vehicleid, &Float:health = 0.0)
 {
     if(!IsValidVehicle(vehicleid)) 
@@ -2834,6 +2933,10 @@ stock Float:Vehicle_GetHealth(vehicleid, &Float:health = 0.0)
         return Vehicle_gsHealth[vehicleid];
     }
 }
+
+/**
+ * <summary> Repairs vehicle. </summary>
+ */
 
 stock Vehicle_Repair(vehicleid) 
 {
