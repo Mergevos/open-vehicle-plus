@@ -41,7 +41,7 @@ native _Framework_CallLocalFunction(const function[], const format[], {VehicleGr
     #define MAX_VEHICLE_GROUPS 12
 #endif
 
-/*
+
 static const Float:Vehicle_gscPayNSprayLocations[10][3] = {
     {1025.05, -1024.23, 32.1}, 	// LS Temple
     {487.68, -1740.87, 11.13}, 	// LS Santa Maria
@@ -53,7 +53,7 @@ static const Float:Vehicle_gscPayNSprayLocations[10][3] = {
     {-99.55, 1118.36, 19.44}, 	// Fort Carson
     {721.07, -455.94, 16.04}, 	// Dillimore
     {2393.74, 1493.01, 10.52} 	// LV Unused (Pyramid)
-};*/
+};
 
 static const 
     DIMENSION_INTERIOR = 0,
@@ -386,7 +386,7 @@ forward OnVehicleDestroy(vehicleid);
   * <param name="respawn_delay">The time(ms) when the vehicle will be respawned again.</param>
   * <param name="interior">interior id, if you want to create a vehicle inside the building</param>
 */
-stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, addsiren=0) 
+stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, bool:addsiren=false) 
 {
     new idx;
     if(modelid == 537 || modelid == 538)
@@ -453,7 +453,7 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
  * <param name="Float: health">vehicle health (damage)</param>
  * <param name="plate">the text that will appear on the vehicle plates</param>
 */
-stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE], addsiren=0) 
+stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const plate[MAX_NUMBER_PLATE], bool:addsiren=false) 
 {
     new idx;
     if(modelid == 537 || modelid == 538)
@@ -2959,8 +2959,6 @@ timer Vehicle_HealthTrack[500](vehicleid)
     }
 }
 
-/*
-
 ptask Vehicle_TrackPayNSpray[700](playerid) 
 {
     
@@ -2968,13 +2966,15 @@ ptask Vehicle_TrackPayNSpray[700](playerid)
     {
         new vehicleid = GetPlayerVehicleID(playerid);
         static bool: inside;
-        if(GetPlayerMoney(playerid) >= 100 && Vehicle_Speed(vehicleid) == 0)
+        if(GetPlayerMoney(playerid) >= 100)
         {
             for(new i = sizeof(Vehicle_gscPayNSprayLocations) - 1; i != -1; --i)
             {
-                if(IsPlayerInsidePaySpray(playerid) && !inside)
+                if(IsPlayerInsidePaySpray(playerid) && !inside && Vehicle_Speed(vehicleid) == 0)
                 {
-                    Vehicle_SetColor(vehicleid, -1, -1);
+                    new color1, color2;
+                    GetRandomCarColPair(GetVehicleModel(vehicleid), color1, color2);
+                    Vehicle_SetColor(vehicleid, color1, color2);
                     CallRemoteFunction("OnVehicleRespray", "iiii", playerid, vehicleid, Vehicle_gsColorInfo[vehicleid][0], Vehicle_gsColorInfo[vehicleid][1]);
                     inside = true;
                 }
@@ -2995,10 +2995,10 @@ static stock IsPlayerInsidePaySpray(playerid)
 {
 	for(new i = 0; i < sizeof(Vehicle_gscPayNSprayLocations); i++)
     {
-        if(IsPlayerInRangeOfPoint(playerid, 5.0, Vehicle_gscPayNSprayLocations[i][0], Vehicle_gscPayNSprayLocations[i][1], Vehicle_gscPayNSprayLocations[i][2]))
+        if(IsPlayerInRangeOfPoint(playerid, 5.1, Vehicle_gscPayNSprayLocations[i][0], Vehicle_gscPayNSprayLocations[i][1], Vehicle_gscPayNSprayLocations[i][2]))
         {
             return 1;
         }
     }
     return 0;
-}*/
+}
