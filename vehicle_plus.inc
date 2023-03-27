@@ -1,0 +1,2581 @@
+#include <open.mp>
+#include <YSI_Data\y_foreach>
+
+#include <YSI_Core\y_compilerdata>
+#include <YSI_Coding\y_timers>
+#include <YSI_Coding\y_hooks>
+#include <YSI_Game\y_vehicledata>
+#include <streamer>
+
+
+/*
+    engine :
+    funkcije gotove
+
+    objective:
+    funkcije gotove
+
+    svetla 
+    naci dobro ime za funkcije za paljenje
+    verovatno running
+    sve gotovo
+
+    gepek i hauba:
+    sve gotovo
+
+    pogon i gorivo:
+    umesto toga koristiti neki enum gotovo
+    sva rc vozila u elektricna
+
+    zmigavci:
+    skloniti modele
+
+ */
+
+#if !defined RELEASED
+	#define RELEASED(%0)			(((newkeys & (%0)) != (%0)) && ((oldkeys & (%0)) == (%0)))
+#endif
+
+#if defined EMPTY_DAMAGE 
+    #include <weapon-config>
+#endif
+
+#define VEHICLE_FRAMEWORK_TAGS \
+    {_, VehicleGroup}
+
+#if !defined isnull
+    #define isnull(%1) ((!(%1[0])) || (((%1[0]) == '\1') && (!(%1[1]))))
+#endif
+
+native _Framework_CallLocalFunction(const function[], const format[], {VehicleGroup, Float,_}:...) = CallLocalFunction;
+
+
+// -- 
+// Script-Side
+// --
+
+#define MAX_VEHICLES_COMPONENTS         194
+#define MAX_VEHICLE_COMPONENT_NAME      64
+#define MAX_VEHICLES_MODELS             212
+#define MAX_VEHICLE_COMPONENTS          48
+#define INVALID_VEHICLE_COMPONENT_ID    -1
+
+#define BLINK_SIDES 4
+
+static
+    Vehicle_gsIsOccupied[MAX_VEHICLES][4],
+    Vehicle_gsOccupiedTick[MAX_VEHICLES],
+    Vehicle_gsRespawnTick[MAX_VEHICLES],
+
+    Vehicle_gsBlink[MAX_VEHICLES][BLINK_SIDES],
+
+    Float: Vehicle_gsPosition[MAX_VEHICLES][4],
+    Float: Vehicle_gsHealth[MAX_VEHICLES]; 
+
+
+#if !defined MAX_NUMBER_PLATE
+    #define MAX_NUMBER_PLATE 32
+#endif
+
+#if !defined MAX_VEHICLE_GROUPS
+    #define MAX_VEHICLE_GROUPS 12
+#endif
+
+static const Float:Vehicle_gscPayNSprayLocations[10][3] = {
+    {1025.05, -1024.23, 32.1}, 	// LS Temple
+    {487.68, -1740.87, 11.13}, 	// LS Santa Maria
+    {-1420.73, 2583.37, 55.56}, // El Quebrados
+    {-1904.39, 284.97, 40.75}, 	// Wang Cars
+    {-2425.91, 1022.33, 50.10}, // Juniper Hill
+    {1975.60, 2162.16, 10.77}, 	// LV Redsands
+    {2065.38, -1831.51, 13.25}, // Idlewood
+    {-99.55, 1118.36, 19.44}, 	// Fort Carson
+    {721.07, -455.94, 16.04}, 	// Dillimore
+    {2393.74, 1493.01, 10.52} 	// LV Unused (Pyramid)
+};
+
+
+static
+    Player_LastVehicleID[MAX_PLAYERS];
+
+// --
+// Vehicle Info
+// --
+
+#define DRIVE_TYPE: __TAG(DRIVE_TYPE):
+enum DRIVE_TYPE:__DRIVE_TYPE
+{
+    DRIVE_4WD = 1,
+    DRIVE_FWD = 2,
+    DRIVE_RWD
+}
+static stock DRIVE_TYPE:_@DRIVE_TYPE() { return __DRIVE_TYPE; }
+
+
+#define ENGINE_TYPE: __TAG(ENGINE_TYPE):
+enum ENGINE_TYPE:__ENGINE_TYPE
+{
+    ENGINE_PETROL = 1,
+    ENGINE_DIESEL = 2,
+    ENGINE_ELECTRIC
+}
+static stock ENGINE_TYPE:_@ENGINE_TYPE() { return __ENGINE_TYPE; }
+
+static enum e_VEHICLE_INFO
+{
+	E_VEHICLE_WINDOWS_NUMBER,
+	Float:E_VEHICLE_MASS,
+	DRIVE_TYPE: E_VEHICLE_DRIVE_TYPE,
+	ENGINE_TYPE: E_VEHICLE_ENGINE_TYPE,
+    E_VEHICLE_LIGHTS_NUMBER // rears are considered as one, while front ones are separated, bikes have 2 lights and 4-light vehs have 3
+};
+
+static const Vehicle_Info[212][e_VEHICLE_INFO] = 
+{
+    {4, 1700.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {2, 1300.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {2, 1500.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 3800.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {4, 1200.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {4, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {1, 20000.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 6500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {4, 2200.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1000.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {2, 1400.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {2, 1800.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 2600.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 3500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 1200.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 2600.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {2, 15000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {4, 2000.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 1800.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 1450.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {2, 1850.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1700.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {2, 1700.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {0, 1200.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {1, 10000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {4, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 4000.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 7000.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 1400.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 2200.0, DRIVE_RWD, ENGINE_PETROL, 0}, 
+    {2, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {0, 25000.0, DRIVE_4WD, ENGINE_DIESEL, 0},
+    {2, 10500.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {2, 1400.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 3800.0, DRIVE_RWD, ENGINE_DIESEL, 1},
+    {2, 1400.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {0, 9500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {4, 1750.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 2000.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {0, 100.0, DRIVE_4WD, ENGINE_ELECTRIC, 0},
+    {2, 2500.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 8000.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 5000.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {4, 1650.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {0, 2200.0, DRIVE_RWD, ENGINE_PETROL, 0}, 
+    {2, 3000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {0, 350.0, DRIVE_RWD, ENGINE_PETROL, 2}, 
+    {0, 1900.0, DRIVE_RWD, ENGINE_PETROL, 3}, 
+    {0, 3800.0, DRIVE_RWD, ENGINE_DIESEL, 1},
+    {2, 1400.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {0, 2200.0, DRIVE_RWD, ENGINE_PETROL, 0}, 
+    {0, 5000.0, DRIVE_RWD, ENGINE_PETROL, 0},
+    {0, 2200.0, DRIVE_RWD, ENGINE_PETROL, 0}, 
+    {2, 8500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 4500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {0, 1000.0, DRIVE_4WD, ENGINE_ELECTRIC, 3},
+    {4, 2000.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 1900.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 5000.0, DRIVE_4WD, ENGINE_PETROL, 0},
+    {0, 500.0, DRIVE_RWD, ENGINE_PETROL, 2},
+    {0, 350.0, DRIVE_RWD, ENGINE_PETROL, 2},
+    {0, 800.0, DRIVE_RWD, ENGINE_PETROL, 2},
+    {0, 100.0, DRIVE_FWD, ENGINE_PETROL, 0},
+    {0, 100.0, DRIVE_4WD, ENGINE_PETROL, 0},
+    {4, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 1900.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 500.0, DRIVE_RWD, ENGINE_PETROL, 2},
+    {2, 2500.0, DRIVE_4WD, ENGINE_PETROL, 0},
+    {4, 2500.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {0, 400.0, DRIVE_4WD, ENGINE_PETROL, 2},
+    {0, 1200.0, DRIVE_RWD, ENGINE_PETROL, 0},
+    {0, 800.0, DRIVE_RWD, ENGINE_PETROL, 0},
+    {2, 1950.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {2, 1700.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {1, 5000.0, DRIVE_4WD, ENGINE_PETROL, 0},
+    {2, 1400.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1850.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {4, 1500.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {2, 1400.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {0, 100.0, DRIVE_RWD, ENGINE_PETROL, 0},
+    {4, 1900.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {3, 1900.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 5000.0, DRIVE_RWD, ENGINE_PETROL, 0},
+    {0, 1000.0, DRIVE_RWD, ENGINE_ELECTRIC, 3},
+    {0, 10000.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {4, 5000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {2, 3500.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {2, 2500.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {4, 3500.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {2, 1700.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 3000.0, DRIVE_RWD, ENGINE_PETROL, 0}, 
+    {2, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 2000.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {2, 1000.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {4, 4500.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {2, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 3500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 1300.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {0, 100.0, DRIVE_4WD, ENGINE_PETROL, 0},
+    {2, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 2100.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 2500.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {2, 1400.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 2200.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {3, 3500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {0, 100.0, DRIVE_RWD, ENGINE_PETROL, 0}, 
+    {0, 100.0, DRIVE_RWD, ENGINE_PETROL, 0}, 
+    {2, 10000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {1, 5000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {1, 5000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {2, 3800.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 5000.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {4, 1400.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {2, 1400.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1700.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 15000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {1, 9000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {0, 500.0, DRIVE_RWD, ENGINE_PETROL, 2}, 
+    {0, 400.0, DRIVE_RWD, ENGINE_PETROL, 2}, 
+    {0, 500.0, DRIVE_RWD, ENGINE_PETROL, 2}, 
+    {2, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 3500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 1700.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1200.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 4000.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {4, 1800.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 1000.0, DRIVE_FWD, ENGINE_ELECTRIC, 3},
+    {0, 2000.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {1, 8500.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {2, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1800.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1950.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1500.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {0, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {0, 1900.0, DRIVE_RWD, ENGINE_PETROL, 0},
+    {4, 1800.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {2, 1200.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1700.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {2, 6500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 1700.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 1800.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 20000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {2, 1700.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 1600.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {4, 1800.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 2600.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {0, 25000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {2, 3000.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1500.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 5000.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {2, 5000.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {2, 1400.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1500.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {4, 1400.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {4, 1800.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1500.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 10000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {0, 100.0, DRIVE_4WD, ENGINE_ELECTRIC, 0},
+    {2, 1400.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {4, 1800.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1500.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 1000.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 0},
+    {0, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 0},
+    {0, 300.0, DRIVE_RWD, ENGINE_PETROL, 0},
+    {0, 800.0, DRIVE_RWD, ENGINE_PETROL, 0},
+    {2, 10000.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {2, 800.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1700.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1700.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 60000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {2, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {4, 2500.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {4, 2200.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 500.0, DRIVE_RWD, ENGINE_PETROL, 2}, 
+    {3, 1900.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 800.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 3800.0, DRIVE_RWD, ENGINE_DIESEL, 0},
+    {4, 1800.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {0, 800.0, DRIVE_RWD, ENGINE_PETROL, 2}, 
+    {2, 1400.0, DRIVE_4WD, ENGINE_PETROL, 3},
+    {2, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 1400.0, DRIVE_FWD, ENGINE_PETROL, 3},
+    {0, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 0},
+    {0, 3800.0, DRIVE_RWD, ENGINE_DIESEL, 1},
+    {0, 40000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {2, 5000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
+    {0, 100.0, DRIVE_4WD, ENGINE_ELECTRIC, 0},
+    {0, 2200.0, DRIVE_RWD, ENGINE_PETROL, 0}, 
+    {4, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 1600.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 2500.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {2, 1600.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {0, 5000.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {2, 1500.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {2, 1500.0, DRIVE_RWD, ENGINE_PETROL, 3},
+    {4, 1600.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {2, 1700.0, DRIVE_4WD, ENGINE_DIESEL, 3},
+    {0, 1000.0, DRIVE_RWD, ENGINE_ELECTRIC, 1},
+    {0, 1000.0, DRIVE_RWD, ENGINE_ELECTRIC, 1},
+    {0, 1000.0, DRIVE_RWD, ENGINE_ELECTRIC, 0},
+    {2, 5500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
+    {0, 400.0, DRIVE_RWD, ENGINE_ELECTRIC, 0},
+    {0, 1000.0, DRIVE_RWD, ENGINE_ELECTRIC, 1}
+};
+
+/**
+ * <summary> Gets vehicle mass</summary>
+ */
+
+stock Float: Vehicle_GetMass(vehicleid) 
+{
+    return Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_MASS];
+}
+
+// --
+// Params
+// --
+
+static enum PARAMS
+{
+    VEHICLE_PARAMS: PARAMS_ENGINE,
+    VEHICLE_PARAMS: PARAMS_LIGHTS,
+    VEHICLE_PARAMS: PARAMS_ALARM, 
+    VEHICLE_PARAMS: PARAMS_DOORS,
+    VEHICLE_PARAMS: PARAMS_BONNET,
+    VEHICLE_PARAMS: PARAMS_BOOT,
+    VEHICLE_PARAMS: PARAMS_OBJECTIVE
+}
+
+static
+    VEHICLE_PARAMS: Vehicle_gsParams[MAX_VEHICLES][PARAMS];
+
+
+forward OnVehicleFirstSpawn(vehicleid);
+forward OnVehicleDestroy(vehicleid);
+
+// --
+// Groups 
+// --
+
+forward OnGroupInitialize(VehicleGroup: groupid);
+forward OnGroupAdd(VehicleGroup: groupid, vehicleid);
+forward OnGroupRemoveMember(VehicleGroup: groupid, vehicleid);
+forward OnGroupClear(VehicleGroup: groupid);
+
+
+#define INVALID_VEHICLE_GROUP_ID 0
+
+static
+    Vehicle_gsGroupName[VehicleGroup: MAX_VEHICLE_GROUPS][24],
+    Iterator: Vehicle_gsActGps<MAX_VEHICLE_GROUPS>,
+    Iterator: Vehicle_gsGroups[VehicleGroup: MAX_VEHICLE_GROUPS]<MAX_VEHICLES>;
+
+
+// --
+// Blinkers
+// --
+
+enum e_BLINKERS
+{
+    E_BLINK_NOT_SET = -1,
+    E_BLINK_LEFT = 0,
+    E_BLINK_RIGHT,
+    E_BLINK_EMERGENCY
+}
+
+static 
+    e_BLINKERS: Vehicle_gsBlinkSide[MAX_VEHICLES];
+
+
+enum e_BLINKING_ENUM 
+{
+    e_BLINKING_MODEL, 
+    Float:e_BLINKING_POSX, 
+    Float:e_BLINKING_POSY, 
+    Float:e_BLINKING_POSZ, 
+    Float:e_BLINKING_ROTX, 
+    Float:e_BLINKING_ROTY, 
+    Float:e_BLINKING_ROTZ
+}
+
+static const Vehicle_gscBlinkOffsets[][e_BLINKING_ENUM] = 
+{
+    {400, -0.9001, 2.0490, -0.0965, -0.9605, -2.2404, -0.0965},
+    {401, -0.9686, 2.5393, 0.0235, -0.9970, -2.2863, 0.0235},
+    {402, -0.8788, 2.5160, -0.0565, -0.9208, -2.5936, 0.0435},
+    {403, -1.3897, 3.6007, -0.2194, -1.1904, -0.9415, 1.8389},
+    {404, -0.7236, 2.1715, -0.0365, -0.7906, -2.7052, 0.0635},
+    {405, -0.9127, 2.2766, -0.0565, -0.8723, -2.6526, -0.0565},
+    {406, -2.2165, 4.9242, -0.0332, -2.0785, -5.2054, 0.5468},
+    {407, -0.9887, 4.0622, -0.0913, -1.0141, -3.4034, -0.0913},
+    {408, -0.9659, 4.7615, -0.2513, -0.8430, -3.9722, -0.5113},
+    {409, -0.7859, 3.5522, -0.0313, -0.8027, -3.8228, -0.0313},
+    {410, -0.825, 2.105, 0.0635, -0.8723, -2.1926, 0.1235},
+    {411, -0.9405, 2.6710, -0.1825, -0.9636, -2.4525, 0.0825},
+    {412, -0.8965, 2.6478, -0.0575, -0.9592, -3.4870, -0.1575},
+    {413, -0.8669, 2.5464, -0.0913, -0.8209, -2.5829, 0.0687},
+    {414, -0.8069, 2.7473, 0.0087, -0.9058, -3.2050, 0.1094},
+    {415, -0.8738, 2.4866, -0.2357, -0.7792, -2.3501, 0.0450},
+    {416, -0.8469, 2.9073, 0.0087, -1.0352, -3.5937, 1.4522},
+    {417, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {418, -0.9511, 2.3820, -0.2357, -1.0081, -2.4904, -0.1557},
+    {419, -1.0742, 2.3978, -0.1757, -0.8127, -2.8620, -0.1557},
+    {420, -1.0142, 2.2978, -0.0157, -0.9637, -2.6744, 0.0043},
+    {421, -0.9013, 2.5343, -0.1357, -0.5921, -2.9228, -0.1957},
+    {422, -0.7813, 2.1543, -0.2657, -0.8985, -2.4349, -0.1057},
+    {423, -0.7817, 2.2093, -0.0313, -0.8340, -2.1794, 0.0596},
+    {424, -0.7350, 1.4505, 0.1087, -0.7062, -1.4778, 0.2996},
+    {425, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {426, -1.0006, 2.3164, -0.0100, -0.9627, -2.6930, -0.0100},
+    {427, -0.8728, 2.5856, 0.1887, -0.9831, -3.8383, -0.3495},
+    {428, -0.8728, 2.5856, -0.2103, -0.9045, -2.8871, 1.2466},
+    {429, -0.7942, 2.2846, -0.2500, -0.8397, -2.3849, -0.0070},
+    {430, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {431, -0.9771, 5.8479, 0.3497, -1.0300, -5.7043, -0.1041},
+    {432, -1.7168, 4.0330, 0.4497, -1.5830, -4.3414, 0.7039},
+    {433, -1.2619, 3.7708, -0.2163, -1.2966, -4.6534, -0.1051},
+    {434, 0.0, 0.0, 0.0, -0.4811, -1.9838, -0.0670},
+    {435, 0.0000, 0.0000, 0.0000, -1.0697, -3.9690, -1.1053}, //trailer
+    {436, -0.8495, 2.2519, -0.0070, -0.8948, -2.4838, 0.1130},
+    {437, -1.1156, 5.5395, -0.2163, -0.9856, -5.3099, 1.6458},
+    {438, -1.1128, 2.3675, -0.2870, -1.0992, -2.4601, -0.2870},
+    {439, -0.8381, 2.3101, -0.1470, -0.8221, -2.6534, -0.1070},
+    {440, -0.8270, 2.5573, -0.3173, -0.8676, -2.5376, -0.0149},
+    {441, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {442, -1.0354, 2.8278, -0.1870, -1.0226, -3.0877, -0.1270},
+    {443, -1.0610, 5.7528, -0.9573, -1.2388, -7.1392, -0.8250},
+    {444, -0.9880, 2.7188, 0.6140, -1.0722, -3.0184, 0.7248},
+    {445, -0.9590, 2.3460, -0.0840, -0.9773, -2.8049, -0.0840},
+    {446, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {447, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {448,  -0.1992, -0.9229, -0.1270},
+    {449, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {450,  0.0000, 0.0000, 0.0000, -1.0697, -3.9690, -1.1053}, //trailer
+    {451, -0.9826, 1.9642, -0.1399, -0.8894, -2.3991, -0.0199},
+    {452, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {453, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {454, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {455, 0.0000, 0.0000, 0.0000, -1.3866, -4.5162, -0.7399},
+    {456, 0.0000, 0.0000, 0.0000, -1.3045, -4.6123, 0.4601},
+    {457, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {458, -0.9513, 2.4197, -0.1399, -0.9703, -2.7779, 0.0201},
+    {459, -0.8214, 2.5716, -0.1274, -0.8760, -2.5775, 0.1127},
+    {460, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {461, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {462, 0.0000, 0.0000, 0.0000, -0.2054, -0.9359, -0.1399},
+    {463, -0.2276, 0.7185, 0.3201, -0.1952, -1.0037, 0.1601},
+    {464, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {465, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {466, 0.0000, 0.0000, 0.0000, -1.0201, -2.7994, 0.0401},
+    {467, 0.0000, 0.0000, 0.0000, -0.9401, -3.0594, 0.1601},
+    {468, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {469, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {470, -1.0259, 2.1382, 0.2001, -1.0433, -2.5463, 0.1201},
+    {471, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {472, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {473, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {474, 0.0000, 0.0000, 0.0000, -0.9833, -2.7663, -0.0599},
+    {475, -0.8681, 2.4086, -0.3399, -0.8632, -2.7629, -0.2399},
+    {476, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {477, -0.8081, 2.6686, -0.1999, -0.9945, -2.6987, 0.0801},
+    {478, -1.0938, 2.0255, 0.1001, -1.0579, -2.5378, -0.2799},
+    {479, -0.9671, 2.4844, 0.0201, -0.9578, -2.7556, 0.0601},
+    {480, -0.5897, 2.2607, -0.4399, -0.9183, -2.3388, -0.1399},
+    {481, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {482, -0.8841, 2.4094, -0.3399, -0.8685, -2.5676, 0.0201},
+    {483, -0.7770, 2.6235, -0.0199, -0.6709, -2.7712, -0.1999},
+    {484,  0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {485, -0.6104, 1.7180, 0.2201, -0.7074, -1.3681, 0.1201},
+    {486, 0.0000, 0.0000, 0.0000, -0.5919, -3.2353, 0.9601},
+    {487, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {488, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {489, -1.1024, 2.5796, 0.0401, -1.1261, -2.6473, 0.1601},
+    {490, -1.0971, 3.1462, 0.0401, -1.1327, -3.1055, 0.1601},
+    {491, -0.8495, 2.5284, -0.0799, -0.8870, -2.7776, 0.0001},
+    {492, -0.7905, 2.4656, -0.0599, -0.9075, -2.8130, 0.0001},
+    {493, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {494, -0.8513, 2.3630, -0.2199, -0.8275, -2.8485, 0.1401},
+    {495, -1.0909, 2.3818, 0.0001, -1.1540, -2.1156, -0.0399},
+    {496, -0.9219, 2.1787, 0.0401, -0.7095, -2.1087, 0.0801},
+    {497, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000},
+    {498, -0.8915, 3.0670, 0.2201, -0.9740, -3.0460, 0.3601},
+    {499, -0.7725, 2.4576, -0.1999, -1.1318, -3.4186, 0.1401},
+    {500, -0.9152, 1.9097, -0.0355, -0.7552, -1.9266, -0.0355},
+    {501, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {502, -0.8723, 2.5986, -0.1770, 0.0, 0.0, 0.0},
+    {503, -0.8579, 2.3582, -0.0213, 0.0, 0.0, 0.0},
+    {504, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {505, -1.1068, 2.5744, 0.0086, -1.1365, -2.6250, 0.1679},
+    {506, -0.7672, 2.2106, -0.3185, -0.9113, -2.3474, -0.0273},
+    {507, -1.1143, 2.6057, -0.0456, -1.1410, -2.9714, -0.0456},
+    {508, -0.7012, 3.0199, -0.6678, -1.3807, -3.3356, 1.2628},
+    {509, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {510, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {511, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {512, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {513, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {514, -1.2341, 4.2204, 0.0806, 0.0, 0.0, 0.0},
+    {515, -1.4241, 4.4811, -0.7354, -1.2973, -4.8274, -0.8974},
+    {516, -0.9512, 2.7208, -0.0543, -0.9926, -2.7809, -0.0348},
+    {517, -0.9401, 2.7868, -0.0726, -1.0208, -2.7461, -0.1324},
+    {518, -0.9166, 2.6548, -0.0487, -1.0124, -2.8219, -0.0487}, //fake
+    {519, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {520, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {521, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {522, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {523, -0.2607, 0.6038, 0.2881, -0.1973, -0.9958, 0.0638},
+    {524, -0.9279, 3.6538, -0.0473, -1.3003, -3.9309, -1.0661}, //fake back
+    {525, -0.8576, 2.9431, 0.1425, -1.0428, -2.9851, -0.1486}, //fake back
+    {526, -0.9421, 2.3087, -0.1128, -0.9559, -2.2882, -0.0411},
+    {527, -0.9351, 2.4078, -0.0242, -0.9825, -2.2344, 0.0844},
+    {528, -0.8783, 2.5102, -0.1526, -0.8133, -2.5965, -0.3237}, //fake back
+    {529, -1.0177, 2.5256, 0.0698, -1.0505, -2.5713, 0.2047},
+    {530, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {531, -0.4216, 1.5030, -0.1191, -0.5225, -1.0517, 0.4484}, //fake
+    {532, -4.0331, 3.9619, -0.9118, -1.5976, -0.3739, 0.4484}, //fake!
+    {533, -0.9410, 2.3774, 0.0985, -0.9852, -2.4663, -0.0020},
+    {534, -1.0159, 2.9278, -0.1698, -0.8236, -2.7548, -0.0574},
+    {535, -0.8265, 2.5014, -0.2084, -0.9267, -2.6058, -0.1784},
+    {536, -0.8577, 2.3943, -0.1248, -0.8736, -3.0999, -0.0900},
+    {537, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {538, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {539, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {540, -0.9827, 2.5810, -0.1248, -1.0597, -2.7121, -0.0842},
+    {541, -0.6055, 2.3378, -0.2108, -0.7826, -2.1992, 0.0913},
+    {542, -0.9712, 2.6252, -0.0064, -0.8281, -2.9729, -0.0577},
+    {543, -0.8414, 2.2904, 0.0719, -0.9831, -2.6214, -0.0116}, //fake front
+    {544, -0.7346, 3.5720, 0.0200, -0.8597, -3.2242, -0.5918},
+    {545, -0.4372, 1.6776, -0.0400, -0.7955, -2.0453, -0.2888},
+    {546, -1.1294, 1.0702, 0.0719, -1.0580, -2.6948, 0.0719},
+    {547, -0.9582, 2.5222, 0.0271, -0.9937, -2.5915, 0.0719},
+    {548, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {549, -0.9264, 2.4914, 0.0271, -0.9070, -2.5802, 0.0271},
+    {550, -1.0477, 2.5642, -0.1807, -1.0302, -2.6549, -0.1297},
+    {551, -0.9334, 2.6344, -0.0448, -0.9785, -3.0524, 0.0366},
+    {552, -0.8757, 3.0634, 0.3600, -0.9933, -2.9119, 0.4752},
+    {553, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {554, -0.9409, 2.5345, 0.0600, -1.1112, -2.8095, 0.0651},
+    {555, -0.9236, 1.1282, -0.0462, 0.0, 0.0, 0.0},
+    {556, -0.9686, 2.5396, 0.5800, -1.1128, -2.8895, 0.7691},
+    {557, -0.9886, 2.4796, 0.7000, -1.0904, -2.7699, 0.6871},
+    {558, -0.9452, 2.0854, 0.0836, -0.9187, -2.4047, 0.3185},
+    {559, -0.9037, 2.4333, -0.0168, -0.8819, -2.2910, 0.1482},
+    {560, -0.9347, 2.5097, -0.2644, -0.9639, -2.2337, 0.1259},
+    {561, -0.9157, 2.5754, -0.0857, -0.9317, -2.5444, -0.0191},
+    {562, -0.9299, 2.3759, 0.0201, -0.8575, -2.2773, 0.1659},
+    {563, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {564, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {565, -0.8503, 2.0545, 0.0346, -0.9249, -1.9224, 0.0816},
+    {566, -0.9539, 2.7226, 0.0346, -0.9506, -2.9199, 0.0346},
+    {567, -0.9942, 2.9212, -0.1543, -1.0077, -2.9164, -0.1543},
+    {568, -0.2962, 2.0729, -0.0171, -0.2384, -1.2180, 0.0720},
+    {569, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {570, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {571, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {572, -0.3095, 0.7291, -0.0971, -0.4318, -0.8940, -0.0510},
+    {573, -0.7949, 3.0624, -0.3371, -0.8727, -3.0917, -0.4540},
+    {574, -0.4348, 1.6912, -0.2171, -0.4277, -1.1358, -0.2069},
+    {575, -0.9483, 2.3252, 0.1334, -0.9173, -2.7359, -0.0291},
+    {576, -0.9948, 2.4505, 0.1883, -0.9983, -3.1357, -0.0291},
+    {577, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {578, -1.0478, 4.3687, -0.1800, -1.1188, -5.3472, -0.5099},
+    {579, -1.0598, 2.3634, 0.1013, -1.0873, -2.7596, 0.1013},
+    {580, -0.7970, 2.6313, -0.2429, -1.0776, -2.8302, 0.1013},
+    {581, 0.0, 0.0, 0.0, -0.1975, -1.0375, 0.3448},
+    {582, -0.8583, 2.4404, -0.0571, -0.9214, -3.3625, 0.0521},
+    {583, -0.5225, 1.3799, 0.2429, -0.5486, -1.5684, 0.2462},
+    {584, 0.0, 0.0, 0.0, -1.0452, -4.3338, -0.7298}, //trailer
+    {585, -1.0068, 2.7905, 0.0907, -0.9760, -3.0160, 0.2088},
+    {586, -0.2872, 0.5383, 0.2009, -0.1703, -1.3533, 0.2784},
+    {587, -1.0236, 2.1415, -0.2834, -1.0832, -2.4851, 0.1047},
+    {588, -1.0116, 3.3590, 0.1029, -1.0679, -3.9639, -0.3029},
+    {589, -0.8107, 2.3905, 0.1834, -0.9605, -2.2799, 0.3761},
+    {590, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {591, 0.0, 0.0, 0.0, -1.0590, -3.9902, -1.0809}, //trailer
+    {592, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {593, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {594, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {595, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {596, -1.0419, 2.2929, -0.0255, -1.0332, -2.6951, 0.0005},
+    {597, -1.0419, 2.2929, -0.0255, -1.0332, -2.6951, 0.0005},
+    {598, -1.0423, 2.3495, 0.0600, -1.0326, -2.6930, 0.0600},
+    {599, -1.0837, 2.5663, 0.0301, -1.1267, -2.6290, 0.1451},
+    {600, -0.8782, 2.6525, -0.0344, -1.0586, -2.6696, 0.0596},
+    {601, -0.8094, 3.0084, 0.5429, -0.9321, -3.0808, 0.9071},
+    {602, -1.0297, 2.0487, -0.0543, -0.8907, -2.5334, -0.3228},
+    {603, -0.9069, 2.6672, -0.1335, -0.8647, -2.5991, -0.1335},
+    {604, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {605, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {606, 0.0, 0.0, 0.0, -0.5702, -1.5842, 0.7956}, //trailer
+    {607, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {608, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {609, -0.8972, 3.0244, 0.2629, -0.9349, -2.9809, 0.2791},
+    {610, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+    {611, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+};
+
+/* <summary> Set vehicle's indicators.</summary>
+ * <param name="vehicleid"> Vehicleid which we set indicators.</param>
+ * <param name="side"> Indicators side. </param>
+ */
+/*
+stock Vehicle_SetBlinking(VEHICLE_FRAMEWORK_TAGS: vehicleid, e_BLINKERS: side, bool:skip=false, tag=tagof(vehicleid)) //0 - left 1 - right 2 - emergy
+{
+
+    if(tag == tagof(_:))
+    {
+    
+        new 
+            modelid = GetVehicleModel(_:vehicleid),
+            id = modelid-400,
+            trailer;
+
+        
+
+        if(Vehicle_IsBlinking(vehicleid) && !skip) 
+        {
+            return Vehicle_CancelBlinking(vehicleid);
+        }
+    
+        if(!skip) 
+        {
+            Vehicle_gsBlinkSide[vehicleid] = side;
+        }
+    
+        if(id >= 0)
+        {
+            if(Vehicle_gscBlinkOffsets[id][e_BLINKING_POSX] != 0.0)
+            {
+                if(side == E_BLINK_LEFT)
+                {
+                    Vehicle_gsBlink[vehicleid][0] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0); //blink yellow  front
+                }
+                else if(side == E_BLINK_RIGHT)
+                {
+                    Vehicle_gsBlink[vehicleid][2] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+                }
+            }
+            if((trailer = Vehicle_GetTrailer(vehicleid)) != 0)
+            {
+                if(Vehicle_GetCategory(trailer) == CATEGORY_TRAILER)
+                {
+                    if(side == E_BLINK_LEFT)
+                    {
+                        Vehicle_gsBlink[vehicleid][1] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0); //blink yellow back truck only trailer
+                        
+                    }
+                    else if(side == E_BLINK_RIGHT)
+                    {
+                        Vehicle_gsBlink[vehicleid][3] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);    
+                    }
+                }
+            }
+            else
+            {
+                if(Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTX] != 0.0)
+                {
+                    if(side == E_BLINK_LEFT)
+                    {
+                        Vehicle_gsBlink[vehicleid][1] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0); //blink yellow back truck only trailer
+                    }
+                    else if(side == E_BLINK_RIGHT)
+                    {
+                        Vehicle_gsBlink[vehicleid][3] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+                    }
+                }
+            }
+    
+            if(side == E_BLINK_LEFT) //left
+            {
+                if(Vehicle_gsBlink[vehicleid][0] != 0) 
+                {
+                    AttachDynamicObjectToVehicle(Vehicle_gsBlink[vehicleid][0], vehicleid, Vehicle_gscBlinkOffsets[id][e_BLINKING_POSX], Vehicle_gscBlinkOffsets[id][e_BLINKING_POSY], Vehicle_gscBlinkOffsets[id][e_BLINKING_POSZ], 0.0, 0.0, 0.0);
+                }
+                if(trailer != 0)
+                {
+                    id = GetVehicleModel(trailer)-400;
+                    AttachDynamicObjectToVehicle(Vehicle_gsBlink[vehicleid][1], trailer, Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTX], Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTY], Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTZ], 0.0, 0.0, 0.0);
+                }
+                else
+                {
+                    if(Vehicle_gsBlink[vehicleid][1] != 0) 
+                    {
+                        AttachDynamicObjectToVehicle(Vehicle_gsBlink[vehicleid][1], vehicleid, Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTX], Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTY], Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTZ], 0.0, 0.0, 0.0);
+                    }
+                }
+            }
+            else if(side == E_BLINK_RIGHT) //right
+            {
+                if(Vehicle_gsBlink[vehicleid][2] != 0) 
+                {
+                    AttachDynamicObjectToVehicle(Vehicle_gsBlink[vehicleid][2], vehicleid, -Vehicle_gscBlinkOffsets[id][e_BLINKING_POSX], Vehicle_gscBlinkOffsets[id][e_BLINKING_POSY], Vehicle_gscBlinkOffsets[id][e_BLINKING_POSZ], 0.0, 0.0, 0.0);
+                }
+                if(trailer != 0)
+                {
+                    id = GetVehicleModel(trailer)-400;
+                    AttachDynamicObjectToVehicle(Vehicle_gsBlink[vehicleid][3], trailer, -Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTX], Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTY], Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTZ], 0.0, 0.0, 0.0);
+                }
+                else
+                {
+                    if(Vehicle_gsBlink[vehicleid][3] != 0) 
+                    {
+                        AttachDynamicObjectToVehicle(Vehicle_gsBlink[vehicleid][3], vehicleid, -Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTX], Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTY], Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTZ], 0.0, 0.0, 0.0);
+                    }
+                }
+            }
+            else if(side == E_BLINK_EMERGENCY)  //emergency
+            {
+                Vehicle_SetBlinking(vehicleid, E_BLINK_LEFT, true);
+                Vehicle_SetBlinking(vehicleid, E_BLINK_RIGHT, true);
+            }
+        }
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: vehicleid])
+        {
+            Vehicle_SetBlinking(i, side, skip);
+        }
+    }
+    return 1;
+}*/
+
+/* <summary> Checks if vehicle's blinking.</summary>
+ * <param name="vehicleid"> Vehicleid which whose indicators we check. </param>
+ * <returns> 0 if not blinking, else 1.</returns>
+ */
+
+stock Vehicle_IsBlinking(vehicleid)
+{
+    if(Vehicle_gsBlinkSide[vehicleid] == E_BLINK_NOT_SET)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+/* <summary> Cancel vehicle blinking.</summary>
+ * <param name="vehicleid"> Vehicleid whose indicators we cancel. </param>
+ * <returns> 0 if not blinking, else if function success 1.</returns>
+ */
+
+stock Vehicle_CancelBlinking(vehicleid)
+{
+    if(!Vehicle_IsBlinking(vehicleid)) 
+    {
+        return 0;
+    }
+
+    for(new i; i < BLINK_SIDES; i++)
+    {
+        if(Vehicle_gsBlink[vehicleid][i] != -1) 
+        {
+            DestroyDynamicObject(Vehicle_gsBlink[vehicleid][i]);
+        }
+        Vehicle_gsBlink[vehicleid][i] = -1;
+        Vehicle_gsBlinkSide[vehicleid] = E_BLINK_NOT_SET;
+        
+    }
+    return 1;
+}
+
+// -- 
+// Engine 
+// --
+
+/**
+ * <summary> Gets the engine state.</summary>
+ * <param name="vehicleid"> Vehicle from which we get engine state.</param>
+ * <returns> Engine state. </returns>
+ */
+
+stock VEHICLE_PARAMS: Vehicle_GetEngineState(vehicleid) 
+{
+    return Vehicle_gsParams[vehicleid][PARAMS_ENGINE];
+}
+
+/**
+ * <summary> Sets the engine state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the engine state.</param>
+ * <param name="engine_state"> Engine state to set.</param>
+ * <returns> SetVehicleParamsEx values. </returns>
+*/
+
+stock bool: Vehicle_SetEngineState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: engine_state, tag=tagof(id)) 
+{
+    if(tag==tagof(_:))
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        Vehicle_gsParams[id][PARAMS_ENGINE] = engine_state;
+        SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+    }
+    else if(tag==tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            Vehicle_gsParams[i][PARAMS_ENGINE] = engine_state;
+            SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
+        }
+    }
+    return true;
+}
+
+/**
+ * <summary> Gets vehicle drive type
+ */
+
+stock DRIVE_TYPE: Vehicle_GetDriveType(vehicleid) 
+{
+    new model = GetVehicleModel(vehicleid) - 400;
+    return Vehicle_Info[model][E_VEHICLE_DRIVE_TYPE]
+}
+
+/**
+ * <summary> Gets vehicle engine type
+ */
+
+stock ENGINE_TYPE: Vehicle_GetEngineType(vehicleid) 
+{
+    new model = GetVehicleModel(vehicleid) - 400;
+    return Vehicle_Info[model][E_VEHICLE_ENGINE_TYPE];
+}
+
+// --
+// Boot
+// --
+
+/**
+ * <summary> Gets the engine state.</summary>
+ * <param name="vehicleid"> Vehicle from which we get engine state.</param>
+ * <returns> Engine state. </returns>
+ */
+
+stock VEHICLE_PARAMS: Vehicle_GetBootState(vehicleid) 
+{
+    return Vehicle_gsParams[vehicleid][PARAMS_BOOT];
+}
+
+/**
+ * <summary> Sets the boot state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the boot state.</param>
+ * <param name="engine_state"> Boot state to set.</param>
+ * <returns> SetVehicleParamsEx values. </returns>
+*/
+
+stock bool: Vehicle_SetBootState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: boot_state, tag=tagof(id)) 
+{
+    if(tag==tagof(_:)) 
+    {        
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        Vehicle_gsParams[id][PARAMS_BOOT] = boot_state;
+        SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+    }
+    else if(tag==tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            Vehicle_gsParams[i][PARAMS_BOOT] = boot_state;
+            SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
+        }
+    }
+    return true;
+}
+
+// --
+// Bonnet
+// --
+
+/**
+ * <summary> Gets the bonnet state.</summary>
+ * <param name="vehicleid"> Vehicle from which we get bonnet state.</param>
+ * <returns> Bonnet state. </returns>
+ */
+
+stock VEHICLE_PARAMS: Vehicle_GetBonnetState(vehicleid) 
+{
+    return Vehicle_gsParams[vehicleid][PARAMS_BONNET];
+}
+
+/**
+ * <summary> Sets the bonnet state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the bonnet state.</param>
+ * <param name="engine_state"> Bonnet state to set.</param>
+ * <returns> SetVehicleParamsEx values. </returns>
+*/
+
+stock bool: Vehicle_SetBonnetState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: bonnet_state, tag=tagof(id)) 
+{
+    if(tag==tagof(_:)) 
+    {        
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        Vehicle_gsParams[id][PARAMS_BONNET] = bonnet_state;
+        SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+    }
+    else if(tag==tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            Vehicle_gsParams[i][PARAMS_BONNET] = bonnet_state;
+            SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
+        }
+    }
+    return true;
+}
+
+
+// --
+// Objective
+// --
+
+/**
+ * <summary> Gets the objective state.</summary>
+ * <param name="vehicleid"> Vehicle from which we get Objective state.</param>
+ * <returns> Objective state. </returns>
+ */
+
+stock VEHICLE_PARAMS: Vehicle_GetObjectiveState(vehicleid) 
+{
+    return Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE];
+}
+
+/**
+ * <summary> Sets the Objective state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the Objective state.</param>
+ * <param name="engine_state"> Objective state to set.</param>
+ * <returns> SetVehicleParamsEx values. </returns>
+*/
+
+stock bool: Vehicle_SetObjectiveState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: objective_state, tag=tagof(id)) 
+{
+    if(tag==tagof(_:)) 
+    {        
+        if(!IsValidVehicle(vehicleid))
+        {
+            return false;
+        }
+        Vehicle_gsParams[id][PARAMS_OBJECTIVE] = objective_state;
+        SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+    }
+    else if(tag==tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            Vehicle_gsParams[i][PARAMS_OBJECTIVE] = objective_state;
+            SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
+        }
+    }
+    return true;
+}
+
+
+// --
+// Lights
+// --
+
+static stock decode_lights(VEHICLE_LIGHT_STATUS: lights, &front_left_light, &front_right_light, &back_lights)
+{
+    front_left_light = _:lights & 1;
+    front_right_light = _:lights >> 2 & 1;
+    back_lights = _:lights >> 6 & 1;
+}
+
+#define VEHICLE_LIGHT: __TAG(VEHICLE_LIGHT):
+enum VEHICLE_LIGHT:__VEHICLE_LIGHT
+{
+    VEHICLE_LIGHT_FRONT_LEFT, 
+    VEHICLE_LIGHT_FRONT_RIGHT,
+    VEHICLE_LIGHT_BACK
+}
+static stock VEHICLE_LIGHT:_@VEHICLE_LIGHT() { return __VEHICLE_LIGHT; }
+
+#define VEHICLE_LIGHT_CONDITION: bool:
+
+const 
+    bool: VEHICLE_LIGHT_CONDITION_DAMAGED = true,
+    bool: VEHICLE_LIGHT_CONDITION_FIXED = false;
+
+stock Vehicle_GetLightsNumber(vehicleid)
+{
+    return Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_LIGHTS_NUMBER];
+}
+
+/**
+ * <summary> Sets the lights state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the lights state.</param>
+ * <param name="left_lights"> Left Ligth state to set.</param>
+ * <param name="right_lights"> Right Ligth state to set.</param>
+ * <param name="back_lights"> Back Ligth state to set.</param>
+ * <returns> UpdateVehicleDamageStatus values. </returns>
+*/
+
+stock Vehicle_SetLightsCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_LIGHT: light, VEHICLE_LIGHT_CONDITION: condition, tag=tagof(id))
+{
+    new 
+        VEHICLE_LIGHT_STATUS: lights, 
+        VEHICLE_DOOR_STATUS: unnecessary_doors,
+        VEHICLE_PANEL_STATUS: unnecessary_panels, 
+        VEHICLE_TYRE_STATUS: unnecessary_tires;
+    
+    if(tag == tagof(_:))
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        GetVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);
+        switch(light)
+        {
+            case VEHICLE_LIGHT_FRONT_LEFT:
+            {
+                if(condition)
+                {
+                    lights |= CARLIGHT_DRIVER_BROKEN;
+                }
+                else
+                {
+                    lights &= ~CARLIGHT_DRIVER_BROKEN;
+                }
+                UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);
+            }
+            case VEHICLE_LIGHT_FRONT_RIGHT:
+            {
+                if(condition)
+                {
+                    lights |= CARLIGHT_PASSENGER_BROKEN; 
+                }
+                else
+                {
+                    lights &= ~CARLIGHT_PASSENGER_BROKEN;
+                }
+                UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);          
+            } 
+            case VEHICLE_LIGHT_BACK:
+            {
+                if(condition)
+                {
+                    lights |= CARLIGHT_REAR_BROKEN;
+                }
+                else
+                {
+                    lights &= ~CARLIGHT_REAR_BROKEN;
+                }
+                UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);
+            }
+        }
+    }
+    else if(tag==tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            GetVehicleDamageStatus(i, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);
+            switch(light)
+            {
+                case VEHICLE_LIGHT_FRONT_LEFT:
+                {
+                    if(condition)
+                    {
+                        lights |= CARLIGHT_DRIVER_BROKEN;
+                    }
+                    else
+                    {
+                        lights &= ~CARLIGHT_DRIVER_BROKEN;
+                    }
+                    UpdateVehicleDamageStatus(i, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);
+                }
+                case VEHICLE_LIGHT_FRONT_RIGHT:
+                {
+                    if(condition)
+                    {
+                        lights |= CARLIGHT_PASSENGER_BROKEN;
+                    }
+                    else
+                    {
+                        lights &= ~CARLIGHT_PASSENGER_BROKEN;
+                    }
+                    UpdateVehicleDamageStatus(i, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);          
+                }
+                case VEHICLE_LIGHT_BACK:
+                {
+                    if(condition)
+                    {
+                        lights |= CARLIGHT_REAR_BROKEN;
+                    }
+                    else
+                    {
+                        lights &= ~CARLIGHT_REAR_BROKEN;
+                    }
+                    UpdateVehicleDamageStatus(i, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);
+                }
+            }
+        }
+    }
+    return true;
+}
+
+
+/**
+ * <summary> Gets the lights state.</summary>
+ * <param name="vehicleid"> Vehicle from which we get the lights state.</param>
+ * <param name="&left_lights"> Left Ligth state to get.</param>
+ * <param name="&right_lights"> Right Ligth state to get.</param>
+ * <param name="&back_lights"> Back Ligth state to get.</param>
+*/
+
+stock Vehicle_GetLightsCondition(vehicleid, &VEHICLE_LIGHT_CONDITION: front_left, &VEHICLE_LIGHT_CONDITION: front_right, &VEHICLE_LIGHT_CONDITION: back) 
+{    
+    if(!IsValidVehicle(vehicleid))
+    {
+        return false;
+    }
+    new 
+        VEHICLE_LIGHT_STATUS: lights,
+        VEHICLE_DOOR_STATUS: unnecessary_doors,
+        VEHICLE_PANEL_STATUS: unnecessary_panels, 
+        VEHICLE_TYRE_STATUS: unnecessary_tires;
+
+        
+    GetVehicleDamageStatus(vehicleid, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);
+
+    decode_lights(lights, front_left, front_right, back);
+
+    return true;
+
+}
+
+
+/**
+ * <summary> Sets the lights state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the lights running state.</param>
+ * <param name="light_state"> Lights state to set.</param>
+ * <returns> SetVehicleParamsEx values. </returns>
+*/
+
+stock bool: Vehicle_SetLightsState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: light_state, tag=tagof(id)) 
+{
+    if(tag==tagof(_:)) 
+    {        
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        Vehicle_gsParams[id][PARAMS_LIGHTS] = light_state;
+        SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+    
+    }
+    else if(tag==tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            if(Vehicle_GetLightsNumber(id) == 0)
+            {
+                continue;
+            }
+            Vehicle_gsParams[id][PARAMS_LIGHTS] = light_state;
+            SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+        }
+    }
+    return true;
+}
+
+/**
+ * <summary> Sets the lights state.</summary>
+ * <param name="vehicleid"> Vehicle from which we get the lights running state.</param>
+ * <returns> Lights' running state. </returns>
+*/
+
+stock VEHICLE_PARAMS: Vehicle_GetLightsState(vehicleid) 
+{
+    if(!IsValidVehicle(id))
+    {
+        return false;
+    }
+    return Vehicle_gsParams[vehicleid][PARAMS_LIGHTS];
+}
+
+// --
+// Alarms
+// --
+
+/**
+ * <summary> Sets the alarms state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the alarms state.</param>
+ * <returns> SetVehicleParamsEx values. </returns>
+*/
+
+stock Vehicle_SetAlarms(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: alarm_state, tag=tagof(id)) 
+{
+    if(tag==tagof(_:)) 
+    {      
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        Vehicle_gsParams[id][PARAMS_ALARM] = alarm_state;  
+        SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+    }
+    else if(tag==tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            Vehicle_gsParams[i][PARAMS_ALARM] = alarm_state;
+            SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
+        }
+    }
+    return 1;
+}
+
+
+
+/**
+ * <summary> Gets the alarms state.</summary>
+ * <param name="vehicleid"> Vehicle from which we set the alarms state.</param>
+ * <returns> Alarms' state. </returns>
+*/
+
+stock VEHICLE_PARAMS: Vehicle_GetAlarms(vehicleid) 
+{
+    return Vehicle_gsParams[vehicleid][PARAMS_ALARM];
+}
+
+
+// --
+// Windows 
+// --
+
+#define VEHICLE_WINDOWS: bool:
+
+#define VEHICLE_WINDOW: __TAG(VEHICLE_WINDOW):
+enum VEHICLE_WINDOW:__VEHICLE_WINDOW
+{
+    VEHICLE_WINDOWS: VEHICLE_WINDOW_FRONT_LEFT, 
+    VEHICLE_WINDOWS: VEHICLE_WINDOW_FRONT_RIGHT,
+    VEHICLE_WINDOWS: VEHICLE_WINDOW_REAR_LEFT,
+    VEHICLE_WINDOWS: VEHICLE_WINDOW_REAR_RIGHT,
+    VEHICLE_WINDOWS: VEHICLE_WINDOW_DRIVER = VEHICLE_WINDOWS: VEHICLE_WINDOW_FRONT_LEFT,
+    VEHICLE_WINDOWS: VEHICLE_WINDOW_PASSENGER = VEHICLE_WINDOWS: VEHICLE_WINDOW_FRONT_RIGHT
+}
+static stock VEHICLE_WINDOW:_@VEHICLE_WINDOW() { return __VEHICLE_WINDOW; }
+
+static
+    Vehicle_gsWindows[MAX_VEHICLES][4];
+
+
+/**
+ * <summary> Gets the vehicle's windows number.</summary>
+ */
+
+stock Vehicle_GetWindowsNumber(vehicleid) 
+{
+    return Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_WINDOWS_NUMBER];
+}
+
+stock bool: Vehicle_SetWindows(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_WINDOW: window, VEHICLE_WINDOWS: window_status, tag=tagof(id))
+{
+    if(tag == tagof(_:))
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        Vehicle_gsWindows[id][window] = window_status;
+        SetVehicleParamsCarWindows(id, Vehicle_gsWindows[id][VEHICLE_WINDOW_DRIVER], Vehicle_gsWindows[id][VEHICLE_WINDOW_PASSENGER], Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_LEFT], Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_RIGHT]);
+        return true;
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            Vehicle_gsWindows[i][window] = window_status;
+            SetVehicleParamsCarWindows(i, Vehicle_gsWindows[i][VEHICLE_WINDOW_DRIVER], Vehicle_gsWindows[i][VEHICLE_WINDOW_PASSENGER], Vehicle_gsWindows[i][VEHICLE_WINDOW_REAR_LEFT], Vehicle_gsWindows[i][VEHICLE_WINDOW_REAR_RIGHT]);
+        }
+    }
+    return true;
+}
+
+stock VEHICLE_WINDOWS: Vehicle_GetWindows(id, VEHICLE_WINDOW: window)
+{
+    return Vehicle_gsWindows[id][window];
+}
+
+/**
+ * <summary> Sets the vehicle's windows states.</summary>
+ * <param name="vehicleid"> Vehicle which we set the vehicle plate.</param>
+ * <param name="driver"> Driver-window state to set.</param>
+ * <param name="passenger"> Passenger-window state to set.</param>
+ * <param name="backleft"> Backleft-window state to set.</param>
+ * <param name="backright"> Backright-window state to gset.</param>
+*/
+
+stock bool: Vehicle_SetWindowsEx(VEHICLE_FRAMEWORK_TAGS: id, bool: driver, bool: passenger, bool: backleft, bool: backright, tag=tagof(id)) 
+{
+    if(tag == tagof(_:))
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        Vehicle_gsWindows[id][VEHICLE_WINDOW_DRIVER] = driver;
+        Vehicle_gsWindows[id][VEHICLE_WINDOW_PASSENGER] = passenger;
+        Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_LEFT] = backleft;
+        Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_RIGHT] = backright;
+        SetVehicleParamsCarWindows(id, Vehicle_gsWindows[id][VEHICLE_WINDOW_DRIVER], Vehicle_gsWindows[id][VEHICLE_WINDOW_PASSENGER],Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_LEFT], Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_RIGHT]);
+        return true;
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            Vehicle_gsWindows[i][VEHICLE_WINDOW_DRIVER] = driver;
+            Vehicle_gsWindows[i][VEHICLE_WINDOW_PASSENGER] = passenger;
+            Vehicle_gsWindows[i][VEHICLE_WINDOW_REAR_LEFT] = backleft;
+            Vehicle_gsWindows[i][VEHICLE_WINDOW_REAR_RIGHT] = backright;
+            SetVehicleParamsCarWindows(i, Vehicle_gsWindows[i][VEHICLE_WINDOW_DRIVER], Vehicle_gsWindows[i][VEHICLE_WINDOW_PASSENGER], Vehicle_gsWindows[i][VEHICLE_WINDOW_REAR_LEFT], Vehicle_gsWindows[i][VEHICLE_WINDOW_REAR_RIGHT]);
+        }
+    }
+    return true;
+}
+
+/**
+ * <summary> Gets the vehicle's windows states. </summary>
+ * <param name="vehicleid"> Vehicle from which we get the vehicle plate.</param>
+ * <param name="&driver"> Driver-window state to get.</param>
+ * <param name="&passenger"> Passenger-window state to get.</param>
+ * <param name="&backleft"> Backleft-window state to get.</param>
+ * <param name="&backright"> Backright-window state to get.</param>
+*/
+
+stock Vehicle_GetWindowsEx(vehicleid, &VEHICLE_WINDOWS: driver, &VEHICLE_WINDOWS: passenger, &VEHICLE_WINDOWS: backleft, &VEHICLE_WINDOWS: backright) 
+{
+    GetVehicleParamsCarWindows(vehicleid, Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_DRIVER], Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_PASSENGER], Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_REAR_LEFT], Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_REAR_RIGHT]);
+    driver = Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_DRIVER];
+    passenger = Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_PASSENGER];
+    backleft = Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_REAR_LEFT];
+    backright = Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_REAR_RIGHT];
+}
+
+
+// ---
+// Doors
+// ---
+
+#define VEHICLE_DOORS: __TAG(VEHICLE_DOORS):
+enum VEHICLE_DOORS:__VEHICLE_DOORS
+{
+    VEHICLE_DOOR_HOOD = 1,
+    VEHICLE_DOOR_TRUNK,
+    VEHICLE_DOOR_DRIVER,
+    VEHICLE_DOOR_PASSENGER
+}
+static stock VEHICLE_DOORS:_@VEHICLE_DOORS() { return __DOORS; }
+
+#define VEHICLE_DOOR_CONDITION: __TAG(VEHICLE_DOOR_CONDITION):
+enum VEHICLE_DOOR_CONDITION:__VEHICLE_DOOR_CONDITION
+{
+    VEHICLE_DOOR_CONDITION_NORMAL = 0,
+    VEHICLE_DOOR_CONDITION_OPEN = 1,
+    VEHICLE_DOOR_CONDITION_DAMAGED = 2,
+    VEHICLE_DOOR_CONDITION_OPEN_DAMAGED,
+    VEHICLE_DOOR_CONDITION_REMOVED
+}
+static stock VEHICLE_DOOR_CONDITION:_@VEHICLE_DOOR_CONDITION() { return __VEHICLE_DOOR_CONDITION; }
+
+//--
+static stock vehicle_EncodeDoors(bonnet, boot, driver_door, passenger_door)
+{
+    return bonnet | (boot << 8) | (driver_door << 16) | (passenger_door << 24);
+}
+
+
+static stock decode_doors(VEHICLE_DOOR_STATUS: doors, &bonnet, &boot, &driver_door, &passenger_door) 
+{
+    bonnet = _:doors & 7;
+    boot = _:doors >> 8 & 7;
+    driver_door = _:doors >> 16 & 7;
+    passenger_door = _:doors >> 24 & 7;
+}
+//
+
+/**
+ * <summary> Sets the doors state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the doors state.</param>
+ * <param name="hood"> Hood state to set. </param>
+ * <param name="trunk"> Trunk state to set. </param>
+ * <param name="driver"> Driver-door state to set. </param>
+ * <param name="passenger"> Passenger-door state to set. </param>
+ * <returns> UpdateVehicleDamageStatus values. </returns>
+*/
+
+stock Vehicle_SetDoorState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_DOORS: door, VEHICLE_DOOR_CONDITION: condition, tag=tagof(id)) 
+{
+
+    new
+        VEHICLE_DOOR_STATUS: doors,
+        VEHICLE_LIGHT_STATUS: unnecessary_lights,
+        VEHICLE_PANEL_STATUS: unnecessary_panels, 
+        VEHICLE_TYRE_STATUS: unnecessary_tires;
+
+    new hood,
+        trunk, 
+        left_door,
+        right_door;
+    
+    if(tag == tagof(_:)) 
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        GetVehicleDamageStatus(id, unnecessary_panels, doors, unnecessary_lights, unnecessary_tires);
+        decode_doors(doors, hood, trunk, left_door, right_door);
+        switch(door)
+        {
+            case VEHICLE_DOOR_HOOD:
+            {
+                hood = condition;
+            }
+            case VEHICLE_DOOR_TRUNK:
+            {
+                trunk = condition;
+            }
+            case VEHICLE_DOOR_DRIVER:
+            {
+                left_door = condition;
+            }
+            case VEHICLE_DOOR_PASSENGER:
+            {
+                right_door = condition;
+            }
+        }
+        UpdateVehicleDamageStatus(id, unnecessary_panels, VEHICLE_DOOR_STATUS: vehicle_EncodeDoors(hood, trunk, left_door, right_door), unnecessary_lights, unnecessary_tires);
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            GetVehicleDamageStatus(i, unnecessary_panels, doors, unnecessary_lights, unnecessary_tires);
+            decode_doors(doors, hood, trunk, left_door, right_door);
+            switch(door)
+            {
+                case VEHICLE_DOOR_HOOD:
+                {
+                    hood = condition;
+                }
+                case VEHICLE_DOOR_TRUNK:
+                {
+                    trunk = condition;
+                }
+                case VEHICLE_DOOR_DRIVER:
+                {
+                    left_door = condition;
+                }
+                case VEHICLE_DOOR_PASSENGER:
+                {
+                    right_door = condition;
+                }
+            }
+            UpdateVehicleDamageStatus(i, unnecessary_panels, VEHICLE_DOOR_STATUS: vehicle_EncodeDoors(hood, trunk, left_door, right_door), unnecessary_lights, unnecessary_tires);
+        } 
+    }
+    return true;
+}
+
+/**
+ * <summary> Gets the doors state.</summary>
+ * <param name="vehicleid"> Vehicle from which we get the doors state.</param>
+ * <param name="&hood"> Hood state to get.</param>
+ * <param name="&trunk"> Trunk state to get.</param>
+ * <param name="&driver"> Driver-door state to get.</param>
+ * <param name="&passenger"> Passenger-door state to get.</param>
+*/
+
+stock Vehicle_GetDoorState(vehicleid, &VEHICLE_DOOR_CONDITION: bonnet, &VEHICLE_DOOR_CONDITION: boot, &VEHICLE_DOOR_CONDITION: driver, &VEHICLE_DOOR_CONDITION: passenger) 
+{
+    if(!IsValidVehicle(vehicleid))
+    {
+        return false;
+    }
+    new 
+        VEHICLE_DOOR_STATUS: doors,
+        VEHICLE_LIGHT_STATUS: unnecessary_lights,
+        VEHICLE_PANEL_STATUS: unnecessary_panels, 
+        VEHICLE_TYRE_STATUS: unnecessary_tires;
+    
+    GetVehicleDamageStatus(vehicleid, unnecessary_panels, doors, unnecessary_lights, unnecessary_tires);
+    decode_doors(doors, bonnet, boot, driver, passenger);
+    return true;
+}
+
+/**
+ * <summary> Gets the doors' lock state.</summary>
+ * <param name="vehicleid"> Vehicle from which we set the doors' lock state.</param>
+ * <returns> Doors' lock state. </returns>
+*/
+
+stock VEHICLE_PARAMS: Vehicle_GetDoorsLocked(vehicleid) 
+{
+    return Vehicle_gsParams[vehicleid][PARAMS_DOORS];
+}
+
+/**
+ * <summary> Sets the alarms state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the doors' lock state.</param>
+ * <param name="door_state"> Door's lock state to set. </param>
+ * <returns> SetVehicleParamsEx values. </returns>
+*/
+
+stock Vehicle_SetDoorsLocked(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: door_state, tag=tagof(id)) 
+{
+    if(tag==tagof(_:)) 
+    {        
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        Vehicle_gsParams[id][PARAMS_DOORS] = door_state;
+        SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+    }
+    else if(tag==tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            Vehicle_gsParams[i][PARAMS_DOORS] = door_state;
+            SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
+        }
+    }
+    return true;
+}
+
+// --
+// Health
+// --
+
+forward OnVehicleHealthChange(vehicleid, Float: oldhealth, Float:newhealth);
+
+timer Vehicle_HealthTrack[500](vehicleid)
+{
+    new Float: healthveh;
+    GetVehicleHealth(vehicleid, healthveh);
+    if(healthveh != Vehicle_gsHealth[vehicleid]) 
+    {
+        CallLocalFunction("OnVehicleHealthChange", "iff", vehicleid, Vehicle_gsHealth[vehicleid], healthveh);
+        Vehicle_gsHealth[vehicleid] = healthveh;
+    }
+}
+
+/**
+ * <summary> Sets vehicle health.</summary>
+ * <param name="vehicleid"> Vehicle we set health to.</param>
+ * <param name="health"> Health to set.</param>
+ * <returns> 1 on success, 0 otherwise.</param>
+*/
+
+stock Vehicle_SetHealth(vehicleid, Float:health)
+{
+    if(health < 0 || !IsValidVehicle(vehicleid)) 
+    {
+        return false;
+    }
+    Vehicle_gsHealth[vehicleid] = health;
+    SetVehicleHealth(vehicleid, health);
+    return true;
+}
+
+/**
+ * <summary> Gets vehicle health.</summary>
+ * <param name="vehicleid"> Vehicle we get health from.</param>
+ * <param name="&health"> Optional variable to store value into.</param>
+ * <returns> 0.0 on fail, else vehicle health or stores health in referred variable.</param>
+*/
+
+stock Float:Vehicle_GetHealth(vehicleid, &Float:health = 0.0)
+{
+    if(!IsValidVehicle(vehicleid)) 
+    {
+        return 0.0;
+    }
+    if(numargs() == 2)
+    {
+        return health = Vehicle_gsHealth[vehicleid];
+    }
+    else
+    {
+        return Vehicle_gsHealth[vehicleid];
+    }
+}
+
+/**
+ * <summary> Repairs vehicle. </summary>
+ */
+
+stock Vehicle_Repair(vehicleid) 
+{
+    return RepairVehicle(vehicleid);
+}
+
+// --
+// Plate
+// --
+
+/**
+ * <summary> Gets the vehicle's number plate.</summary>
+ * <param name="vehicleid"> Vehicle from which we get the vehicle plate.</param>
+ * <param name="plate"> Plate to get.</param>
+ * <param name="len"> Size of the plate.</param>
+*/
+
+stock Vehicle_GetNumberPlate(vehicleid, string: plate[], len = sizeof(plate)) 
+{
+    return GetVehicleNumberPlate(vehicleid, plate, len);
+}
+
+/**
+ * <summary> Sets the vehicle's number plate.</summary>
+ * <param name="vehicleid"> Vehicle which we set the vehicle plate.</param>
+ * <param name="plate"> Plate to set.</param>
+*/
+
+stock Vehicle_SetNumberPlate(VEHICLE_FRAMEWORK_TAGS: id, const string: plate[], tag=tagof(id)) 
+{
+    if(tag == tagof(_:))
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        SetVehicleNumberPlate(id, plate);
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            SetVehicleNumberPlate(i, plate);
+        } 
+    }
+    return true;
+}
+
+// --
+// Components
+// --
+
+static const Vehicle_gscComponentName[MAX_VEHICLES_COMPONENTS][MAX_VEHICLE_COMPONENT_NAME] = 
+{
+	!"Pro Spoiler",
+	!"Win Spoiler",
+	!"Drag Spoiler",
+	!"Alpha Spoiler",
+	!"Champ Scoop Hood",
+	!"Fury Scoop Hood",
+	!"Roof Scoop",
+	!"Right Sideskirt",
+	!"5x Nitro",
+	!"2x Nitro",
+	!"10x Nitro",
+	!"Race Scoop Hood",
+	!"Worx Scoop Hood",
+	!"Round Fog Lamps",
+	!"Champ Spoiler",
+	!"Race Spoiler",
+	!"Worx Spoiler",
+	!"Left Sideskirt",
+	!"Upswept Exhaust",
+	!"Twin Exhaust",
+	!"Large Exhaust",
+	!"Medium Exhaust",
+	!"Small Exhaust",
+	!"Fury Spoiler",
+	!"Square Fog Lamps",
+	!"Offroad Wheels",
+	!"Right Alien Sideskirt \"Sultan\"",
+	!"Left Alien Sideskirt \"Sultan\"",
+	!"Alien Exhaust \"Sultan\"",
+	!"X-Flow Exhaust \"Sultan\"",
+	!"Left X-Flow Sideskirt \"Sultan\"",
+	!"Right X-Flow Sideskirt \"Sultan\"",
+	!"Alien Roof Vent \"Sultan\"",
+	!"X-Flow Roof Vent \"Sultan\"",
+	!"Alien Exhaust \"Elegy\"",
+	!"X-Flow Roof Vent \"Elegy\"",
+	!"Right Alien Sideskirt \"Elegy\"",
+	!"X-Flow Exhaust \"Elegy\"",
+	!"Alien Roof Vent \"Elegy\"",
+	!"Right X-Flow Sideskirt \"Elegy\"",
+	!"Left Alien Sideskirt \"Elegy\"",
+	!"Right X-Flow Sideskirt \"Elegy\"",
+	!"Right Chrome Sideskirt \"Broadway\"",
+	!"Slamin Exhaust \"Broadway\"",
+	!"Chrome Exhaust \"Broadway\"",
+	!"X-Flow Exhaust \"Flash\"",
+	!"Alien Exhaust \"Flash\"",
+	!"Right Alien Sideskirt \"Flash\"",
+	!"Right X-Flow Sideskirt \"Flash\"",
+	!"Alien Spoiler \"Flash\"",
+	!"X-Flow Spoiler \"Flash\"",
+	!"Left Alien Sideskirt \"Flash\"",
+	!"Left X-Flow Sideskirt \"Flash\"",
+	!"X-Flow Roof \"Flash\"",
+	!"Alien Roof \"Flash\"",
+	!"Alien Roof \"Stratum\"",
+	!"Right Alien Sideskirt \"Stratum\"",
+	!"Right X-Flow Sideskirt \"Stratum\"",
+	!"Alien Spoiler \"Stratum\"",
+	!"X-Flow Exhaust \"Stratum\"",
+	!"X-Flow Spoiler \"Stratum\"",
+	!"X-Flow Roof \"Stratum\"",
+	!"Left Alien Sideskirt \"Stratum\"",
+	!"Left X-Flow Sideskirt \"Stratum\"",
+	!"Alien Exhaust \"Stratum\"",
+	!"Alien Exhaust \"Jester\"",
+	!"X-Flow Exhaust \"Jester\"",
+	!"Alien Roof \"Jester\"",
+	!"X-Flow Roof \"Jester\"",
+	!"Right Alien Sideskirt \"Jester\"",
+	!"Right X-Flow Sideskirt \"Jester\"",
+	!"Left Alien Sideskirt \"Jester\"",
+	!"Left X-Flow Sideskirt \"Jester\"",
+	!"Shadow Wheels",
+	!"Mega Wheels",
+	!"Rimshine Wheels",
+	!"Wires Wheels",
+	!"Classic Wheels",
+	!"Twist Wheels",
+	!"Cutter Wheels",
+	!"Switch Wheels",
+	!"Grove Wheels",
+	!"Import Wheels",
+	!"Dollar Wheels",
+	!"Trance Wheels",
+	!"Atomic Wheels",
+	!"Stereo Sound",
+	!"Hydraulics",
+	!"Alien Roof \"Uranus\"",
+	!"X-Flow Exhaust \"Uranus\"",
+	!"Right Alien Sideskirt \"Uranus\"",
+	!"X-Flow Roof \"Uranus\"",
+	!"Alien Exhaust \"Uranus\"",
+	!"Right X-Flow Sideskirt \"Uranus\"",
+	!"Left Alien Sideskirt \"Uranus\"",
+	!"Right X-Flow Sideskirt \"Uranus\"",
+	!"Ahab Wheels",
+	!"Virtual Wheels",
+	!"Access Wheels",
+	!"Left Chrome Sideskirt \"Broadway\"",
+	!"Chrome Grill Bullbar \"Remington\"",
+	!"Left \"Chrome Flames\" Sideskirt \"Remington\"",
+	!"Left \"Chrome Strip\" Sideskirt \"Savanna\"",
+	!"Corvetible Roof \"Blade\"",
+	!"Chrome Exhaust \"Blade\"",
+	!"Slamin Exhaust \"Blade\"",
+	!"Right \"Chrome Arches\" Sideskirt \"Remington\"",
+	!"Left \"Chrome Strip\" Sideskirt \"Blade\"",
+	!"Right \"Chrome Strip\" Sideskirt \"Blade\"",
+	!"Chrome Rear Bullbars \"Slamvan\"",
+	!"Slamin Rear Bullbars \"Slamvan\"",
+	!"Little Front Sign? \"Slamvan\"",
+	!"Little Front Sign? \"Slamvan\"",
+	!"Chrome Exhaust \"Slamvan\"",
+	!"Slamin Exhaust \"Slamvan\"",
+	!"Chrome Front Bullbars \"Slamvan\"",
+	!"Slamin Front Bullbars \"Slamvan\"",
+	!"Chrome Front Bumper \"Slamvan\"",
+	!"Right \"Chrome Trim\" Sideskirt \"Slamvan\"",
+	!"Right \"Wheelcovers\" Sideskirt \"Slamvan\"",
+	!"Left \"Chrome Trim\" Sideskirt \"Slamvan\"",
+	!"Left \"Wheelcovers\" Sideskirt \"Slamvan\"",
+	!"Right \"Chrome Flames\" Sideskirt \"Remington\"",
+	!"Bullbar Chrome Bars \"Remington\"",
+	!"Left \"Chrome Arches\" Sideskirt \"Remington\"",
+	!"Bullbar Chrome Lights \"Remongton\"",
+	!"Chrome Exhaust \"Remington\"",
+	!"Slamin Exhaust \"Remington\"",
+	!"Vinyl Hardtop \"Blade\"",
+	!"Chrome Exhaust \"Savanna\"",
+	!"Hardtop Roof \"Savanna\"",
+	!"Softtop Roof \"Savanna\"",
+	!"Slamin Exhaust \"Savanna\"",
+	!"Right \"Chrome Strip\" Sideskirt \"Savanna\"",
+	!"Right \"Chrome Strip\" Sideskirt \"Blade\"",
+	!"Slamin Exhaust \"Blade\"",
+	!"Chrome Exhaust \"Blade\"",
+	!"Left \"Chrome Strip\" Sideskirt \"Blade\"",
+	!"Alien Spoiler \"Sultan\"",
+	!"X-Flow Spoiler \"Sultan\"",
+	!"X-Flow Rear Bumper \"Sultan\"",
+	!"Alien Rear Bumper \"Sultan\"",
+	!"Left Oval Vents",
+	!"Right Oval Vents",
+	!"Left Square Vents",
+	!"Right Square Vents",
+	!"X-Flow Spoiler \"Elegy\"",
+	!"Alien Spoiler \"Elegy\"",
+	!"X-Flow Rear Bumper \"Elegy\"",
+	!"Alien Rear Bumper \"Elegy\"",
+	!"Alien Rear Bumper \"Flash\"",
+	!"X-Flow Rear Bumper \"Flash\"",
+	!"X-Flow Front Bumper \"Flash\"",
+	!"Alien Front Bumper \"Flash\"",
+	!"Alien Rear Bumper \"Stratum\"",
+	!"Alien Front Bumper \"Stratum\"",
+	!"X-Flow Rear Bumper \"Stratum\"",
+	!"X-Flow Front Bumper \"Stratum\"",
+	!"X-Flow Spoiler \"Jester\"",
+	!"Alien Rear Bumper \"Jester\"",
+	!"Alien Front Bumper \"Jester\"",
+	!"X-Flow Rear Bumper \"Jester\"",
+	!"Alien Spoiler \"Jester\"",
+	!"X-Flow Spoiler \"Uranus\"",
+	!"Alien Spoiler \"Uranus\"",
+	!"X-Flow Front Bumper \"Uranus\"",
+	!"Alien Front Bumper \"Uranus\"",
+	!"X-Flow Rear Bumper \"Uranus\"",
+	!"Alien Rear Bumper \"Uranus\"",
+	!"Alien Front Bumper \"Sultan\"",
+	!"X-Flow Front Bumper \"Sultan\"",
+	!"Alien Front Bumper \"Elegy\"",
+	!"X-Flow Front Bumper \"Elegy\"",
+	!"X-Flow Front Bumper \"Jester\"",
+	!"Chrome Front Bumper \"Broadway\"",
+	!"Slamin Front Bumper \"Broadway\"",
+	!"Chrome Rear Bumper \"Broadway\"",
+	!"Slamin Rear Bumper \"Broadway\"",
+	!"Slamin Rear Bumper \"Remington\"",
+	!"Chrome Front Bumper \"Remington\"",
+	!"Chrome Rear Bumper \"Remington\"",
+	!"Slamin Front Bumper \"Blade\"",
+	!"Chrome Front Bumper \"Blade\"",
+	!"Slamin Rear Bumper \"Blade\"",
+	!"Chrome Rear Bumper \"Blade\"",
+	!"Slamin Front Bumper \"Remington\"",
+	!"Slamin Rear Bumper \"Savanna\"",
+	!"Chrome Rear Bumper \"Savanna\"",
+	!"Slamin Front Bumper \"Savanna\"",
+	!"Chrome Front Bumper \"Savanna\"",
+	!"Slamin Front Bumper \"Blade\"",
+	!"Chrome Front Bumper \"Blade\"",
+	!"Chrome Rear Bumper \"Blade\"",
+	!"Slamin Rear Bumper \"Blade\""
+};
+
+static const Vehicle_gscComponents[MAX_VEHICLES_MODELS][MAX_VEHICLE_COMPONENTS] = 
+{
+	{1008, 1009, 1010, 1013, 1018, 1019, 1020, 1021, 1024, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1013, 1017, 1019, 1020, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1000, 1002, 1007, 1008, 1009, 1010, 1013, 1016, 1017, 1019, 1020, 1021, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1000, 1001, 1008, 1009, 1010, 1014, 1018, 1019, 1020, 1021, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1003, 1007, 1008, 1009, 1010, 1013, 1017, 1019, 1020, 1021, 1023, 1024, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1003, 1007, 1008, 1009, 1010, 1017, 1018, 1019, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1002, 1006, 1008, 1009, 1010, 1016, 1020, 1021, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1003, 1004, 1005, 1008, 1009, 1010, 1019, 1021, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1000, 1008, 1009, 1010, 1014, 1016, 1018, 1019, 1020, 1021, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1007, 1008, 1009, 1010, 1013, 1017, 1019, 1020, 1021, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1003, 1004, 1005, 1006, 1008, 1009, 1010, 1019, 1021, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1003, 1006, 1007, 1008, 1009, 1010, 1013, 1017, 1019, 1020, 1021, 1022, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1003, 1007, 1008, 1009, 1010, 1013, 1017, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1006, 1007, 1008, 1009, 1010, 1017, 1018, 1019, 1020, 1021, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1004, 1005, 1008, 1009, 1010, 1012, 1013, 1020, 1021, 1022, 1024, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1000, 1002, 1004, 1005, 1006, 1008, 1009, 1010, 1013, 1016, 1018, 1019, 1020, 1024, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1003, 1007, 1008, 1009, 1010, 1014, 1017, 1018, 1019, 1020, 1021, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1000, 1004, 1005, 1006, 1008, 1009, 1010, 1016, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1002, 1003, 1006, 1007, 1008, 1009, 1010, 1011, 1017, 1019, 1020, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1013, 1019, 1020, 1021, 1024, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1000, 1002, 1004, 1007, 1008, 1009, 1010, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1002, 1003, 1007, 1008, 1009, 1010, 1016, 1017, 1018, 1019, 1020, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1003, 1005, 1006, 1007, 1008, 1009, 1010, 1013, 1017, 1018, 1020, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1007, 1008, 1009, 1010, 1014, 1015, 1017, 1018, 1020, 1021, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1003, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1017, 1018, 1019, 1020, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1100, 1101, 1106, 1122, 1123, 1124, 1125, 1126, 1127, 1178, 1179, 1180, 1185, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1109, 1110, 1113, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1103, 1104, 1105, 1107, 1108, 1128, 1181, 1182, 1183, 1184, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1004, 1006, 1007, 1008, 1009, 1010, 1017, 1018, 1019, 1020, 1023, 1024, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1014, 1015, 1018, 1019, 1020, 1021, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1002, 1004, 1006, 1007, 1008, 1009, 1010, 1017, 1018, 1019, 1023, 1024, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1000, 1003, 1008, 1009, 1010, 1016, 1018, 1019, 1020, 1021, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1003, 1007, 1008, 1009, 1010, 1011, 1012, 1017, 1018, 1019, 1020, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1003, 1004, 1005, 1006, 1008, 1009, 1010, 1018, 1019, 1020, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1002, 1003, 1005, 1006, 1008, 1009, 1010, 1016, 1018, 1019, 1020, 1021, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1163, 1164, 1165, 1166, 1167, 1168, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1158, 1159, 1160, 1161, 1162, 1173, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1138, 1139, 1140, 1141, 1169, 1170, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1026, 1027, 1030, 1031, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1154, 1155, 1156, 1157, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1034, 1035, 1036, 1037, 1038, 1039, 1040, 1041, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1146, 1147, 1148, 1149, 1171, 1172, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1045, 1046, 1047, 1048, 1049, 1050, 1051, 1052, 1053, 1054, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1150, 1151, 1152, 1153, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1102, 1129, 1130, 1131, 1132, 1133, 1186, 1187, 1188, 1189, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1042, 1043, 1044, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1099, 1174, 1175, 1176, 1177, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1134, 1135, 1136, 1137, 1190, 1191, 1192, 1193, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1006, 1007, 1008, 1009, 1010, 1017, 1018, 1020, 1023, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1000, 1001, 1002, 1003, 1006, 1007, 1008, 1009, 1010, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1000, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1013, 1016, 1017, 1018, 1020, 1024, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1004, 1005, 1006, 1007, 1008, 1009, 1010, 1013, 1017, 1018, 1020, 1022, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1001, 1006, 1007, 1008, 1009, 1010, 1017, 1018, 1019, 1020, 1023, 1024, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, 1142, 1143, 1144, 1145, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...},
+	{1008, 1009, 1010, 1025, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1096, 1097, 1098, INVALID_VEHICLE_COMPONENT_ID, INVALID_VEHICLE_COMPONENT_ID, ...}
+};
+
+/**
+summary to write */
+
+stock Vehicle_GetComponentName(componentid, name[], size = sizeof(name))
+{
+	new idx = componentid - 1000;
+
+	if (!(0 <= idx <= MAX_VEHICLES_COMPONENTS)) 
+    {
+		return 0;
+	}
+	return strunpack(name, gVehicleComponentName[idx], size);
+}
+
+stock bool: Vehicle_CanHaveComponent(vehicleid, componentid)
+{
+	new idx = GetVehicleModel(vehicleid) - 400;
+
+	if(!(0 <= idx <= MAX_VEHICLES_MODELS) || !IsValidVehicle(vehicleid)) 
+    {
+		return false;
+	}
+	for(new i; i < MAX_VEHICLE_COMPONENTS; i++)
+	{
+		if (Vehicle_gscComponents[idx][i] != INVALID_VEHICLE_COMPONENT_ID && Vehicle_gscComponents[idx][i] == componentid) 
+        {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * <summary> Adds a component to vehicle.</summary>
+ * <param name="id"> Vehicle or a group which we set the component to.</param>
+ * <param name="componentid"> componentid to set.</param>
+ * <returns> 0 if function fails, eg. vehicle is not created or vehicle can't have the component, else 1.</param>
+*/
+
+stock bool: Vehicle_AddComponent(VEHICLE_FRAMEWORK_TAGS: id, componentid, tag=tagof(id)) 
+{
+    if(tag == tagof(_:))
+    {
+        if(!Vehicle_CanHaveComponent(id, componentid) || !IsValidVehicle(id))
+        {
+            return false;
+        }
+        AddVehicleComponent(id, componentid);
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            if(!Vehicle_CanHaveComponent(id, componentid))
+            {
+                continue;
+            }
+            AddVehicleComponent(id, componentid);
+        }
+    }
+    return true;
+}
+
+/**
+ * <summary> Removes a component from vehicle.</summary>
+ * <param name="vehicleid"> Vehicle we remove component from.</param>
+ * <param name="componentid"> Component to remove.</param>
+ * <returns> 0 if function fails, eg. vehicle is not created, else 1.</param>
+*/
+
+stock bool: Vehicle_RemoveComponent(vehicleid, componentid)
+{
+    return RemoveVehicleComponent(vehicleid, componentid);
+}
+
+/**
+ * <summary> Checks if vehicle has the component in specified slot.</summary>
+ * <param name="vehicleid"> Vehicle we check.</param>
+ * <param name="slot"> Slot to check.</param>
+ * <returns> ID of the component in slot.</param>
+*/
+
+stock Vehicle_GetComponentInSlot(vehicleid, CARMODTYPE: slot) 
+{
+    return GetVehicleComponentInSlot(vehicleid, slot);
+}
+
+/**
+ * <summary> Gets vehicle component's slot.</summary>
+ * <param name="vehicleid"> Vehicle we check.</param>
+ * <param name="componentid"> Component to check.</param>
+ * <returns> Component slot.</param>
+*/
+
+stock CARMODTYPE: Vehicle_GetComponentType(vehicleid, componentid)
+{
+    return CARMODTYPE: GetVehicleComponentType(componentid);
+}
+
+// --
+// Dimensions
+// --
+
+/**
+ * <summary> Sets the vehicle or group interior.</summary>
+ * <param name="id"> Vehicle or group which we set the interior to.</param>
+ * <param name="interior"> Interior to set.</param>
+*/
+
+stock bool: Vehicle_SetInterior(VEHICLE_FRAMEWORK_TAGS: id, interiorid, tag=tagof(id)) 
+{
+    if(tag == tagof(_:))
+    {
+        return LinkVehicleToInterior(id, interiorid);
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            LinkVehicleToInterior(i, interiorid);
+        }
+    }
+    return true;
+}
+
+/**
+ * <summary> Gets the vehicle or group interior.</summary>
+ * <param name="vehicleid"> Vehicle or group which we set the interior to.</param>
+ * <returns> Vehicle interior. </returns>
+*/
+
+stock Vehicle_GetInterior(vehicleid) 
+{
+    return ((IsValidVehicle(vehicleid)) ? (GetVehicleInterior(vehicleid)) : -(1));
+}
+
+/**
+ * <summary> Sets the vehicle or group virtual world.</summary>
+ * <param name="id"> Vehicle or group which we set the virtual world to.</param>
+ * <param name="virtual_world"> Virtual World to set.</param>
+*/
+
+stock bool: Vehicle_SetVirtualWorld(VEHICLE_FRAMEWORK_TAGS: id, virtual_world, tag=tagof(id))
+{
+    if(tag == tagof(_:))
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        SetVehicleVirtualWorld(id, virtual_world);
+        return true;
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            SetVehicleVirtualWorld(i, virtual_world);
+        }
+    }
+    return true;
+}
+
+
+/**
+ * <summary> Gets the vehicle virtual world.</summary>
+ * <param name="vehicleid"> Vehicle or group which we set the interior to.</param>
+ * <returns> Vehicle virtual world. </returns>
+*/
+
+stock Vehicle_GetVirtualWorld(vehicleid) 
+{
+    return ((IsValidVehicle(vehicleid)) ? (GetVehicleVirtualWorld(vehicleid)) : -(1));
+}
+
+/**
+ * <summary> Sets the vehicle or group dimensions.</summary>
+ * <param name="id"> Vehicle or group which we set the dimensions to.</param>
+ * <param name="interior"> Interior to set.</param>
+ * <param name="virtual_world"> Virtual World to set.</param>
+*/
+
+stock Vehicle_SetDimensionInfo(VEHICLE_FRAMEWORK_TAGS: id, interiorid, virtual_world, tag=tagof(id))
+{
+    if(tag == tagof(_:))
+    {
+        LinkVehicleToInterior(id, interiorid);
+        return SetVehicleVirtualWorld(id, virtual_world);
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            LinkVehicleToInterior(i, interiorid);
+            SetVehicleVirtualWorld(i, virtual_world);
+        }
+    }
+    return true;
+}
+
+/**
+ * <summary> Sets the vehicle or group dimensions.</summary>
+ * <param name="id"> Vehicle or group which we get the dimensions from.</param>
+ * <param name="&interior"> Interior to get.</param>
+ * <param name="&virtual_world"> Virtual World to get.</param>
+*/
+
+stock void: Vehicle_GetDimensionInfo(vehicleid, &interiorid, &virtualworld) 
+{
+    interiorid = Vehicle_GetInterior(vehicleid);
+    virtualworld = Vehicle_GetVirtualWorld(vehicleid);
+}
+
+// --
+// Time functions
+// --
+
+stock bool: Vehicle_SetRespawnTick(VEHICLE_FRAMEWORK_TAGS: id, respawn_ticks)
+{
+    if(tag == tagof(_:))
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        SetVehicleRespawnTick(id, respawn_ticks);
+        return true;
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            SetVehicleRespawnTick(i, respawn_ticks);
+        }
+    }
+    return true;
+}
+
+stock bool: Vehicle_SetOccupiedTick(VEHICLE_FRAMEWORK_TAGS: id, occupied_ticks)
+{
+    if(tag == tagof(_:))
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        Vehicle_gsOccupiedTick[id] = occupied_ticks;
+        return true;
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            Vehicle_gsOccupiedTick[i] = occupied_ticks;
+        }
+    }
+    return true;
+}
+
+/**
+* <summary> Sets the vehicle or groups respawn delay.</summary>
+* <param name="id"> Vehicle or group which we set the delay to.</param>
+* <param name="respawn_delay"> Delay to set.</param>
+*/
+
+stock bool: Vehicle_SetRespawnDelay(VEHICLE_FRAMEWORK_TAGS: id, respawn_delay, tag=tagof(id))
+{
+    if(tag == tagof(_:))
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        Vehicle_gsRespawnTick[id] = respawn_ticks;
+        return true;
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            Vehicle_gsRespawnTick[i] = respawn_ticks;
+        }
+    }
+    return true;
+}
+
+/**
+ * <summary> Gets the vehicle respawn delay.</summary>
+ * <param name="vehicleid"> Vehicle we get the delay from.</param>
+ * <returns> Respawn delay.</returns>
+ */
+
+stock Vehicle_GetRespawnDelay(vehicleid)
+{
+    return ((IsValidVehicle(vehicleid)) ? (GetVehicleRespawnDelay(vehicleid)) : -(2));
+}
+
+/**
+ * <summary> Gets the vehicle occupied time.</summary>
+ * <param name="vehicleid"> Vehicle we get the occupied time from.</param>
+ * <returns> -1 if vehicle is occupied. Else occupied time.</returns>
+ */
+
+stock Vehicle_GetOccupiedTime(vehicleid)
+{
+    if(Vehicle_IsOccupied(vehicleid))
+    {
+        return ((gettime() - Vehicle_gsOccupiedTick[vehicleid]) * 1000);
+    }
+    return -1;
+}
+
+/**
+ * <summary> Gets the vehicle (re)spawned time.</summary>
+ * <param name="vehicleid"> Vehicle we get the respawned time from.</param>
+ * <returns> Respawned time.</returns>
+ */
+
+stock Vehicle_GetRespawnedTime(vehicleid)
+{
+    return ((gettime() - Vehicle_gsRespawnTick[vehicleid]) * 1000);
+}
+
+// -- 
+// Create destroy
+// --
+
+static Timer: Vehicle_gsHealthTrackTimer[MAX_VEHICLES];
+
+/**
+  * <summary> Creates a vehicle.</summary>
+  * <param name="modelid">vehicle model (400-611)</param>
+  * <param name="Float: x">x vehicle rotation</param>
+  * <param name="Float: y">y vehicle rotation</param>
+  * <param name="Float: z">z vehicle rotation</param>
+  * <param name="Float: rotation">vehicle angle</param>
+  * <param name="respawn_delay">The time(ms) when the vehicle will be respawned again.</param>
+  * <param name="interior">interior id, if you want to create a vehicle inside the building</param>
+*/
+stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, bool:addsiren=false) 
+{
+    new idx;
+    if(modelid == 537 || modelid == 538)
+    {
+        idx = AddStaticVehicleEx(modelid, x, y, z, rotation, color1, color2, respawn_delay, addsiren);
+    }
+    else 
+    {
+        idx = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay, addsiren); 
+    }
+
+    if(!IsValidVehicle(idx)) 
+    {
+        return INVALID_VEHICLE_ID;
+    }
+
+    Vehicle_gsOccupiedTick[idx] = -1;
+    Vehicle_gsRespawnTick[idx] = gettime();
+
+    /*Vehicle_gsBlinkSide[idx] = E_BLINK_NOT_SET;
+    Vehicle_gsBlink[idx][0] = -1;
+    Vehicle_gsBlink[idx][1] = -1;
+    Vehicle_gsBlink[idx][2] = -1;
+    Vehicle_gsBlink[idx][3] = -1;*/
+
+    /*Vehicle_gsIsOccupied[idx][0] = -1;
+    Vehicle_gsIsOccupied[idx][1] = -1;
+    Vehicle_gsIsOccupied[idx][2] = -1;
+    Vehicle_gsIsOccupied[idx][3] = -1;*/
+    Vehicle_gsHealth[idx] = 1000;
+    
+    SetVehicleVirtualWorld(idx, virtual_world);
+    LinkVehicleToInterior(idx, interior);
+    Vehicle_gsHealthTrackTimer[idx] = repeat Vehicle_HealthTrack(idx);
+    CallLocalFunction("OnVehicleFirstSpawn", "i", idx);
+    return idx;
+}
+
+/**
+ * <summary> Creates a vehicle with additional params.</summary>
+ * <param name="modelid">vehicle model (400-611)</param>
+ * <param name="Float: x">x vehicle rotation</param>
+ * <param name="Float: y">y vehicle rotation</param>
+ * <param name="Float: z">z vehicle rotation</param>
+ * <param name="Float: rotation">vehicle angle</param>
+ * <param name="respawn_delay">The time(ms) when the vehicle will be respawned again.</param>
+ * <param name="interior">interior id, if you want to create a vehicle inside the building</param>
+ * <param name="Float: health">vehicle health (damage)</param>
+ * <param name="plate">the text that will appear on the vehicle plates</param>
+*/
+stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, Float: health, const string: plate[MAX_NUMBER_PLATE], bool:addsiren=false) 
+{
+    new idx;
+    if(modelid == 537 || modelid == 538)
+    {
+        idx = AddStaticVehicleEx(modelid, x, y, z, rotation, color1, color2, respawn_delay, addsiren);
+    }
+    else 
+    {
+        idx = CreateVehicle(modelid, x, y, z, rotation, color1, color2, respawn_delay, addsiren);
+    }
+    
+    if(!IsValidVehicle(idx)) 
+    {
+        return INVALID_VEHICLE_ID;
+    }
+
+    Vehicle_gsHealth[idx] = health;
+    Vehicle_gsOccupiedTick[idx] = -1;
+    Vehicle_gsRespawnTick[idx] = gettime();
+    
+    /*Vehicle_gsBlinkSide[idx] = E_BLINK_NOT_SET;
+    Vehicle_gsIsOccupied[idx][0] = -1;
+    Vehicle_gsIsOccupied[idx][1] = -1;
+    Vehicle_gsIsOccupied[idx][2] = -1;
+    Vehicle_gsIsOccupied[idx][3] = -1;*/
+    Vehicle_gsHealthTrackTimer[idx] = repeat Vehicle_HealthTrack(idx);
+    SetVehicleNumberPlate(idx, plate);
+    
+    SetVehicleHealth(idx, health);
+    SetVehicleNumberPlate(idx, plate);
+    SetVehicleVirtualWorld(idx, virtual_world);
+    LinkVehicleToInterior(idx, interior);
+    CallLocalFunction("OnVehicleFirstSpawn", "i", idx);
+    return idx;
+}
+
+
+/**
+ * <summary> Destroys vehicle. </summary>
+*/
+
+
+
+stock Vehicle_Destroy(idx)
+{
+    if(!IsValidVehicle(idx)) 
+    {
+        return 0;
+    }
+    Vehicle_gsModel[idx] = -1;
+    Vehicle_gsPosition[idx][0] = -1;
+    Vehicle_gsPosition[idx][1] = -1;
+    Vehicle_gsPosition[idx][2] = -1;
+    Vehicle_gsPosition[idx][3] = -1;
+    Vehicle_gsSirenState[idx] = -1;
+    Vehicle_gsColorInfo[idx][0] = -1;
+    Vehicle_gsColorInfo[idx][1] = -1;
+    Vehicle_gsPaintjob[idx] = -1;
+    Vehicle_gsRespawnDelay[idx] = -1;
+    Vehicle_gsHealth[idx] = -1;
+    Vehicle_gsOccupiedTick[idx] = -1;
+    Vehicle_gsRespawnTick[idx] = -1;
+
+    Vehicle_gsLastDriver[idx] = -1;
+    
+    /*Vehicle_gsBlinkSide[idx] = E_BLINK_NOT_SET;
+    Vehicle_gsIsOccupied[idx][0] = -1;
+    Vehicle_gsIsOccupied[idx][1] = -1;
+    Vehicle_gsIsOccupied[idx][2] = -1;
+    Vehicle_gsIsOccupied[idx][3] = -1;*/
+    /*foreach(new i : Vehicle_gsActGps)
+    {
+        if(Vehicle_GroupHas(VehicleGroup: i, idx)) 
+        {
+            Vehicle_RemoveFromGroup(VehicleGroup: i, idx);
+        }
+    }*/
+    stop Vehicle_gsHealthTrackTimer[idx];
+    CallLocalFunction("OnVehicleDestroy", "i", idx);
+    DestroyVehicle(idx);
+    return 1;
+}

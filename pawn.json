@@ -1,18 +1,23 @@
 {
 	"user": "Mergevos",
-	"repo": "samp-vehicle-framework",
-	"entry": "test.pwn",
-	"output": "test.amx",
-	"dependencies": [
-		"sampctl/samp-stdlib",
-		"pawn-lang/YSI-Includes@5.x",
-		"samp-incognito/samp-streamer-plugin:v2.9.5",
-		"pawn-lang/sa-mp-fixes"
-	],
+	"repo": "open-vehicle-plus",
 	"contributors": [
 		"Mergevos",
 		"emmet-white",
 		"medzdvel",
 		"omcho420"
+	],
+	"entry": "test.pwn",
+	"output": "test.amx",
+	"dependencies": [
+		"openmultiplayer/omp-stdlib",
+		"pawn-lang/samp-stdlib@open.mp",
+		"pawn-lang/pawn-stdlib@open.mp",
+		"samp-incognito/samp-streamer-plugin:v2.9.6",
+		"pawn-lang/YSI-Includes@5.x"
+	],
+	"dev_dependencies": [
+		"pawn-lang/sa-mp-fixes",
+		"Y-Less/sscanf:v2.13.8"
 	]
 }
