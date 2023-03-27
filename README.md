@@ -7,21 +7,21 @@
 Simply install to your project:
 
 ```bash
-sampctl package install Mergevos/samp-vehicle-framework
+sampctl package install Mergevos/open-vehicle-plus
 ```
 
 Include in your code and begin using the library:
 
 ```pawn
-#include <vehicle-framework>
+#include <vehicle-plus>
 ```
 
 ## Usage
 
-The library is pretty currently, pretty well, undocumented. It tries to offers as much possibilities it could. The point is to simplify usage of vehicles' functions and try to give additional features as getting vehicle informations like respawn delay, enabled or disabled vehicle's parts, etc...
+The library is currently, pretty well, undocumented. It tries to offers as much possibilities it could. The point is to simplify usage of vehicles' functions and try to give additional features as getting vehicle informations like respawn delay, enabled or disabled vehicle's parts, etc...
 Feel free in any way to contribute.
 
-Check [wiki](https://github.com/Mergevos/samp-vehicle-framework/wiki)
+Check [wiki](https://github.com/Mergevos/open-vehicle-plus/wiki)
 
 ## Testing
 
