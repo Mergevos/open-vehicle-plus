@@ -8,6 +8,7 @@
 #include <streamer>
 
 
+forward bool: IsPlayerInsidePaySpray(playerid);
 /*
     engine :
     funkcije gotove
@@ -63,7 +64,6 @@ native _Framework_CallLocalFunction(const function[], const format[], {VehicleGr
 #define BLINK_SIDES 4
 
 static
-    Vehicle_gsIsOccupied[MAX_VEHICLES][4],
     Vehicle_gsOccupiedTick[MAX_VEHICLES],
     Vehicle_gsRespawnTick[MAX_VEHICLES],
 
@@ -94,10 +94,6 @@ static const Float:Vehicle_gscPayNSprayLocations[10][3] = {
     {2393.74, 1493.01, 10.52} 	// LV Unused (Pyramid)
 };
 
-
-static
-    Player_LastVehicleID[MAX_PLAYERS];
-
 // --
 // Vehicle Info
 // --
@@ -110,7 +106,6 @@ enum DRIVE_TYPE:__DRIVE_TYPE
     DRIVE_RWD
 }
 static stock DRIVE_TYPE:_@DRIVE_TYPE() { return __DRIVE_TYPE; }
-
 
 #define ENGINE_TYPE: __TAG(ENGINE_TYPE):
 enum ENGINE_TYPE:__ENGINE_TYPE
@@ -399,19 +394,23 @@ static
 // Blinkers
 // --
 
-enum e_BLINKERS
+
+#define VEHICLE_BLINKERS: __TAG(VEHICLE_BLINKERS):
+enum VEHICLE_BLINKERS:__VEHICLE_BLINKERS
 {
-    E_BLINK_NOT_SET = -1,
-    E_BLINK_LEFT = 0,
-    E_BLINK_RIGHT,
-    E_BLINK_EMERGENCY
+    VEHICLE_BLINKERS_NOT_SET = -1,
+    VEHICLE_BLINKERS_LEFT = 0,
+    VEHICLE_BLINKERS_RIGHT,
+    VEHICLE_BLINKERS_EMERGENCY
 }
+static stock VEHICLE_BLINKERS:_@VEHICLE_BLINKERS() { return __VEHICLE_BLINKERS; }
+
 
 static 
-    e_BLINKERS: Vehicle_gsBlinkSide[MAX_VEHICLES];
+    VEHICLE_BLINKERS: Vehicle_gsBlinkSide[MAX_VEHICLES];
 
 
-enum e_BLINKING_ENUM 
+static enum e_BLINKING_ENUM 
 {
     e_BLINKING_MODEL, 
     Float:e_BLINKING_POSX, 
@@ -638,14 +637,29 @@ static const Vehicle_gscBlinkOffsets[][e_BLINKING_ENUM] =
     {611, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
 };
 
+
+/* <summary> Checks if vehicle's blinking.</summary>
+ * <param name="vehicleid"> Vehicleid which whose indicators we check. </param>
+ * <returns> 0 if not blinking, else 1.</returns>
+ */
+
+stock bool: Vehicle_IsBlinking(vehicleid)
+{
+    if(Vehicle_gsBlinkSide[vehicleid] == VEHICLE_BLINKERS_NOT_SET)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 /* <summary> Set vehicle's indicators.</summary>
  * <param name="vehicleid"> Vehicleid which we set indicators.</param>
  * <param name="side"> Indicators side. </param>
  */
-/*
-stock Vehicle_SetBlinking(VEHICLE_FRAMEWORK_TAGS: vehicleid, e_BLINKERS: side, bool:skip=false, tag=tagof(vehicleid)) //0 - left 1 - right 2 - emergy
-{
 
+stock bool: Vehicle_SetBlinking(VEHICLE_FRAMEWORK_TAGS: vehicleid, VEHICLE_BLINKERS: side, bool:skip=false, tag=tagof(vehicleid)) //0 - left 1 - right 2 - emergy
+{
     if(tag == tagof(_:))
     {
     
@@ -658,7 +672,7 @@ stock Vehicle_SetBlinking(VEHICLE_FRAMEWORK_TAGS: vehicleid, e_BLINKERS: side, b
 
         if(Vehicle_IsBlinking(vehicleid) && !skip) 
         {
-            return Vehicle_CancelBlinking(vehicleid);
+            return false;
         }
     
         if(!skip) 
@@ -670,11 +684,11 @@ stock Vehicle_SetBlinking(VEHICLE_FRAMEWORK_TAGS: vehicleid, e_BLINKERS: side, b
         {
             if(Vehicle_gscBlinkOffsets[id][e_BLINKING_POSX] != 0.0)
             {
-                if(side == E_BLINK_LEFT)
+                if(side == VEHICLE_BLINKERS_LEFT)
                 {
                     Vehicle_gsBlink[vehicleid][0] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0); //blink yellow  front
                 }
-                else if(side == E_BLINK_RIGHT)
+                else if(side == VEHICLE_BLINKERS_RIGHT)
                 {
                     Vehicle_gsBlink[vehicleid][2] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
                 }
@@ -683,12 +697,12 @@ stock Vehicle_SetBlinking(VEHICLE_FRAMEWORK_TAGS: vehicleid, e_BLINKERS: side, b
             {
                 if(Vehicle_GetCategory(trailer) == CATEGORY_TRAILER)
                 {
-                    if(side == E_BLINK_LEFT)
+                    if(side == VEHICLE_BLINKERS_LEFT)
                     {
                         Vehicle_gsBlink[vehicleid][1] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0); //blink yellow back truck only trailer
                         
                     }
-                    else if(side == E_BLINK_RIGHT)
+                    else if(side == VEHICLE_BLINKERS_RIGHT)
                     {
                         Vehicle_gsBlink[vehicleid][3] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);    
                     }
@@ -698,18 +712,18 @@ stock Vehicle_SetBlinking(VEHICLE_FRAMEWORK_TAGS: vehicleid, e_BLINKERS: side, b
             {
                 if(Vehicle_gscBlinkOffsets[id][e_BLINKING_ROTX] != 0.0)
                 {
-                    if(side == E_BLINK_LEFT)
+                    if(side == VEHICLE_BLINKERS_LEFT)
                     {
                         Vehicle_gsBlink[vehicleid][1] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0); //blink yellow back truck only trailer
                     }
-                    else if(side == E_BLINK_RIGHT)
+                    else if(side == VEHICLE_BLINKERS_RIGHT)
                     {
                         Vehicle_gsBlink[vehicleid][3] = CreateDynamicObject(19294, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
                     }
                 }
             }
     
-            if(side == E_BLINK_LEFT) //left
+            if(side == VEHICLE_BLINKERS_LEFT) //left
             {
                 if(Vehicle_gsBlink[vehicleid][0] != 0) 
                 {
@@ -728,7 +742,7 @@ stock Vehicle_SetBlinking(VEHICLE_FRAMEWORK_TAGS: vehicleid, e_BLINKERS: side, b
                     }
                 }
             }
-            else if(side == E_BLINK_RIGHT) //right
+            else if(side == VEHICLE_BLINKERS_RIGHT) //right
             {
                 if(Vehicle_gsBlink[vehicleid][2] != 0) 
                 {
@@ -747,10 +761,10 @@ stock Vehicle_SetBlinking(VEHICLE_FRAMEWORK_TAGS: vehicleid, e_BLINKERS: side, b
                     }
                 }
             }
-            else if(side == E_BLINK_EMERGENCY)  //emergency
+            else if(side == VEHICLE_BLINKERS_EMERGENCY)  //emergency
             {
-                Vehicle_SetBlinking(vehicleid, E_BLINK_LEFT, true);
-                Vehicle_SetBlinking(vehicleid, E_BLINK_RIGHT, true);
+                Vehicle_SetBlinking(vehicleid, VEHICLE_BLINKERS_LEFT, true);
+                Vehicle_SetBlinking(vehicleid, VEHICLE_BLINKERS_RIGHT, true);
             }
         }
     }
@@ -761,34 +775,20 @@ stock Vehicle_SetBlinking(VEHICLE_FRAMEWORK_TAGS: vehicleid, e_BLINKERS: side, b
             Vehicle_SetBlinking(i, side, skip);
         }
     }
-    return 1;
-}*/
-
-/* <summary> Checks if vehicle's blinking.</summary>
- * <param name="vehicleid"> Vehicleid which whose indicators we check. </param>
- * <returns> 0 if not blinking, else 1.</returns>
- */
-
-stock Vehicle_IsBlinking(vehicleid)
-{
-    if(Vehicle_gsBlinkSide[vehicleid] == E_BLINK_NOT_SET)
-    {
-        return 0;
-    }
-
-    return 1;
+    return true;
 }
+
 
 /* <summary> Cancel vehicle blinking.</summary>
  * <param name="vehicleid"> Vehicleid whose indicators we cancel. </param>
  * <returns> 0 if not blinking, else if function success 1.</returns>
  */
 
-stock Vehicle_CancelBlinking(vehicleid)
+stock bool: Vehicle_CancelBlinking(vehicleid)
 {
     if(!Vehicle_IsBlinking(vehicleid)) 
     {
-        return 0;
+        return false;
     }
 
     for(new i; i < BLINK_SIDES; i++)
@@ -798,10 +798,10 @@ stock Vehicle_CancelBlinking(vehicleid)
             DestroyDynamicObject(Vehicle_gsBlink[vehicleid][i]);
         }
         Vehicle_gsBlink[vehicleid][i] = -1;
-        Vehicle_gsBlinkSide[vehicleid] = E_BLINK_NOT_SET;
+        Vehicle_gsBlinkSide[vehicleid] = VEHICLE_BLINKERS_NOT_SET;
         
     }
-    return 1;
+    return true;
 }
 
 // -- 
@@ -1000,7 +1000,6 @@ stock bool: Vehicle_SetObjectiveState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS
     }
     return true;
 }
-
 
 // --
 // Lights
@@ -1277,6 +1276,8 @@ stock VEHICLE_PARAMS: Vehicle_GetAlarms(vehicleid)
 // --
 
 #define VEHICLE_WINDOWS: bool:
+#define VEHICLE_WINDOW_OPEN false
+#define VEHICLE_WINDOW_CLOSED true
 
 #define VEHICLE_WINDOW: __TAG(VEHICLE_WINDOW):
 enum VEHICLE_WINDOW:__VEHICLE_WINDOW
@@ -1603,7 +1604,7 @@ timer Vehicle_HealthTrack[500](vehicleid)
  * <returns> 1 on success, 0 otherwise.</param>
 */
 
-stock Vehicle_SetHealth(vehicleid, Float:health)
+stock bool: Vehicle_SetHealth(vehicleid, Float:health)
 {
     if(health < 0 || !IsValidVehicle(vehicleid)) 
     {
@@ -1641,7 +1642,7 @@ stock Float:Vehicle_GetHealth(vehicleid, &Float:health = 0.0)
  * <summary> Repairs vehicle. </summary>
  */
 
-stock Vehicle_Repair(vehicleid) 
+stock bool: Vehicle_Repair(vehicleid) 
 {
     return RepairVehicle(vehicleid);
 }
@@ -2288,7 +2289,7 @@ stock Vehicle_GetVirtualWorld(vehicleid)
  * <param name="virtual_world"> Virtual World to set.</param>
 */
 
-stock Vehicle_SetDimensionInfo(VEHICLE_FRAMEWORK_TAGS: id, interiorid, virtual_world, tag=tagof(id))
+stock bool: Vehicle_SetDimensionInfo(VEHICLE_FRAMEWORK_TAGS: id, interiorid, virtual_world, tag=tagof(id))
 {
     if(tag == tagof(_:))
     {
@@ -2320,50 +2321,40 @@ stock void: Vehicle_GetDimensionInfo(vehicleid, &interiorid, &virtualworld)
 }
 
 // --
+// Occupied state
+// --
+
+stock Vehicle_GetSeatsNumber(vehicleid)
+{
+    return ((IsValidVehicle(vehicleid)) ? (GetVehicleSeats(GetVehicleModel(vehicleid))) : -(1));
+}
+
+/**
+ * <summary> Check whether the vehicle is occupied.</summary>
+ * <param name="vehicleid"> Vehicle we check.</param>
+ * <returns> True if occupied, else false.</returns>
+*/
+
+stock bool: Vehicle_IsOccupied(vehicleid)
+{
+    return IsVehicleOccupied(vehicleid);
+}
+
+/**
+ * <summary> Sets the vehicle or group dimensions.</summary>
+ * <param name="vehicleid"> Vehicle which we get the last driver from.</param>
+ * <returns> Playerid of vehicle last driver. </returns>
+*/
+
+stock Vehicle_GetLastDriver(vehicleid)
+{
+    return ((IsValidVehicle(vehicleid)) ? (GetVehicleLastDriver(vehicleid)) : -(1));
+}
+
+// --
 // Time functions
 // --
 
-stock bool: Vehicle_SetRespawnTick(VEHICLE_FRAMEWORK_TAGS: id, respawn_ticks)
-{
-    if(tag == tagof(_:))
-    {
-        if(!IsValidVehicle(id))
-        {
-            return false;
-        }
-        SetVehicleRespawnTick(id, respawn_ticks);
-        return true;
-    }
-    else if(tag == tagof(VehicleGroup:))
-    {
-        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
-        {
-            SetVehicleRespawnTick(i, respawn_ticks);
-        }
-    }
-    return true;
-}
-
-stock bool: Vehicle_SetOccupiedTick(VEHICLE_FRAMEWORK_TAGS: id, occupied_ticks)
-{
-    if(tag == tagof(_:))
-    {
-        if(!IsValidVehicle(id))
-        {
-            return false;
-        }
-        Vehicle_gsOccupiedTick[id] = occupied_ticks;
-        return true;
-    }
-    else if(tag == tagof(VehicleGroup:))
-    {
-        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
-        {
-            Vehicle_gsOccupiedTick[i] = occupied_ticks;
-        }
-    }
-    return true;
-}
 
 /**
 * <summary> Sets the vehicle or groups respawn delay.</summary>
@@ -2375,18 +2366,13 @@ stock bool: Vehicle_SetRespawnDelay(VEHICLE_FRAMEWORK_TAGS: id, respawn_delay, t
 {
     if(tag == tagof(_:))
     {
-        if(!IsValidVehicle(id))
-        {
-            return false;
-        }
-        Vehicle_gsRespawnTick[id] = respawn_ticks;
-        return true;
+        return SetVehicleRespawnDelay(vehicleid, respawn_delay)
     }
     else if(tag == tagof(VehicleGroup:))
     {
         foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
         {
-            Vehicle_gsRespawnTick[i] = respawn_ticks;
+            SetVehicleRespawnDelay(vehicleid, respawn_delay)
         }
     }
     return true;
@@ -2395,7 +2381,7 @@ stock bool: Vehicle_SetRespawnDelay(VEHICLE_FRAMEWORK_TAGS: id, respawn_delay, t
 /**
  * <summary> Gets the vehicle respawn delay.</summary>
  * <param name="vehicleid"> Vehicle we get the delay from.</param>
- * <returns> Respawn delay.</returns>
+ * <returns> Respawn delay. -2 if vehicle is invalid</returns>
  */
 
 stock Vehicle_GetRespawnDelay(vehicleid)
@@ -2406,12 +2392,12 @@ stock Vehicle_GetRespawnDelay(vehicleid)
 /**
  * <summary> Gets the vehicle occupied time.</summary>
  * <param name="vehicleid"> Vehicle we get the occupied time from.</param>
- * <returns> -1 if vehicle is occupied. Else occupied time.</returns>
+ * <returns> -1 if vehicle is not occupied. Else occupied time.</returns>
  */
 
 stock Vehicle_GetOccupiedTime(vehicleid)
 {
-    if(Vehicle_IsOccupied(vehicleid))
+    if(Vehicle_IsOccupied(vehicleid) && IsValidVehicle(vehicleid))
     {
         return ((gettime() - Vehicle_gsOccupiedTick[vehicleid]) * 1000);
     }
@@ -2426,8 +2412,395 @@ stock Vehicle_GetOccupiedTime(vehicleid)
 
 stock Vehicle_GetRespawnedTime(vehicleid)
 {
-    return ((gettime() - Vehicle_gsRespawnTick[vehicleid]) * 1000);
+    if(IsValidVehicle(vehicleid))
+    {
+        return ((gettime() - Vehicle_gsRespawnTick[vehicleid]) * 1000);
+    }
+    return -1;
 }
+
+// By default, all vehicles have engines. 
+// Bypass: Hook a callback to check if player is riding a manual vehicle (pedal power)
+// and then turn engines on
+// When the player have exited vehicle turn offV
+
+hook OnPlayerStateChange(playerid, PLAYER_STATE:newstate, PLAYER_STATE:oldstate)
+{
+    if(oldstate == PLAYER_STATE_ONFOOT && (newstate == PLAYER_STATE_DRIVER || newstate == PLAYER_STATE_PASSENGER))
+    {
+        new vehicle = GetPlayerVehicleID(playerid);
+        Vehicle_gsOccupiedTick[vehicle] = gettime();
+        SetPVarInt(playerid, "FRAMEWORK_PlayerLastVehicle", vehicle);
+    }
+    else if((oldstate == PLAYER_STATE_DRIVER || oldstate == PLAYER_STATE_PASSENGER) && (newstate == PLAYER_STATE_ONFOOT || newstate == PLAYER_STATE_WASTED)) 
+    {
+        new vehicle = GetPVarInt(playerid, "FRAMEWORK_PlayerLastVehicle");
+        Vehicle_gsOccupiedTick[vehicle] = -1;
+        SetPVarInt(playerid, "FRAMEWORK_PlayerLastVehicle", 0);
+    }
+    return Y_HOOKS_CONTINUE_RETURN_1;
+}
+
+// --
+// Trailers
+// --
+
+forward OnTrailerHook(vehicleid, trailerid);
+forward OnTrailerUnhook(vehicleid, trailerid);
+
+/**
+ * <summary> Attach a trailer to vehicle.</summary>
+ * <param name="vehicleid"> Vehicle which we set the trailer to.</param>
+ * <param name="trailerid"> Trailer to set.</param>
+ * <returns> 0 if function fails, eg. trailerid is equal to vehicleid or vehicle and trailer aren't created, else 1.</param>
+*/
+
+stock bool: Vehicle_AttachTrailer(vehicleid, trailerid)
+{
+    if(!IsValidVehicle(vehicleid) || !IsValidVehicle(trailerid) || trailerid == vehicleid)
+    {
+        return false;
+    }
+    AttachTrailerToVehicle(trailerid, vehicleid);
+    return true;
+}
+
+/**
+ * <summary> Detach a trailer from vehicle.</summary>
+ * <param name="vehicleid"> Vehicle we are detaching the trailer from.</param>
+*/
+
+stock bool: Vehicle_DetachTrailer(vehicleid)
+{
+    if(!IsValidVehicle(vehicleid))
+    {
+        return false;
+    } 
+    DetachTrailerFromVehicle(vehicleid);
+    return true;
+}
+
+/**
+ * <summary> Gets the vehicle trailer.</summary>
+ * <param name="vehicleid"> Vehicle from which we get the trailerid from.</param>
+ * <returns> Trailerid. </returns>
+*/
+
+stock Vehicle_GetTrailer(vehicleid)
+{
+    return GetVehicleTrailer(vehicleid);
+}
+
+/**
+ * <summary> Gets the trailer's vehicle.</summary>
+ * <param name="trailerid"> Trailer which we get the cab from.</param>
+ * <returns> Vehicleid. </returns>
+*/
+
+stock Vehicle_GetTrailerCab(trailerid)
+{
+    return GetVehicleCab(trailerid);
+}
+
+hook OnVehicleSpawn(vehicleid)
+{
+    Vehicle_gsParams[vehicleid][PARAMS_ENGINE] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[vehicleid][PARAMS_LIGHTS] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[vehicleid][PARAMS_DOORS] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[vehicleid][PARAMS_ALARM] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[vehicleid][PARAMS_BOOT] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[vehicleid][PARAMS_BONNET] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE] = VEHICLE_PARAMS_OFF;
+
+    Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_DRIVER] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_PASSENGER] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_REAR_LEFT] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_REAR_RIGHT] = VEHICLE_WINDOW_CLOSED;
+
+    Vehicle_gsRespawnTick[vehicleid] = gettime();
+    Vehicle_gsOccupiedTick[vehicleid] = -1;
+
+    return Y_HOOKS_CONTINUE_RETURN_1;
+}
+
+hook OnVehicleDeath(vehicleid, killerid)
+{
+    if(Vehicle_GetCategory(vehicleid) == CATEGORY_TRAILER)
+    {
+        new 
+            vehicle = GetVehicleCab(vehicleid);
+
+        if(vehicle != 0)
+        {
+            if(Vehicle_IsBlinking(vehicle))
+            {
+                DestroyDynamicObject(Vehicle_gsBlink[vehicle][1]);
+                DestroyDynamicObject(Vehicle_gsBlink[vehicle][3]);
+                Vehicle_gsBlink[vehicle][1] = -1;
+                Vehicle_gsBlink[vehicle][3] = -1;
+            }
+        }
+        return 1;
+    }
+    Vehicle_CancelBlinking(vehicleid);
+    return 1;
+}
+
+static Vehicle_TrailerID[MAX_VEHICLES];
+
+hook OnPlayerUpdate(playerid)
+{
+    if(GetPlayerState(playerid) == PLAYER_STATE_DRIVER)
+    {
+        new vehicleid = GetPlayerVehicleID(playerid),
+            trailerid = GetVehicleTrailer(vehicleid);
+
+        if(Vehicle_TrailerID[vehicleid] != trailerid)
+        {
+			if(trailerid != 0)
+            {
+                if(Vehicle_IsBlinking(vehicleid))
+                {
+                    new VEHICLE_BLINKERS: blinkers = Vehicle_gsBlinkSide[vehicleid];
+                    Vehicle_CancelBlinking(vehicleid);
+                    Vehicle_SetBlinking(vehicleid, blinkers);
+                }
+                CallLocalFunction("OnTrailerHook", "ii", vehicleid, trailerid);
+			} 
+            else 
+            {
+				if(Vehicle_TrailerID[vehicleid] != INVALID_VEHICLE_ID)
+                {
+                    new VEHICLE_BLINKERS: blinkers = Vehicle_gsBlinkSide[vehicleid];
+                    if(Vehicle_IsBlinking(vehicleid))
+                    {
+                        Vehicle_CancelBlinking(vehicleid);
+                        Vehicle_SetBlinking(vehicleid, blinkers);
+                    }
+					CallRemoteFunction("OnTrailerUnhook", "ii", vehicleid,Vehicle_TrailerID[vehicleid]);
+				}
+			}
+			Vehicle_TrailerID[vehicleid] = trailerid;
+		}
+    }
+    return 1;
+}
+
+// --
+// Colors
+// --
+
+static Player_Money[MAX_PLAYERS];
+ptask Vehicle_TrackPayNSpray[700](playerid) 
+{
+    new
+        money = GetPlayerMoney(playerid);
+        
+    if(Player_Money[playerid] != money)
+    {
+        if(GetPlayerCameraMode(playerid) == CAM_MODE_FIXED)
+        {
+            switch(Player_Money[playerid] - money)
+            {
+                case 100:
+                {
+                    if(IsPlayerInsidePaySpray(playerid))
+                    {
+                        new color1, color2, model;
+                        model = GetVehicleModel(GetPlayerVehicleID(playerid));
+                        GetRandomVehicleColourPair(model, color1, color2);
+                        Vehicle_SetColour(GetPlayerVehicleID(playerid), color1, color2);
+                        CallLocalFunction("OnVehicleRespray", "iiii", playerid, GetPlayerVehicleID(playerid), color1, color2);
+                    }
+                }
+            }
+        }
+    }
+    Player_Money[playerid] = money;
+}
+
+// Developer functions
+static stock bool: IsPlayerInsidePaySpray(playerid)
+{
+	for(new i = 0; i < sizeof(Vehicle_gscPayNSprayLocations); i++)
+    {
+        if(GetPlayerCameraMode(playerid) == CAM_MODE_FIXED && IsPlayerInRangeOfPoint(playerid, 4, Vehicle_gscPayNSprayLocations[i][0], Vehicle_gscPayNSprayLocations[i][1], Vehicle_gscPayNSprayLocations[i][2]))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * <summary> Sets the vehicle or group color.</summary>
+ * <param name="id"> Vehicle or group which we set the color to.</param>
+ * <param name="color1"> First color to set.</param>
+ * <param name="color2"> Second color to set.</param>
+*/
+
+stock Vehicle_SetColour(VEHICLE_FRAMEWORK_TAGS: id, color1, color2, tag=tagof(id))
+{
+    if(tag == tagof(_:))
+    {
+        return ChangeVehicleColours(id, color1, color2);
+    }
+    else if(tag == tagof(VehicleGroup:)) 
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            ChangeVehicleColours(i, color1, color2);
+        }
+    }
+    return 1;
+}
+
+/**
+ * <summary> Gets the vehicle color.</summary>
+ * <param name="vehicleid"> Vehicle which we get the color from.</param>
+ * <param name="color1"> First color to get.</param>
+ * <param name="color2"> Second color to get.</param>
+*/
+
+stock Vehicle_GetColour(vehicleid, &color1, &color2) 
+{
+    GetVehicleColours(vehicleid, color1, color2);
+}
+
+// --
+// Paintjob
+// --
+
+forward OnVehiclePaintjobChange(vehicleid, paintjobid);
+
+static const Vehicle_gscPaintjob[] = 
+{
+    483,
+    534,
+    535,
+    536,
+    558,
+    559,
+    560,
+    561,
+    562,
+    565,
+    567,
+    575,
+    576
+};
+
+/**
+ * <summary> Sets the vehicle or group paintjob.</summary>
+ * <param name="id"> Vehicle or group which we set the paintjob to.</param>
+ * <param name="paintjob"> Paintjob to set.</param>
+*/
+
+stock Vehicle_SetPaintjob(VEHICLE_FRAMEWORK_TAGS: id, paintjobid, tag=tagof(id))
+{
+    if(tag == tagof(_:))
+    {
+        if((GetVehicleModel(id) == 483 && (paintjobid != 0 && paintjobid != 3)) || !IsValidVehicle(id)) 
+        {
+            return 0;
+        }
+        if(GetVehicleModel(id) == 575 && (paintjobid != 0 && paintjobid != 1 && paintjobid != 3)) 
+        {
+            return 0;
+        }
+    
+        for(new i = 0; i < sizeof(Vehicle_gscPaintjob); i++)
+        {
+            if(GetVehicleModel(id) != Vehicle_gscPaintjob[i])
+            {
+                continue;
+            }
+            ChangeVehiclePaintjob(id, paintjobid);
+            CallLocalFunction("OnVehiclePaintjobChange", "dd", id, paintjobid);
+            break;
+        }
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            if(GetVehicleModel(i) == 483 && (paintjobid != 0 && paintjobid != 3))
+            {
+                continue;
+            }
+            if(GetVehicleModel(i) == 575 && (paintjobid != 0 && paintjobid != 1 && paintjobid != 3)) 
+            {
+                continue;
+            }
+
+            for(new modelid = 0; modelid < sizeof(Vehicle_gscPaintjob); modelid++)
+            {
+                if(GetVehicleModel(i) != Vehicle_gscPaintjob[modelid])
+                {
+                    continue;
+                }
+                ChangeVehiclePaintjob(i, paintjobid);
+                CallLocalFunction("OnVehiclePaintjobChange", "dd", i, paintjobid);
+                break;
+            }
+        }
+    }
+    return 1;
+}
+
+/**
+ * <summary> Gets the vehicle paintjob.</summary>
+ * <param name="vehicleid"> Vehicle which we get the dimensions from.</param>
+ * <returns> Vehicle paintjob.</returns>
+*/
+
+stock Vehicle_GetPaintjob(vehicleid)
+{
+    return ((IsValidVehicle(vehicleid)) ? (GetVehiclePaintjob(vehicleid)) : -(1));
+}
+
+// OnVehiclePaintjob gets called when player previews paintjob
+// We need a callback to detect if paintjob has changed
+// Solution: call OnVehiclePaintjobChange
+
+hook OnVehiclePaintjob(playerid, vehicleid, paintjobid)
+{
+    if(paintjobid != GetVehiclePaintjob(vehicleid)) 
+    {
+        SetPVarInt(playerid, "FRAMEWORK_PaintJobLevel", 1);
+        SetPVarInt(playerid, "FRAMEWORK_PaintJob", paintjobid);
+    }
+    return Y_HOOKS_CONTINUE_RETURN_1;
+}
+
+hook OnPlayerKeyStateChange(playerid, KEY: newkeys, KEY: oldkeys)
+{ // vSync 
+    if(RELEASED(KEY_SPRINT) && GetPlayerMoney(playerid) >= 500)
+    {
+        if(GetPVarInt(playerid, "FRAMEWORK_PaintJobLevel") == 1)
+        {
+            new vehicle = GetPlayerVehicleID(playerid);
+            CallLocalFunction("OnVehiclePaintjobChange", "dd", vehicle, GetPVarInt(playerid, "FRAMEWORK_PaintJob"));
+            SetPVarInt(playerid, "FRAMEWORK_PaintJob", -1);
+            SetPVarInt(playerid, "FRAMEWORK_PaintJobLevel", 0);
+        }
+  
+    }
+    if(RELEASED(KEY_SECONDARY_ATTACK) && GetPVarInt(playerid, "FRAMEWORK_PaintJobLevel") != 0)
+    {
+        SetPVarInt(playerid, "FRAMEWORK_PaintJob", -1);
+        SetPVarInt(playerid, "FRAMEWORK_PaintJobLevel", 0);
+    }
+    return Y_HOOKS_CONTINUE_RETURN_1;
+}
+
+hook OnPlayerConnect(playerid)
+{
+    SetPVarInt(playerid, "FRAMEWORK_PaintJob", -1);
+    return Y_HOOKS_CONTINUE_RETURN_1;
+}
+
+
 
 // -- 
 // Create destroy
@@ -2465,16 +2838,12 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
     Vehicle_gsOccupiedTick[idx] = -1;
     Vehicle_gsRespawnTick[idx] = gettime();
 
-    /*Vehicle_gsBlinkSide[idx] = E_BLINK_NOT_SET;
+    Vehicle_gsBlinkSide[idx] = VEHICLE_BLINKERS_NOT_SET;
     Vehicle_gsBlink[idx][0] = -1;
     Vehicle_gsBlink[idx][1] = -1;
     Vehicle_gsBlink[idx][2] = -1;
-    Vehicle_gsBlink[idx][3] = -1;*/
+    Vehicle_gsBlink[idx][3] = -1;
 
-    /*Vehicle_gsIsOccupied[idx][0] = -1;
-    Vehicle_gsIsOccupied[idx][1] = -1;
-    Vehicle_gsIsOccupied[idx][2] = -1;
-    Vehicle_gsIsOccupied[idx][3] = -1;*/
     Vehicle_gsHealth[idx] = 1000;
     
     SetVehicleVirtualWorld(idx, virtual_world);
@@ -2517,11 +2886,12 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
     Vehicle_gsOccupiedTick[idx] = -1;
     Vehicle_gsRespawnTick[idx] = gettime();
     
-    /*Vehicle_gsBlinkSide[idx] = E_BLINK_NOT_SET;
-    Vehicle_gsIsOccupied[idx][0] = -1;
-    Vehicle_gsIsOccupied[idx][1] = -1;
-    Vehicle_gsIsOccupied[idx][2] = -1;
-    Vehicle_gsIsOccupied[idx][3] = -1;*/
+    Vehicle_gsBlinkSide[idx] = VEHICLE_BLINKERS_NOT_SET;
+    Vehicle_gsBlink[idx][0] = -1;
+    Vehicle_gsBlink[idx][1] = -1;
+    Vehicle_gsBlink[idx][2] = -1;
+    Vehicle_gsBlink[idx][3] = -1;
+
     Vehicle_gsHealthTrackTimer[idx] = repeat Vehicle_HealthTrack(idx);
     SetVehicleNumberPlate(idx, plate);
     
@@ -2533,12 +2903,9 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
     return idx;
 }
 
-
 /**
  * <summary> Destroys vehicle. </summary>
 */
-
-
 
 stock Vehicle_Destroy(idx)
 {
@@ -2562,11 +2929,7 @@ stock Vehicle_Destroy(idx)
 
     Vehicle_gsLastDriver[idx] = -1;
     
-    /*Vehicle_gsBlinkSide[idx] = E_BLINK_NOT_SET;
-    Vehicle_gsIsOccupied[idx][0] = -1;
-    Vehicle_gsIsOccupied[idx][1] = -1;
-    Vehicle_gsIsOccupied[idx][2] = -1;
-    Vehicle_gsIsOccupied[idx][3] = -1;*/
+    Vehicle_gsBlinkSide[idx] = VEHICLE_BLINKERS_NOT_SET;
     /*foreach(new i : Vehicle_gsActGps)
     {
         if(Vehicle_GroupHas(VehicleGroup: i, idx)) 
