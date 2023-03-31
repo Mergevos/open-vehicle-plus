@@ -1390,6 +1390,145 @@ stock Vehicle_GetWindowsEx(vehicleid, &VEHICLE_WINDOWS: driver, &VEHICLE_WINDOWS
 
 
 // ---
+// Tires
+// ---
+
+#define VEHICLE_TYRE: __TAG(VEHICLE_TYRE):
+enum VEHICLE_TYRE:__VEHICLE_TYRE
+{
+    VEHICLE_TYRE_FRONT_LEFT,
+    VEHICLE_TYRE_FRONT_RIGHT,
+    VEHICLE_TYRE_BACK_LEFT,
+    VEHICLE_TYRE_BACK_RIGHT,
+    VEHICLE_TYRE_BIKE_FRONT = VEHICLE_TYRE_FRONT_RIGHT,
+    VEHICLE_TYRE_BIKE_BACK = VEHICLE_TYRE_BACK_RIGHT
+}
+static stock VEHICLE_TYRE:_@VEHICLE_TYRE() { return __VEHICLE_TYRE; }
+
+#define VEHICLE_TYRE_CONDITION: bool:
+#define VEHICLE_TYRE_POPPED true
+#define VEHICLE_TYRE_INFLATED false
+
+/**
+ * <summary> Gets the tires state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the tires state.</param>
+ * <param name="rear_right_tire"> Rear Right Tire state to set.</param>
+ * <param name="front_right_tire"> Front Right Tire state to set.</param>
+ * <param name="rear_left_tire"> Rear Left Tire state to set.</param>
+ * <param name="front_left_tire"> Front Left Tire state to set.</param>
+ * <returns> UpdateVehicleDamageStatus values. </returns>
+*/
+
+stock bool: Vehicle_SetTyreCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_TYRE: tyre, VEHICLE_TYRE_CONDITION: condition, tag=tagof(id)) 
+{    
+    new
+        VEHICLE_DOOR_STATUS: unnecessary_doors,
+        VEHICLE_LIGHT_STATUS: unnecessary_lights,
+        VEHICLE_PANEL_STATUS: unnecessary_panels, 
+        VEHICLE_TYRE_STATUS: tires;
+
+    new 
+        front_left,
+        front_right,
+        back_left,
+        back_right;
+
+    if(tag == tagof(_:)) 
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        GetVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, tires);
+        decode_tires(tires, back_right, front_right, back_left, front_left);
+        switch(tyre)
+        {
+            case VEHICLE_TYRE_FRONT_LEFT:
+            {
+                front_left = condition;
+            }
+            case VEHICLE_TYRE_FRONT_RIGHT:
+            {
+                front_right = condition;
+            }
+            case VEHICLE_TYRE_BACK_LEFT:
+            {
+                back_left = condition;
+            }
+            case VEHICLE_TYRE_BACK_RIGHT:
+            {
+                back_right = condition;
+            }
+        }
+        UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, VEHICLE_TYRE_STATUS: encode_tires(back_right, front_right, back_left, front_left));
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            GetVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, tires);
+            decode_tires(tires, back_right, front_right, back_left, front_left);
+            switch(tyre)
+            {
+                case VEHICLE_TYRE_FRONT_LEFT:
+                {
+                    front_left = condition;
+                }
+                case VEHICLE_TYRE_FRONT_RIGHT:
+                {
+                    front_right = condition;
+                }
+                case VEHICLE_TYRE_BACK_LEFT:
+                {
+                    back_left = condition;
+                }
+                case VEHICLE_TYRE_BACK_RIGHT:
+                {
+                    back_right = condition;
+                }
+            }
+            UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, VEHICLE_TYRE_STATUS: encode_tires(back_right, front_right, back_left, front_left));
+        }
+    }
+    return true;
+}
+
+/**
+ * <summary> Gets the tires state.</summary>
+ * <param name="vehicleid"> Vehicle from which we get the tires state.</param>
+ * <param name="&rear_right_tire"> Rear Right Tire state to get.</param>
+ * <param name="&front_right_tire"> Front Right Tire state to get.</param>
+ * <param name="&rear_left_tire"> Rear Left Tire state to get.</param>
+ * <param name="&front_left_tire"> Front Left Tire state to get.</param>
+*/
+
+stock void: Vehicle_GetTyreCondition(vehicleid, &VEHICLE_TYRE_CONDITION: rear_right_tire, &VEHICLE_TYRE_CONDITION: front_right_tire, &VEHICLE_TYRE_CONDITION: rear_left_tire, &VEHICLE_TYRE_CONDITION: front_left_tire) 
+{    
+    new 
+        VEHICLE_DOOR_STATUS: unnecessary_doors,
+        VEHICLE_LIGHT_STATUS: unnecessary_lights,
+        VEHICLE_PANEL_STATUS: unnecessary_panels, 
+        VEHICLE_TYRE_STATUS: tires;
+
+    GetVehicleDamageStatus(vehicleid, unnecessary_panels, unnecessary_doors, unnecessary_lights, tires);
+    decode_tires(tires, rear_right_tire, front_right_tire, rear_left_tire, front_left_tire);
+
+}
+
+static stock decode_tires(tires, &rear_right_tire, &front_right_tire, &rear_left_tire, &front_left_tire)
+{
+    rear_right_tire = tires & 1;
+    front_right_tire = tires >> 1 & 1;
+    rear_left_tire = tires >> 2 & 1;
+    front_left_tire = tires >> 3 & 1;
+}
+
+static stock encode_tires(rear_right_tire, front_right_tire, rear_left_tire, front_left_tire)
+{
+    return rear_right_tire | (front_right_tire << 1) | (rear_left_tire << 2) | (front_left_tire << 3);
+}
+
+// ---
 // Doors
 // ---
 
@@ -1401,7 +1540,7 @@ enum VEHICLE_DOORS:__VEHICLE_DOORS
     VEHICLE_DOOR_DRIVER,
     VEHICLE_DOOR_PASSENGER
 }
-static stock VEHICLE_DOORS:_@VEHICLE_DOORS() { return __DOORS; }
+static stock VEHICLE_DOORS:_@VEHICLE_DOORS() { return __VEHICLE_DOORS; }
 
 #define VEHICLE_DOOR_CONDITION: __TAG(VEHICLE_DOOR_CONDITION):
 enum VEHICLE_DOOR_CONDITION:__VEHICLE_DOOR_CONDITION
@@ -1415,7 +1554,7 @@ enum VEHICLE_DOOR_CONDITION:__VEHICLE_DOOR_CONDITION
 static stock VEHICLE_DOOR_CONDITION:_@VEHICLE_DOOR_CONDITION() { return __VEHICLE_DOOR_CONDITION; }
 
 //--
-static stock vehicle_EncodeDoors(bonnet, boot, driver_door, passenger_door)
+static stock encode_doors(bonnet, boot, driver_door, passenger_door)
 {
     return bonnet | (boot << 8) | (driver_door << 16) | (passenger_door << 24);
 }
@@ -1440,7 +1579,7 @@ static stock decode_doors(VEHICLE_DOOR_STATUS: doors, &bonnet, &boot, &driver_do
  * <returns> UpdateVehicleDamageStatus values. </returns>
 */
 
-stock Vehicle_SetDoorState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_DOORS: door, VEHICLE_DOOR_CONDITION: condition, tag=tagof(id)) 
+stock bool: Vehicle_SetDoorCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_DOORS: door, VEHICLE_DOOR_CONDITION: condition, tag=tagof(id)) 
 {
 
     new
@@ -1481,7 +1620,7 @@ stock Vehicle_SetDoorState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_DOORS: door, VEHI
                 right_door = condition;
             }
         }
-        UpdateVehicleDamageStatus(id, unnecessary_panels, VEHICLE_DOOR_STATUS: vehicle_EncodeDoors(hood, trunk, left_door, right_door), unnecessary_lights, unnecessary_tires);
+        UpdateVehicleDamageStatus(id, unnecessary_panels, VEHICLE_DOOR_STATUS: encode_doors(hood, trunk, left_door, right_door), unnecessary_lights, unnecessary_tires);
     }
     else if(tag == tagof(VehicleGroup:))
     {
@@ -1508,7 +1647,7 @@ stock Vehicle_SetDoorState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_DOORS: door, VEHI
                     right_door = condition;
                 }
             }
-            UpdateVehicleDamageStatus(i, unnecessary_panels, VEHICLE_DOOR_STATUS: vehicle_EncodeDoors(hood, trunk, left_door, right_door), unnecessary_lights, unnecessary_tires);
+            UpdateVehicleDamageStatus(i, unnecessary_panels, VEHICLE_DOOR_STATUS: encode_doors(hood, trunk, left_door, right_door), unnecessary_lights, unnecessary_tires);
         } 
     }
     return true;
@@ -1523,7 +1662,7 @@ stock Vehicle_SetDoorState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_DOORS: door, VEHI
  * <param name="&passenger"> Passenger-door state to get.</param>
 */
 
-stock Vehicle_GetDoorState(vehicleid, &VEHICLE_DOOR_CONDITION: bonnet, &VEHICLE_DOOR_CONDITION: boot, &VEHICLE_DOOR_CONDITION: driver, &VEHICLE_DOOR_CONDITION: passenger) 
+stock Vehicle_GetDoorCondition(vehicleid, &VEHICLE_DOOR_CONDITION: bonnet, &VEHICLE_DOOR_CONDITION: boot, &VEHICLE_DOOR_CONDITION: driver, &VEHICLE_DOOR_CONDITION: passenger) 
 {
     if(!IsValidVehicle(vehicleid))
     {
@@ -2118,7 +2257,7 @@ stock Vehicle_GetComponentName(componentid, name[], size = sizeof(name))
     {
 		return 0;
 	}
-	return strunpack(name, gVehicleComponentName[idx], size);
+	return strunpack(name, Vehicle_gscComponentName[idx], size);
 }
 
 stock bool: Vehicle_CanHaveComponent(vehicleid, componentid)
@@ -2624,7 +2763,7 @@ static stock bool: IsPlayerInsidePaySpray(playerid)
 {
 	for(new i = 0; i < sizeof(Vehicle_gscPayNSprayLocations); i++)
     {
-        if(GetPlayerCameraMode(playerid) == CAM_MODE_FIXED && IsPlayerInRangeOfPoint(playerid, 4, Vehicle_gscPayNSprayLocations[i][0], Vehicle_gscPayNSprayLocations[i][1], Vehicle_gscPayNSprayLocations[i][2]))
+        if(GetPlayerCameraMode(playerid) == CAM_MODE_FIXED && IsPlayerInRangeOfPoint(playerid, 6, Vehicle_gscPayNSprayLocations[i][0], Vehicle_gscPayNSprayLocations[i][1], Vehicle_gscPayNSprayLocations[i][2]))
         {
             return true;
         }
@@ -2662,7 +2801,7 @@ stock Vehicle_SetColour(VEHICLE_FRAMEWORK_TAGS: id, color1, color2, tag=tagof(id
  * <param name="color2"> Second color to get.</param>
 */
 
-stock Vehicle_GetColour(vehicleid, &color1, &color2) 
+stock void: Vehicle_GetColour(vehicleid, &color1, &color2) 
 {
     GetVehicleColours(vehicleid, color1, color2);
 }
@@ -2800,7 +2939,24 @@ hook OnPlayerConnect(playerid)
     return Y_HOOKS_CONTINUE_RETURN_1;
 }
 
+// --
+// Sirens 
+// --
 
+/**
+ * <summary> Gets the vehicle siren's state. </summary>
+ * <param name="vehicleid"> Vehicle which we get the siren state from.</param>
+ * <returns> Siren state, 1 if enabled, else 0. </returns>
+*/
+
+#define VEHICLE_SIREN: bool:
+#define VEHICLE_SIREN_ON true
+#define VEHICLE_SIREN_OFF false
+
+stock VEHICLE_SIREN: Vehicle_HasSirenGet(vehicleid)
+{
+    return GetVehicleParamsSirenState(vehicleid);
+}
 
 // -- 
 // Create destroy

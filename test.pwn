@@ -1,9 +1,12 @@
 #define WEAK_TAGS
 #include <open.mp>
 #define CGEN_MEMORY 20000
+
 #include <YSI_Visual\y_commands>
+
 #include <sscanf2>
 #include "vehicle_plus.inc"
+
 main() {
 
 }
@@ -13,53 +16,83 @@ public OnGameModeInit()
     SetWorldTime(0);
 
     ManualVehicleEngineAndLights();
-    printf("MAX CARMODS %d", MAX_CARMODS);
     return 1;
 }
-/*
+
+public OnVehicleRespray(playerid, vehicleid, colour1, colour2)
+{
+    SendClientMessage(playerid, -1, "Vehicle resprayed triggered clb %d %d", colour1, colour2);
+    return 1;
+}
+
+public OnTrailerHook(vehicleid, trailerid)
+{
+    SendClientMessageToAll(-1, "Trailerid %d attached to vehicle %d", trailerid, vehicleid);
+    return 1;
+}
+
+public OnTrailerUnhook(vehicleid, trailerid)
+{
+    SendClientMessageToAll(-1, "Trailerid %d detached from vehicle %d", trailerid, vehicleid);
+    return 1;
+}
+
+CMD:testtrailerattach(playerid, params[])
+{
+    new vehid;
+    if(sscanf(params, "d", vehid)) 
+    {
+        return SendClientMessage(playerid, -1, "testtrailerattach [vehid]");
+    }
+    Vehicle_AttachTrailer(GetPlayerVehicleID(playerid), vehid);
+    SendClientMessage(playerid, -1, "Trailer %d has been attached to vehicle %d", Vehicle_GetTrailer(GetPlayerVehicleID(playerid)), Vehicle_GetTrailerCab(vehid));
+
+    return 1;
+}
+
+CMD:testtrailerdettach(playerid, params[])
+{
+    Vehicle_DetachTrailer(GetPlayerVehicleID(playerid));
+   
+    return 1;
+}
+
+CMD:testrespawntime(playerid, params[])
+{
+    new 
+        bool: occupied = Vehicle_IsOccupied(GetPlayerVehicleID(playerid)),
+        respawn_time = Vehicle_GetRespawnedTime(GetPlayerVehicleID(playerid)),
+        occupied_time = Vehicle_GetOccupiedTime(GetPlayerVehicleID(playerid));
+
+    SendClientMessage(playerid, -1, "Vehicle %d occupied %d respawned time %d occupied time %d", GetPlayerVehicleID(playerid), occupied, respawn_time, occupied_time);
+
+    return 1;
+}
 
 CMD:bd(playerid, params[])
 {
-    GivePlayerWeapon(playerid, WEAPON: 35, 300);
     Vehicle_CancelBlinking(GetPlayerVehicleID(playerid));
     return 1;
 }
 
+CMD:be(playerid, params[])
+{
+    Vehicle_SetBlinking(GetPlayerVehicleID(playerid), VEHICLE_BLINKERS_EMERGENCY);
+    return 1;
+}
 
 CMD:bl(playerid, params[])
 {
-    Vehicle_SetBlinking(GetPlayerVehicleID(playerid), E_BLINK_LEFT);
+    Vehicle_SetBlinking(GetPlayerVehicleID(playerid), VEHICLE_BLINKERS_LEFT);
     return 1;
 }
 
 CMD:br(playerid, params[])
 {
-    Vehicle_SetBlinking(GetPlayerVehicleID(playerid), E_BLINK_RIGHT);
+    Vehicle_SetBlinking(GetPlayerVehicleID(playerid), VEHICLE_BLINKERS_RIGHT);
     return 1;
 }
 
-CMD:siren(playerid, params[])
-{
-    new name[222];
-    Vehicle_ReturnName(e, name);
-    printf("%s", name);
-    return 1;
-}
-
-CMD:respawn(playerid, params[])
-{
-    SetVehicleToRespawn(GetPlayerVehicleID(playerid));
-    return 1;
-}
-
-CMD:trailerid(playerid, params[])
-{
-    Vehicle_AttachTrailer(e, ccc[0]);
-    printf("%d", Vehicle_GetTrailerCab(ccc[0]));
-    return 1;
-}
-
-*/
 
 CMD:vehicle(playerid, params[])
 {
@@ -124,6 +157,40 @@ CMD:testengon(playerid, params[])
     return 1;
 }
 
+CMD:testpaintjob(playerid, params[])
+{
+    new pntjob;
+    if(sscanf(params, "d", pntjob)) 
+    {
+        return SendClientMessage(playerid, -1, "testpaintjob [paintjob]");
+    }
+    Vehicle_SetPaintjob(GetPlayerVehicleID(playerid), pntjob);
+    SendClientMessage(playerid, -1, "Changed paintjob to %d", Vehicle_GetPaintjob(GetPlayerVehicleID(playerid)));
+    return 1;
+}
+
+CMD:testcolors(playerid, params[])
+{
+    new cl1,cl2;
+    if(sscanf(params, "dd", cl1,cl2)) 
+    {
+        return SendClientMessage(playerid, -1, "testcolors [cl cl2]");
+    }
+    Vehicle_SetColour(GetPlayerVehicleID(playerid), cl1, cl2);
+    cl1 = -1;
+    cl2 = -1;
+    Vehicle_GetColour(GetPlayerVehicleID(playerid),cl1,cl2);
+    SendClientMessage(playerid, -1, "Your colors are %d and %d", cl1, cl2);
+    return 1;
+}
+
+public OnVehiclePaintjobChange(vehicleid, paintjobid)
+{
+    SendClientMessageToAll(-1, "Changed paintjob to %d", paintjobid);
+    return 1;
+}
+
+
 public OnVehicleHealthChange(vehicleid, Float: oldhealth, Float: newhealth)
 {
     printf("Vehicleid%d, oldhealth:%02f newhealth:%02f", vehicleid, oldhealth, newhealth);
@@ -172,26 +239,6 @@ CMD:testdimension(playerid, params[])
     SendClientMessage(playerid, -1, "Vehicle dimensions are %d interior and %d world", interior, virtualworld);
     return 1;
 }
-/*
-public OnTrailerHook(vehicleid, trailerid)
-{
-    SendClientMessageToAll(-1, "A");
-    return 1;
-}
-
-
-public OnTrailerUnhook(vehicleid, trailerid)
-{
-    SendClientMessageToAll(-1, "B");
-    return 1;
-}
-
-CMD:testengoff(playerid, params[])
-{
-    Vehicle_SetEngineState(vehgrp, false);
-    return 1;
-}
-*/
 
 CMD:getcam(playerid, params[])
 {
@@ -256,7 +303,7 @@ CMD:testdoordamageset(playerid, params[])
     {
         return SendClientMessage(playerid, -1, "/testdoordamageset [door][condition]");
     }
-    Vehicle_SetDoorState(GetPlayerVehicleID(playerid), VEHICLE_DOORS: door, VEHICLE_DOOR_CONDITION: value);
+    Vehicle_SetDoorCondition(GetPlayerVehicleID(playerid), VEHICLE_DOORS: door, VEHICLE_DOOR_CONDITION: value);
 
     return 1;
 }
@@ -268,9 +315,23 @@ CMD:testdoordamageget(playerid, params[])
         VEHICLE_DOOR_CONDITION: driver_door,
         VEHICLE_DOOR_CONDITION: passenger_door;
 
-    Vehicle_GetDoorState(GetPlayerVehicleID(playerid), hood, trunk, driver_door, passenger_door);
+    Vehicle_GetDoorCondition(GetPlayerVehicleID(playerid), hood, trunk, driver_door, passenger_door);
     printf("Hood: %d\nTrunk: %d\nDriver: %d\nPassenger: %d", _:hood, _:trunk, _:driver_door, _:passenger_door);
 
+    return 1;
+}
+
+CMD:testtyres(playerid, params[])
+{
+    new tyre, value;
+    if(sscanf(params, "dd", tyre, value))
+    {
+        return SendClientMessage(playerid, -1, "/testtyres [value]");
+    }
+    Vehicle_SetTyreCondition(GetPlayerVehicleID(playerid), VEHICLE_TYRE: tyre, VEHICLE_TYRE_CONDITION: value);
+    new VEHICLE_TYRE_CONDITION: tire1, VEHICLE_TYRE_CONDITION: tire2, VEHICLE_TYRE_CONDITION: tire3, VEHICLE_TYRE_CONDITION: tire4;
+    Vehicle_GetTyreCondition(GetPlayerVehicleID(playerid), tire1, tire2, tire3, tire4);
+    SendClientMessage(playerid, -1, "zadnja desna %d, prednja desna %d, zadnja leva %d, prednja leva %d", tire1, tire2, tire3, tire4); 
     return 1;
 }
 
@@ -298,23 +359,11 @@ CMD:testcomponentget(playerid, params[])
     return 1;
 }
 
-/*
+
 
 CMD:testalarmson(playerid, params[]) 
 {
     Vehicle_SetAlarms(GetPlayerVehicleID(playerid), true);
-    return 1;
-}
-
-CMD:testvel(playerid, param[])
-{
-    SetVehicleVelocity(e, 34, 35, 200);
-    return 1;
-}
-
-CMD:testnitro(playerid, params[]) 
-{
-    Vehicle_AddComponent(GetPlayerVehicleID(playerid), 1010);
     return 1;
 }
 
@@ -324,187 +373,3 @@ CMD:testalarmsoff(playerid, params[])
     return 1;
 }
 
-CMD:testtires(playerid, params[])
-{
-    Vehicle_SetTireState(GetPlayerVehicleID(playerid), E_TIRE_POPPED, E_TIRE_POPPED, E_TIRE_INFLATED, E_TIRE_INFLATED);
-    new e_TIRE_STATUS: tires[4];
-    Vehicle_GetTireState(GetPlayerVehicleID(playerid), tires[0], tires[1], tires[2], tires[3]);
-    printf("Back rght: %d, Front rght %d, back left %d, front left %d", tires[0], tires[1], tires[2], tires[3]);
-    return 1;
-}
-
-CMD:gettires(playerid, params[])
-{
-    new e_TIRE_STATUS: tires[4];
-    Vehicle_GetTireState(GetPlayerVehicleID(playerid), tires[0], tires[1], tires[2], tires[3]);
-    printf("Back rght: %d, Front rght %d, back left %d, front left %d", tires[0], tires[1], tires[2], tires[3]);
-    return 1;
-}
-
-
-
-CMD:testblinks(playerid, params[]) 
-{
-    printf("IsVehicleOccupied %d", Vehicle_IsOccupied(e));
-    return 1;
-
-}
-
-CMD:doorinfo(playerid, params[])
-{
-    new doors, try[3];
-    new doorinfo[4];
-    new e_DOOR_STATES: tagdoor[4];
-    GetVehicleDamageStatus(GetPlayerVehicleID(playerid), try[0], doors, try[1], try[2]);
-    decode_doors(doors, doorinfo[0], doorinfo[1], doorinfo[2], doorinfo[3]);
-    Vehicle_GetDoorState(GetPlayerVehicleID(playerid), tagdoor[0], tagdoor[1], tagdoor[2], tagdoor[3]);
-    printf("decode: boot %d, bonnet %d, driver %d, psngr %d", doorinfo[0], doorinfo[1], doorinfo[2], doorinfo[3]);
-    printf("Framework: boot %d, bonnet %d, driver %d, psngr %d", tagdoor[0], tagdoor[1], tagdoor[2], tagdoor[3]);
-    return 1;
-}
-
-
-CMD:testwin(playerid, params[])
-{
-    Vehicle_SetWindows(GetPlayerVehicleID(playerid), true, true, false, true);
-    return 1;
-}
-
-CMD:wintest(playerid, params[])
-{
-    new bool: win[4];
-    Vehicle_GetWindows(GetPlayerVehicleID(playerid), win[0], win[1], win[2], win[3]);
-    new str[129];
-    format(str, sizeof(str), "driver %d, psngr: %d, rl %d rr %d", win[0], win[1], win[2], win[3]);
-    SendClientMessage(playerid, -1, str);
-    return 1;
-}
-
-
-CMD:testplate(playerid, params[]) 
-{
-    Vehicle_SetNumberPlate(GetPlayerVehicleID(playerid), "TEST123");
-    return 1;
-}
-
-CMD:putplayer(playerid, params[])
-{
-    PutPlayerInVehicle(playerid, strval(params), 0);
-    return 1;
-}
-
-CMD:platetest(playerid, params[])
-{
-    new pl[32];
-    Vehicle_GetNumberPlate(GetPlayerVehicleID(playerid), pl);
-    printf("%s", pl);
-    return 1;
-}
-
-CMD:paneltest(playerid, params[])
-{
-
-    Vehicle_SetPanelStates(GetPlayerVehicleID(playerid), E_PANEL_CRUSHED, E_PANEL_HANGING_LOOSE, E_PANEL_UNDAMAGED, E_PANEL_UNDAMAGED);
-    return 1;
-}
-
-CMD:getpaneltest(playerid, params[])
-{
-    new e_PANEL_STATES: panels[4];
-    Vehicle_GetPanelStates(GetPlayerVehicleID(playerid), panels[0], panels[1], panels[2], panels[3]);
-    new str[128];
-    format(str, sizeof(str), "FL: %d, FR: %d, BL: %d, BR: %d", panels[0], panels[1], panels[2], panels[3]);
-    SendClientMessageToAll(-1, str);
-    return 1;
-}
-
-CMD:bumpertest(playerid, params[])
-{
-
-    Vehicle_SetBumperStates(GetPlayerVehicleID(playerid), E_PANEL_CRUSHED, E_PANEL_CRUSHED);
-    Vehicle_SetBumperStates(GetPlayerVehicleID(playerid), E_PANEL_CRUSHED, E_PANEL_HANGING_LOOSE);
-    return 1;
-}
-
-CMD:getbumpertest(playerid, params[])
-{
-    new e_PANEL_STATES: bumper[2];
-    Vehicle_GetBumperStates(GetPlayerVehicleID(playerid), bumper[0], bumper[1]);
-    new str[128];
-    format(str, sizeof(str), "F: %d, R: %d", bumper[0], bumper[1]);
-    SendClientMessageToAll(-1, str);
-    return 1;
-}
-
-CMD:getwindshieldtest(playerid, params[])
-{
-    new e_PANEL_STATES: winds;
-    Vehicle_GetWindshieldState(GetPlayerVehicleID(playerid), winds);
-    new str[128];
-    format(str, sizeof(str), "W: %d", winds);
-    SendClientMessageToAll(-1, str);
-    return 1;
-}
-
-CMD:testdcom(playerid, params[])
-{
-    Vehicle_SetPaintjob(e, 2);
-
-    printf("%d paint", Vehicle_GetPaintjob(e));
-    return 1;
-}
-
-CMD:testlast(playerid, params[])
-{
-    printf("%d", Vehicle_GetLastDriver(1));
-    return 1;
-}
-
-CMD:weapon(playerid, params[])
-{
-    if(isnull(params)) {
-        return 0;
-    }
-    GivePlayerWeapon(playerid, WEAPON: strval(params), 600);
-    return 1;
-}
-
-public OnGroupInitialize(VehicleGroup: groupid)
-{
-    printf("%d gr", _:groupid);
-    return 1;
-}
-
-CMD:ahelt(playerid, params[])
-{
-    SetVehicleHealth(ccc[0], 20);
-    return 1;
-}
-
-CMD:helt(playerid, params[])
-{
-    GivePlayerMoney(playerid, 3500);
-    GivePlayerWeapon(playerid, WEAPON: 35, 300);
-    if(Vehicle_GetCategory(ccc[0]) == CATEGORY_TRAILER)
-    {
-        new Float:h;
-        GetVehicleHealth(ccc[0], h);
-        printf("%f", h);
-    }
-    return 1;
-}
-
-public OnVehiclePaintjobChange(vehicleid, paintjobid)
-{
-    new str[120];
-    format(str, sizeof(str), "Change to %d vehicle %d", paintjobid, vehicleid);
-    SendClientMessageToAll(-1, str);
-    return 1;
-}
-
-public OnVehicleRespray(playerid, vehicleid, color1, color2)
-{
-    SendClientMessageToAll(-1, "NJOJOJJOJO");
-    SendClientMessageToAll(-1, "Vehicle %d color1 %d color2 %d", vehicleid, color1, color2);
-    return 1;
-}*/
