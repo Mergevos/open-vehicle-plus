@@ -301,7 +301,6 @@ CMD:testpanels(playerid, params[])
     SendClientMessage(playerid, -1, "Vehicle panels updated, getting values..");
     front_left = -1, front_right = -1, back_left = -1, back_right = -1, front_bumper = -1, back_bumper = -1, windshield = -1;
     Vehicle_GetPanelsCondition(GetPlayerVehicleID(playerid), VEHICLE_PANELS_CONDITION: front_left, VEHICLE_PANELS_CONDITION: front_right, VEHICLE_PANELS_CONDITION: back_left, VEHICLE_PANELS_CONDITION: back_right, VEHICLE_PANELS_CONDITION: front_bumper, VEHICLE_PANELS_CONDITION: back_bumper, VEHICLE_PANELS_CONDITION: windshield);
-    SendClientMessageToAll(-1, "Front left %d\nFront Right %d\nBack left %d\nBack right %d\nFront bumper %d\nRear bumper\nWindshield", front_left, front_right, back_left, back_right, front_bumper, back_bumper, windshield);
     return 1;
 }
 
