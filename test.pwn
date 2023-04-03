@@ -3,12 +3,11 @@
 #define CGEN_MEMORY 20000
 
 #include <YSI_Visual\y_commands>
-
 #include <sscanf2>
 #include "vehicle_plus.inc"
 
-main() {
-
+main() 
+{
 }
 
 public OnGameModeInit()
@@ -272,9 +271,37 @@ CMD:testlightsdamageset(playerid, params[])
     return 1;
 }
 
+CMD:testdestroy(playerid, params[])
+{
+    Vehicle_Destroy(GetPlayerVehicleID(playerid));
+    return 1;
+}
+
+public OnVehicleDestroy(vehicleid)
+{
+    SendClientMessageToAll(-1, "Vehicle %d has been destroyed", vehicleid);
+    return 1;
+}
+
 CMD:testlightsdamageremovefront(playerid, params[])
 {
     Vehicle_SetLightsCondition(GetPlayerVehicleID(playerid), VEHICLE_LIGHT_FRONT_LEFT, VEHICLE_LIGHT_CONDITION_FIXED);
+    return 1;
+}
+
+CMD:testpanels(playerid, params[])
+{
+    new front_left, front_right, back_left, back_right, front_bumper, back_bumper, windshield;
+
+    if(sscanf(params, "dddddd", front_left, front_right, back_left, back_right, front_bumper, back_bumper)) 
+    {
+        return SendClientMessage(playerid, -1, "testpanels [panels [1 2 3 4 5 6]]");
+    }
+    Vehicle_SetPanelsCondition(GetPlayerVehicleID(playerid), VEHICLE_PANELS_CONDITION: front_left, VEHICLE_PANELS_CONDITION: front_right, VEHICLE_PANELS_CONDITION: back_left, VEHICLE_PANELS_CONDITION: back_right, VEHICLE_PANELS_CONDITION: front_bumper, VEHICLE_PANELS_CONDITION: back_bumper);
+    SendClientMessage(playerid, -1, "Vehicle panels updated, getting values..");
+    front_left = -1, front_right = -1, back_left = -1, back_right = -1, front_bumper = -1, back_bumper = -1, windshield = -1;
+    Vehicle_GetPanelsCondition(GetPlayerVehicleID(playerid), VEHICLE_PANELS_CONDITION: front_left, VEHICLE_PANELS_CONDITION: front_right, VEHICLE_PANELS_CONDITION: back_left, VEHICLE_PANELS_CONDITION: back_right, VEHICLE_PANELS_CONDITION: front_bumper, VEHICLE_PANELS_CONDITION: back_bumper, VEHICLE_PANELS_CONDITION: windshield);
+    SendClientMessageToAll(-1, "Front left %d\nFront Right %d\nBack left %d\nBack right %d\nFront bumper %d\nRear bumper\nWindshield", front_left, front_right, back_left, back_right, front_bumper, back_bumper, windshield);
     return 1;
 }
 
@@ -372,4 +399,3 @@ CMD:testalarmsoff(playerid, params[])
     Vehicle_SetAlarms(GetPlayerVehicleID(playerid), false);
     return 1;
 }
-
