@@ -15,7 +15,8 @@
     including those which it shouldn't, or even sometimes, nothing would happen.
     Warning is now disabled for this file.
     Including a file after this library won't be affected by this.
-    If you encounter any bugs, I please you to open an issue on gihub
+    If you encounter any bugs, I please you to open an issue on gihub, also
+    not to forget, documentation and wiki will be updated every new release.
     > https://github.com/Mergevos/open-vehicle-plus
 */
 
