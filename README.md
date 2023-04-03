@@ -1,6 +1,6 @@
 # samp-vehicle-framework
 
-[![Mergevos](https://img.shields.io/badge/Mergevos-samp--vehicle--framework-2f2f2f.svg?style=for-the-badge)](https://github.com/Mergevos/samp-vehicle-framework)
+[![Mergevos](https://img.shields.io/badge/Mergevos-open--vehicle--plus-2f2f2f.svg?style=for-the-badge)](https://github.com/Mergevos/open-vehicle-plus)
 
 ## Installation
 
@@ -13,7 +13,7 @@ sampctl package install Mergevos/open-vehicle-plus
 Include in your code and begin using the library:
 
 ```pawn
-#include <vehicle-plus>
+#include <vehicle_plus>
 ```
 
 ## Usage
