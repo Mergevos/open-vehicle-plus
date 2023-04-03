@@ -1,3 +1,8 @@
+#if defined _VEHICLE_PLUS_included
+	#endinput
+#endif
+#define _VEHICLE_PLUS_included
+
 #include <open.mp>
 
 #include <YSI_Data\y_foreach>
