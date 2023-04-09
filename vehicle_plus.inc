@@ -1297,7 +1297,7 @@ stock DRIVE_TYPE: Vehicle_GetDriveType(vehicleid)
 stock ENGINE_TYPE: Vehicle_GetEngineType(vehicleid) 
 {
     new model = GetVehicleModel(vehicleid) - 400;
-    return (IsValidVehicle(vehicleid)) ? (Vehicle_Info[model][E_VEHICLE_ENGINE_TYPE]) : (ENGINE_TYPE: 0);
+    return ((IsValidVehicle(vehicleid)) ? (Vehicle_Info[model][E_VEHICLE_ENGINE_TYPE]) : (ENGINE_TYPE: 0));
 }
 
 // --
@@ -1444,6 +1444,11 @@ static stock decode_lights(VEHICLE_LIGHT_STATUS: lights, &front_left_light, &fro
     back_lights = _:lights >> 6 & 1;
 }
 
+static stock encode_lights(front_left_light, front_right_light, back_lights)
+{
+    return front_left_light | (front_right_light << 2) | (back_lights << 6);
+}
+
 #define VEHICLE_LIGHT: __TAG(VEHICLE_LIGHT):
 enum VEHICLE_LIGHT:__VEHICLE_LIGHT
 {
@@ -1459,20 +1464,72 @@ const
     bool: VEHICLE_LIGHT_CONDITION_DAMAGED = true,
     bool: VEHICLE_LIGHT_CONDITION_FIXED = false;
 
+
+/** 
+ * <library>vehicle_plus</library>
+ * <summary>Gets the number of lights of specified vehicle.</summary>
+ * <param name="vehicleid">Vehicle which we get number of lights from.</param>
+ * <seealso name="Vehicle_SetLightsCondition" />
+ * <seealso name="Vehicle_GetLightsCondition" />
+ * <seealso name="Vehicle_SetLightsConditionEx" />
+ * <seealso name="Vehicle_GetLightsCondition" />
+ * <returns>Number of lights. 0 if specified vehicle is invalid.</returns>
+ * <remarks>Returns number of lights which can be modified.</remarks>
+ */
 stock Vehicle_GetLightsNumber(vehicleid)
 {
-    return Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_LIGHTS_NUMBER];
+    return ((IsValidVehicle(vehicleid)) : (Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_LIGHTS_NUMBER]) ? (0));
+}
+
+/** 
+ * <library>vehicle_plus</library>
+ * <summary>Sets the condition of all lights.</summary>
+ * <param name="vehicleid">Vehicle which we set the lights' condition.</param>
+ * <param name="front_left">Left Light condition to set.</param>
+ * <param name="front_right">Right Light condition to set.</param>
+ * <param name="back">Back Ligtht condition to set.</param>
+ * <returns> UpdateVehicleDamageStatus values. </returns>
+ */
+stock bool:Vehicle_SetLightsConditionEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_LIGHT_CONDITION: front_left, VEHICLE_LIGHT_CONDITION: front_right, VEHICLE_LIGHT_CONDITION: back, tag=tagof(id))
+{
+    new 
+        VEHICLE_LIGHT_STATUS: lights, 
+        VEHICLE_DOOR_STATUS: unnecessary_doors,
+        VEHICLE_PANEL_STATUS: unnecessary_panels, 
+        VEHICLE_TYRE_STATUS: unnecessary_tires;
+    
+    if(tag == tagof(_:))
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        GetVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);
+        UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, VEHICLE_LIGHT_STATUS: encode_lights(front_left, front_right, back), unnecessary_tires)
+    }
+    else if(tag==tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            GetVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);
+            UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, VEHICLE_LIGHT_STATUS: encode_lights(front_left, front_right, back), unnecessary_tires);
+        }
+    }
+    return true;
 }
 
 /**
- * <summary> Sets the lights state.</summary>
- * <param name="vehicleid"> Vehicle which we set the lights state.</param>
- * <param name="left_lights"> Left Ligth state to set.</param>
- * <param name="right_lights"> Right Ligth state to set.</param>
- * <param name="back_lights"> Back Ligth state to set.</param>
+ * <library>vehicle_plus</library>
+ * <summary>Sets the lights state.</summary>
+ * <param name="vehicleid">Vehicle which we set the lights state.</param>
+ * <param name="light">Ligtht we modify.</param>
+ * <param name="condition">Condition to set.</param>
+ * <seealso name="Vehicle_GetLightsNumber" />
+ * <seealso name="Vehicle_GetLightsCondition" />
+ * <seealso name="Vehicle_SetLightsConditionEx" />
+ * <seealso name="Vehicle_GetLightsCondition" />
  * <returns> UpdateVehicleDamageStatus values. </returns>
 */
-
 stock Vehicle_SetLightsCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_LIGHT: light, VEHICLE_LIGHT_CONDITION: condition, tag=tagof(id))
 {
     new 
@@ -1586,7 +1643,7 @@ stock Vehicle_SetLightsCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_LIGHT: ligh
  * <param name="&back_lights"> Back Ligth state to get.</param>
 */
 
-stock Vehicle_GetLightsConditionEx(vehicleid, &VEHICLE_LIGHT_CONDITION: front_left, &VEHICLE_LIGHT_CONDITION: front_right, &VEHICLE_LIGHT_CONDITION: back) 
+stock bool: Vehicle_GetLightsConditionEx(vehicleid, &VEHICLE_LIGHT_CONDITION: front_left, &VEHICLE_LIGHT_CONDITION: front_right, &VEHICLE_LIGHT_CONDITION: back) 
 {    
     if(!IsValidVehicle(vehicleid))
     {
