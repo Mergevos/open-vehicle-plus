@@ -1473,6 +1473,8 @@ const
  * <seealso name="Vehicle_GetLightsCondition" />
  * <seealso name="Vehicle_SetLightsConditionEx" />
  * <seealso name="Vehicle_GetLightsConditionEx" />
+ * <seealso name="Vehicle_SetLightsState" />
+ * <seealso name="Vehicle_GetLightsState" />
  * <returns>Number of lights. 0 if specified vehicle is invalid.</returns>
  * <remarks>Returns number of lights which can be modified.</remarks>
  */
@@ -1492,6 +1494,8 @@ stock Vehicle_GetLightsNumber(vehicleid)
  * <seealso name="Vehicle_GetLightsCondition" />
  * <seealso name="Vehicle_GetLightsNumber" />
  * <seealso name="Vehicle_GetLightsConditionEx" />
+ * <seealso name="Vehicle_SetLightsState" />
+ * <seealso name="Vehicle_GetLightsState" />
  * <returns> UpdateVehicleDamageStatus values. </returns>
  */
 stock bool:Vehicle_SetLightsConditionEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_LIGHT_CONDITION: front_left, VEHICLE_LIGHT_CONDITION: front_right, VEHICLE_LIGHT_CONDITION: back, tag=tagof(id))
@@ -1532,6 +1536,8 @@ stock bool:Vehicle_SetLightsConditionEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_LIGH
  * <seealso name="Vehicle_GetLightsCondition" />
  * <seealso name="Vehicle_SetLightsConditionEx" />
  * <seealso name="Vehicle_GetLightsConditionEx" />
+ * <seealso name="Vehicle_SetLightsState" />
+ * <seealso name="Vehicle_GetLightsState" />
  * <returns> UpdateVehicleDamageStatus values. </returns>
 */
 stock Vehicle_SetLightsCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_LIGHT: light, VEHICLE_LIGHT_CONDITION: condition, tag=tagof(id))
@@ -1647,6 +1653,8 @@ stock Vehicle_SetLightsCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_LIGHT: ligh
  * <seealso name="Vehicle_GetLightsConditionEx" />
  * <seealso name="Vehicle_SetLightsConditionEx" />
  * <seealso name="Vehicle_SetLightsCondition" />
+ * <seealso name="Vehicle_SetLightsState" />
+ * <seealso name="Vehicle_GetLightsState" />
  * <returns>Returns -1 if vehicle doesn't exist, otherwise light state.</returns>
 */
 stock VEHICLE_LIGHT_CONDITION: Vehicle_GetLightsCondition(vehicleid, VEHICLE_LIGHT: light)
@@ -1723,14 +1731,18 @@ stock bool: Vehicle_GetLightsConditionEx(vehicleid, &VEHICLE_LIGHT_CONDITION: fr
 
 }
 
-
 /**
  * <summary> Sets the lights state.</summary>
  * <param name="vehicleid"> Vehicle which we set the lights running state.</param>
  * <param name="light_state"> Lights state to set.</param>
+ * <seealso name="Vehicle_GetLightsNumber" />
+ * <seealso name="Vehicle_GetLightsCondition" />
+ * <seealso name="Vehicle_SetLightsConditionEx" />
+ * <seealso name="Vehicle_GetLightsConditionEx" />
+ * <seealso name="Vehicle_SetLightsCondition" />
+ * <seealso name="Vehicle_GetLightsState" />
  * <returns> SetVehicleParamsEx values. </returns>
 */
-
 stock bool: Vehicle_SetLightsState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: light_state, tag=tagof(id)) 
 {
     if(tag==tagof(_:)) 
@@ -1759,11 +1771,16 @@ stock bool: Vehicle_SetLightsState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: l
 }
 
 /**
- * <summary> Sets the lights state.</summary>
- * <param name="vehicleid"> Vehicle from which we get the lights running state.</param>
- * <returns> Lights' running state. </returns>
+ * <summary> Gets the lights state.</summary>
+ * <param name="vehicleid"> Vehicle which we get the lights running state.</param>
+ * <seealso name="Vehicle_GetLightsNumber" />
+ * <seealso name="Vehicle_GetLightsCondition" />
+ * <seealso name="Vehicle_SetLightsConditionEx" />
+ * <seealso name="Vehicle_GetLightsConditionEx" />
+ * <seealso name="Vehicle_SetLightsCondition" />
+ * <seealso name="Vehicle_SetLightsState" />
+ * <returns> VEHICLE_PARAMS_OFF and VEHICLE_PARAMS_ON for their engine states respectively. </returns>
 */
-
 stock VEHICLE_PARAMS: Vehicle_GetLightsState(vehicleid) 
 {
     if(!IsValidVehicle(id))
