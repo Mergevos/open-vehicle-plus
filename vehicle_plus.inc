@@ -1586,7 +1586,7 @@ stock Vehicle_SetLightsCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_LIGHT: ligh
  * <param name="&back_lights"> Back Ligth state to get.</param>
 */
 
-stock Vehicle_GetLightsCondition(vehicleid, &VEHICLE_LIGHT_CONDITION: front_left, &VEHICLE_LIGHT_CONDITION: front_right, &VEHICLE_LIGHT_CONDITION: back) 
+stock Vehicle_GetLightsConditionEx(vehicleid, &VEHICLE_LIGHT_CONDITION: front_left, &VEHICLE_LIGHT_CONDITION: front_right, &VEHICLE_LIGHT_CONDITION: back) 
 {    
     if(!IsValidVehicle(vehicleid))
     {
