@@ -252,15 +252,22 @@ CMD:testlightson(playerid, params[])
     return 1;
 }
 
-CMD:testlightsdamageget(playerid, params[])
+CMD:testlightsdamagegetex(playerid, params[])
 {
     new 
         VEHICLE_LIGHT_CONDITION: front_left,
         VEHICLE_LIGHT_CONDITION: front_right,
         VEHICLE_LIGHT_CONDITION: back;
 
-    Vehicle_GetLightsCondition(GetPlayerVehicleID(playerid), front_left, front_right, back);
+    Vehicle_GetLightsConditionEx(GetPlayerVehicleID(playerid), front_left, front_right, back);
     printf("Front Left %d\nFront Right %d\nRear %d", front_left, front_right, back);
+    return 1;
+}
+
+CMD:testlightsdamageget(playerid, params[])
+{
+
+    printf("Front Left %d", Vehicle_GetLightsCondition(GetPlayerVehicleID(playerid), VEHICLE_LIGHT_FRONT_LEFT));
     return 1;
 }
 
@@ -268,6 +275,14 @@ CMD:testlightsdamageset(playerid, params[])
 {
     Vehicle_SetLightsCondition(GetPlayerVehicleID(playerid), VEHICLE_LIGHT_FRONT_RIGHT, VEHICLE_LIGHT_CONDITION_DAMAGED);
     Vehicle_SetLightsCondition(GetPlayerVehicleID(playerid), VEHICLE_LIGHT_BACK, VEHICLE_LIGHT_CONDITION_DAMAGED);
+    return 1;
+}
+
+
+
+CMD:testlightsdamagesetex(playerid, params[])
+{
+    Vehicle_SetLightsConditionEx(GetPlayerVehicleID(playerid), VEHICLE_LIGHT_CONDITION_DAMAGED, VEHICLE_LIGHT_CONDITION_DAMAGED, VEHICLE_LIGHT_CONDITION_DAMAGED);
     return 1;
 }
 
