@@ -743,6 +743,7 @@ stock bool: Vehicle_IsEmptyGroup(VehicleGroup: groupid)
 }
 
 /**
+ * <library>vehicle_plus</library>
  * <summary>Destroys a group.</summary>
  * <param name="groupid">Group to destroy.</param>
  * <seealso name="Vehicle_GetGroupByName" />
@@ -1022,7 +1023,9 @@ static const Vehicle_gscBlinkOffsets[][e_BLINKING_ENUM] =
 };
 
 
-/* <summary>Checks if vehicle's blinking.</summary>
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Checks if vehicle's blinking.</summary>
  * <param name="vehicleid">Vehicle whose indicators we check.</param>
  * <seealso name="Vehicle_SetBlinking" />
  * <seealso name="Vehicle_CancelBlinking" />
@@ -1038,7 +1041,9 @@ stock bool: Vehicle_IsBlinking(vehicleid)
     return true;
 }
 
-/* <summary>Set vehicle's indicators.</summary>
+/** 
+ * <library>vehicle_plus</library>
+ * <summary>Set vehicle's indicators.</summary>
  * <param name="vehicleid">Vehicle or group of vehicles whose indicators we set.</param>
  * <param name="side">Indicators side.</param>
  * <seealso name="Vehicle_IsBlinking" />
@@ -1164,7 +1169,9 @@ stock bool: Vehicle_SetBlinking(VEHICLE_FRAMEWORK_TAGS: vehicleid, VEHICLE_BLINK
 }
 
 
-/* <summary> Cancel vehicle blinking.</summary>
+/**
+ * <library>vehicle_plus</library>
+ * <summary> Cancel vehicle blinking.</summary>
  * <param name="vehicleid"> Vehicle or group of vehicles whose indicators we cancel. </param>
  * <seealso name="Vehicle_IsBlinking" />
  * <seealso name="Vehicle_SetBlinking" />
@@ -1218,6 +1225,7 @@ stock bool: Vehicle_CancelBlinking(VEHICLE_FRAMEWORK_TAGS: id, tag=(tagof(id)))
 // --
 
 /**
+ * <library>vehicle_plus</library>
  * <summary> Gets the engine state.</summary>
  * <param name="vehicleid"> Vehicle which we get engine state from.</param>
  * <seealso name="Vehicle_SetEngineState" />
@@ -1231,10 +1239,11 @@ stock VEHICLE_PARAMS: Vehicle_GetEngineState(vehicleid)
 }
 
 /**
+ * <library>vehicle_plus</library>
  * <summary> Sets the engine state.</summary>
  * <param name="vehicleid"> Vehicle or group of vehicles which we set the engine state.</param>
  * <param name="engine_state"> Engine state to set.</param>
- * <seealso name="Vehicle_SetEngineState" />
+ * <seealso name="Vehicle_GetEngineState" />
  * <seealso name="Vehicle_GetDriveType" />
  * <seealso name="Vehicle_GetEngineType" />
  * <returns> SetVehicleParamsEx values. </returns>
@@ -1262,23 +1271,33 @@ stock bool: Vehicle_SetEngineState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: e
 }
 
 /**
- * <summary> Gets vehicle drive type
+ * <library>vehicle_plus</library>
+ * <summary>Gets vehicle drive type.</summary>
+ * <param name="vehicleid">Vehicle which we get the drive type from.</param>
+ * <seealso name="Vehicle_GetEngineState" />
+ * <seealso name="Vehicle_SetEngineState" />
+ * <seealso name="Vehicle_GetEngineType" />
+ * <returns>Vehicle drive type. 0 if vehicle is not created.</returns>
  */
-
 stock DRIVE_TYPE: Vehicle_GetDriveType(vehicleid) 
 {
     new model = GetVehicleModel(vehicleid) - 400;
-    return Vehicle_Info[model][E_VEHICLE_DRIVE_TYPE]
+    return (IsValidVehicle(vehicleid)) ? (Vehicle_Info[model][E_VEHICLE_DRIVE_TYPE]) : (DRIVE_TYPE: 0);
 }
 
 /**
+ * <library>vehicle_plus</library>
  * <summary> Gets vehicle engine type
+ * <param name="vehicleid">Vehicle which we get the engine type from.</param>
+ * <seealso name="Vehicle_GetEngineState" />
+ * <seealso name="Vehicle_SetEngineState" />
+ * <seealso name="Vehicle_GetDriveType" />
+ * <returns>Vehicle engine type. 0 if vehicle is not created.</returns>
  */
-
 stock ENGINE_TYPE: Vehicle_GetEngineType(vehicleid) 
 {
     new model = GetVehicleModel(vehicleid) - 400;
-    return Vehicle_Info[model][E_VEHICLE_ENGINE_TYPE];
+    return (IsValidVehicle(vehicleid)) ? (Vehicle_Info[model][E_VEHICLE_ENGINE_TYPE]) : (ENGINE_TYPE: 0);
 }
 
 // --
