@@ -1309,6 +1309,7 @@ stock ENGINE_TYPE: Vehicle_GetEngineType(vehicleid)
 /**
  * <summary> Gets the engine state.</summary>
  * <param name="vehicleid"> Vehicle from which we get engine state.</param>
+
  * <returns> Engine state. </returns>
  */
 
@@ -1478,11 +1479,11 @@ const
  * <seealso name="Vehicle_SetLightsState" />
  * <seealso name="Vehicle_GetLightsState" />
  * <returns>Number of lights. 0 if specified vehicle is invalid.</returns>
- * <remarks>Returns number of lights which can be modified.</remarks>
+ * <remarks>Returns number of lights which can be modified. </remarks>
  */
 stock Vehicle_GetLightsNumber(vehicleid)
 {
-    return ((IsValidVehicle(vehicleid)) ? (Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_LIGHTS_NUMBER]) : (0));
+    return ((IsValidVehicle(vehicleid)) ? (Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_LIGHTS_NUMBER]) : (INVALID_VEHICLE_ID));
 }
 
 /** 
@@ -1500,7 +1501,7 @@ stock Vehicle_GetLightsNumber(vehicleid)
  * <seealso name="Vehicle_GetLightsState" />
  * <returns> UpdateVehicleDamageStatus values. </returns>
  */
-stock bool:Vehicle_SetLightsConditionEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_LIGHT_CONDITION: front_left, VEHICLE_LIGHT_CONDITION: front_right, VEHICLE_LIGHT_CONDITION: back, tag=tagof(id))
+stock bool: Vehicle_SetLightsConditionEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_LIGHT_CONDITION: front_left, VEHICLE_LIGHT_CONDITION: front_right, VEHICLE_LIGHT_CONDITION: back, tag=tagof(id))
 {
     new 
         VEHICLE_LIGHT_STATUS: lights, 
@@ -1724,16 +1725,13 @@ stock bool: Vehicle_GetLightsConditionEx(vehicleid, &VEHICLE_LIGHT_CONDITION: fr
         VEHICLE_PANEL_STATUS: unnecessary_panels, 
         VEHICLE_TYRE_STATUS: unnecessary_tires;
 
-        
     GetVehicleDamageStatus(vehicleid, unnecessary_panels, unnecessary_doors, lights, unnecessary_tires);
-
     decode_lights(lights, front_left, front_right, back);
-
     return true;
-
 }
 
 /**
+ * <library>vehicle_plus</library>
  * <summary> Sets the lights state.</summary>
  * <param name="vehicleid"> Vehicle which we set the lights running state.</param>
  * <param name="light_state"> Lights state to set.</param>
@@ -1773,6 +1771,7 @@ stock bool: Vehicle_SetLightsState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: l
 }
 
 /**
+ * <library>vehicle_plus</library>
  * <summary> Gets the lights state.</summary>
  * <param name="vehicleid"> Vehicle which we get the lights running state.</param>
  * <seealso name="Vehicle_GetLightsNumber" />
@@ -1781,7 +1780,7 @@ stock bool: Vehicle_SetLightsState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: l
  * <seealso name="Vehicle_GetLightsConditionEx" />
  * <seealso name="Vehicle_SetLightsCondition" />
  * <seealso name="Vehicle_SetLightsState" />
- * <returns> VEHICLE_PARAMS_OFF and VEHICLE_PARAMS_ON for their engine states respectively. </returns>
+ * <returns> VEHICLE_PARAMS_OFF and VEHICLE_PARAMS_ON for their light states respectively. </returns>
 */
 stock VEHICLE_PARAMS: Vehicle_GetLightsState(vehicleid) 
 {
@@ -1797,12 +1796,14 @@ stock VEHICLE_PARAMS: Vehicle_GetLightsState(vehicleid)
 // --
 
 /**
+ * <library>vehicle_plus</library>
  * <summary> Sets the alarms state.</summary>
- * <param name="vehicleid"> Vehicle which we set the alarms state.</param>
+ * <param name="id"> Vehicle or group of vehicles which we set the alarms state.</param>
+ * <param name="alarm_state"> State we set.</param>
+ * <seealso name="Vehicle_GetAlarms" />
  * <returns> SetVehicleParamsEx values. </returns>
 */
-
-stock Vehicle_SetAlarms(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: alarm_state, tag=tagof(id)) 
+stock bool: Vehicle_SetAlarms(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: alarm_state, tag=tagof(id)) 
 {
     if(tag==tagof(_:)) 
     {      
@@ -1810,7 +1811,7 @@ stock Vehicle_SetAlarms(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: alarm_state,
         {
             return false;
         }
-        Vehicle_gsParams[id][PARAMS_ALARM] = alarm_state;  
+        Vehicle_gsParams[id][PARAMS_ALARM] = alarm_state;
         SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
     }
     else if(tag==tagof(VehicleGroup:))
@@ -1821,22 +1822,20 @@ stock Vehicle_SetAlarms(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: alarm_state,
             SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
         }
     }
-    return 1;
+    return true;
 }
 
-
-
 /**
+ * <library>vehicle_plus</library>
  * <summary> Gets the alarms state.</summary>
  * <param name="vehicleid"> Vehicle from which we set the alarms state.</param>
- * <returns> Alarms' state. </returns>
+ * <seealso name="Vehicle_GetAlarms" />
+ * <returns> VEHICLE_PARAMS_OFF and VEHICLE_PARAMS_ON for their alarm states respectively. </returns>
 */
-
 stock VEHICLE_PARAMS: Vehicle_GetAlarms(vehicleid) 
 {
     return Vehicle_gsParams[vehicleid][PARAMS_ALARM];
 }
-
 
 // --
 // Windows 
@@ -1861,16 +1860,33 @@ static stock VEHICLE_WINDOW:_@VEHICLE_WINDOW() { return __VEHICLE_WINDOW; }
 static
     Vehicle_gsWindows[MAX_VEHICLES][4];
 
-
 /**
- * <summary> Gets the vehicle's windows number.</summary>
- */
-
+ * <library>vehicle_plus</library>
+ * <summary> Gets the vehicle's number of windows.</summary>
+ * <param name="vehicleid"> Vehicle which we get the number from.</param>
+ * <seealso name="Vehicle_SetWindows" />
+ * <seealso name="Vehicle_GetWindows" />
+ * <seealso name="Vehicle_SetWindowsEx" />
+ * <seealso name="Vehicle_GetWindowsEx" />
+ * <returns>Number of windows specified vehicle has. INVALID_VEHICLE_ID if specified vehicle is invalid.</returns>
+*/
 stock Vehicle_GetWindowsNumber(vehicleid) 
 {
-    return Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_WINDOWS_NUMBER];
+    return (IsValidVehicle(vehicleid)) ? (Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_WINDOWS_NUMBER]) : (INVALID_VEHICLE_ID);
 }
 
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Sets the window state.</summary>
+ * <param name="id">Vehicle which we set the windows to.</param>
+ * <param name="windows">Window we modify.</param>
+ * <param name="window_status">Status to set.</param>
+ * <seealso name="Vehicle_GetWindowsNumber" />
+ * <seealso name="Vehicle_GetWindows" />
+ * <seealso name="Vehicle_SetWindowsEx" />
+ * <seealso name="Vehicle_GetWindowsEx" />
+ * <returns>SetVehicleParamsCarWindows values.</returns>
+*/
 stock bool: Vehicle_SetWindows(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_WINDOW: window, VEHICLE_WINDOWS: window_status, tag=tagof(id))
 {
     if(tag == tagof(_:))
@@ -1894,21 +1910,37 @@ stock bool: Vehicle_SetWindows(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_WINDOW: windo
     return true;
 }
 
-stock VEHICLE_WINDOWS: Vehicle_GetWindows(id, VEHICLE_WINDOW: window)
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Sets the window state.</summary>
+ * <param name="vehicleid">Vehicle which we set the windows to.</param>
+ * <param name="vehicleid">Vehicle which we set the windows to.</param>
+ * <seealso name="Vehicle_GetWindowsNumber" />
+ * <seealso name="Vehicle_SetWindows" />
+ * <seealso name="Vehicle_SetWindowsEx" />
+ * <seealso name="Vehicle_GetWindowsEx" />
+ * <returns>Window state for specified window.</returns>
+*/
+stock VEHICLE_WINDOWS: Vehicle_GetWindows(vehicleid, VEHICLE_WINDOW: window)
 {
-    return Vehicle_gsWindows[id][window];
+    return Vehicle_gsWindows[vehicleid][window];
 }
 
 /**
+ * <library>vehicle_plus</library>
  * <summary> Sets the vehicle's windows states.</summary>
- * <param name="vehicleid"> Vehicle which we set the vehicle plate.</param>
+ * <param name="id"> Vehicle or group which we set the windows' states.</param>
  * <param name="driver"> Driver-window state to set.</param>
  * <param name="passenger"> Passenger-window state to set.</param>
  * <param name="backleft"> Backleft-window state to set.</param>
  * <param name="backright"> Backright-window state to gset.</param>
+ * <seealso name="Vehicle_GetWindowsNumber" />
+ * <seealso name="Vehicle_SetWindows" />
+ * <seealso name="Vehicle_GetWindows" />
+ * <seealso name="Vehicle_GetWindowsEx" />
+ * <returns>SetVehicleParamsCarWindows values.</returns>
 */
-
-stock bool: Vehicle_SetWindowsEx(VEHICLE_FRAMEWORK_TAGS: id, bool: driver, bool: passenger, bool: backleft, bool: backright, tag=tagof(id)) 
+stock bool: Vehicle_SetWindowsEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_WINDOWS: driver, VEHICLE_WINDOWS: passenger, VEHICLE_WINDOWS: backleft, VEHICLE_WINDOWS: backright, tag=tagof(id)) 
 {
     if(tag == tagof(_:))
     {
@@ -1938,25 +1970,35 @@ stock bool: Vehicle_SetWindowsEx(VEHICLE_FRAMEWORK_TAGS: id, bool: driver, bool:
 }
 
 /**
+ * <library>vehicle_plus</library>
  * <summary> Gets the vehicle's windows states. </summary>
  * <param name="vehicleid"> Vehicle from which we get the vehicle plate.</param>
  * <param name="&driver"> Driver-window state to get.</param>
  * <param name="&passenger"> Passenger-window state to get.</param>
  * <param name="&backleft"> Backleft-window state to get.</param>
  * <param name="&backright"> Backright-window state to get.</param>
+ * <seealso name="Vehicle_GetWindowsNumber" />
+ * <seealso name="Vehicle_SetWindows" />
+ * <seealso name="Vehicle_GetWindows" />
+ * <seealso name="Vehicle_GetWindowsEx" />
+ * <returns>GetVehicleParamsCarWindows values.</returns>
 */
-
-stock Vehicle_GetWindowsEx(vehicleid, &VEHICLE_WINDOWS: driver, &VEHICLE_WINDOWS: passenger, &VEHICLE_WINDOWS: backleft, &VEHICLE_WINDOWS: backright) 
+stock bool: Vehicle_GetWindowsEx(vehicleid, &VEHICLE_WINDOWS: driver, &VEHICLE_WINDOWS: passenger, &VEHICLE_WINDOWS: backleft, &VEHICLE_WINDOWS: backright) 
 {
-    GetVehicleParamsCarWindows(vehicleid, Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_DRIVER], Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_PASSENGER], Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_REAR_LEFT], Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_REAR_RIGHT]);
+    if(!IsValidVehicle(vehicleid))
+    {
+        return false;
+    }
+
     driver = Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_DRIVER];
     passenger = Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_PASSENGER];
     backleft = Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_REAR_LEFT];
     backright = Vehicle_gsWindows[vehicleid][VEHICLE_WINDOW_REAR_RIGHT];
+
+    return true;
 }
 
-
-// ---
+// --
 // Tires
 // ---
 
@@ -3683,6 +3725,11 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
     Vehicle_gsBlink[idx][2] = -1;
     Vehicle_gsBlink[idx][3] = -1;
 
+    Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_CLOSED;
+
     Vehicle_gsHealth[idx] = 1000;
     
     SetVehicleVirtualWorld(idx, virtual_world);
@@ -3731,6 +3778,11 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
     Vehicle_gsBlink[idx][2] = -1;
     Vehicle_gsBlink[idx][3] = -1;
 
+    Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_CLOSED;
+
     Vehicle_gsHealthTrackTimer[idx] = repeat Vehicle_HealthTrack(idx);
     SetVehicleNumberPlate(idx, plate);
     
@@ -3746,11 +3798,11 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
  * <summary> Destroys vehicle. </summary>
 */
 
-stock Vehicle_Destroy(idx)
+stock bool: Vehicle_Destroy(idx)
 {
     if(!IsValidVehicle(idx)) 
     {
-        return 0;
+        return false;
     }
     Vehicle_gsHealth[idx] = 0;
     Vehicle_gsOccupiedTick[idx] = -1;
@@ -3766,7 +3818,7 @@ stock Vehicle_Destroy(idx)
     stop Vehicle_gsHealthTrackTimer[idx];
     CallLocalFunction("OnVehicleDestroy", "i", idx);
     DestroyVehicle(idx);
-    return 1;
+    return true;
 }
 
 #pragma warning pop
