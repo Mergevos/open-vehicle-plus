@@ -105,6 +105,7 @@ static const Float:Vehicle_gscPayNSprayLocations[10][3] = {
 #define DRIVE_TYPE: __TAG(DRIVE_TYPE):
 enum DRIVE_TYPE:__DRIVE_TYPE
 {
+    DRIVE_INVALID = 0,
     DRIVE_4WD = 1,
     DRIVE_FWD = 2,
     DRIVE_RWD
@@ -114,6 +115,7 @@ static stock DRIVE_TYPE:_@DRIVE_TYPE() { return __DRIVE_TYPE; }
 #define ENGINE_TYPE: __TAG(ENGINE_TYPE):
 enum ENGINE_TYPE:__ENGINE_TYPE
 {
+    ENGINE_INVALID = 0,
     ENGINE_PETROL = 1,
     ENGINE_DIESEL = 2,
     ENGINE_ELECTRIC
@@ -1282,7 +1284,7 @@ stock bool: Vehicle_SetEngineState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: e
 stock DRIVE_TYPE: Vehicle_GetDriveType(vehicleid) 
 {
     new model = GetVehicleModel(vehicleid) - 400;
-    return (IsValidVehicle(vehicleid)) ? (Vehicle_Info[model][E_VEHICLE_DRIVE_TYPE]) : (DRIVE_TYPE: 0);
+    return (IsValidVehicle(vehicleid)) ? (Vehicle_Info[model][E_VEHICLE_DRIVE_TYPE]) : (DRIVE_INVALID);
 }
 
 /**
@@ -1297,7 +1299,7 @@ stock DRIVE_TYPE: Vehicle_GetDriveType(vehicleid)
 stock ENGINE_TYPE: Vehicle_GetEngineType(vehicleid) 
 {
     new model = GetVehicleModel(vehicleid) - 400;
-    return ((IsValidVehicle(vehicleid)) ? (Vehicle_Info[model][E_VEHICLE_ENGINE_TYPE]) : (ENGINE_TYPE: 0));
+    return ((IsValidVehicle(vehicleid)) ? (Vehicle_Info[model][E_VEHICLE_ENGINE_TYPE]) : (ENGINE_INVALID));
 }
 
 // --
