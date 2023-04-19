@@ -15,6 +15,10 @@ public OnGameModeInit()
     SetWorldTime(0);
 
     ManualVehicleEngineAndLights();
+
+    //test win number
+
+    printf("%d windows", Vehicle_GetWindowsNumber(3)); //should be 65355, INVALID_VEHICLE_ID
     return 1;
 }
 
@@ -261,6 +265,18 @@ CMD:testlightsdamagegetex(playerid, params[])
 
     Vehicle_GetLightsConditionEx(GetPlayerVehicleID(playerid), front_left, front_right, back);
     printf("Front Left %d\nFront Right %d\nRear %d", front_left, front_right, back);
+    return 1;
+}
+
+CMD:alarmson(playerid, params[])
+{
+    Vehicle_SetAlarms(GetPlayerVehicleID(playerid), true);
+    return 1;
+}
+
+CMD:alarmsoff(playerid, params[])
+{
+    Vehicle_SetAlarms(GetPlayerVehicleID(playerid), false);
     return 1;
 }
 
