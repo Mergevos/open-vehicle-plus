@@ -19,6 +19,7 @@ public OnGameModeInit()
     //test win number
 
     printf("%d windows", Vehicle_GetWindowsNumber(3)); //should be 65355, INVALID_VEHICLE_ID
+    printf("%d tyre", Vehicle_GetTyreCondition(3, VEHICLE_TYRE_FRONT_LEFT)); //should be -1
     return 1;
 }
 
@@ -387,8 +388,10 @@ CMD:testtyres(playerid, params[])
     }
     Vehicle_SetTyreCondition(GetPlayerVehicleID(playerid), VEHICLE_TYRE: tyre, VEHICLE_TYRE_CONDITION: value);
     new VEHICLE_TYRE_CONDITION: tire1, VEHICLE_TYRE_CONDITION: tire2, VEHICLE_TYRE_CONDITION: tire3, VEHICLE_TYRE_CONDITION: tire4;
-    Vehicle_GetTyreCondition(GetPlayerVehicleID(playerid), tire1, tire2, tire3, tire4);
+    Vehicle_GetTyreConditionEx(GetPlayerVehicleID(playerid), tire1, tire2, tire3, tire4);
     SendClientMessage(playerid, -1, "zadnja desna %d, prednja desna %d, zadnja leva %d, prednja leva %d", tire1, tire2, tire3, tire4); 
+
+    SendClientMessage(playerid, -1, "Test samo prednje desne %d", Vehicle_GetTyreCondition(GetPlayerVehicleID(playerid), VEHICLE_TYRE_FRONT_RIGHT));
     return 1;
 }
 
