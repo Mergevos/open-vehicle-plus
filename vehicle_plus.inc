@@ -2019,15 +2019,16 @@ static stock VEHICLE_TYRE:_@VEHICLE_TYRE() { return __VEHICLE_TYRE; }
 #define VEHICLE_TYRE_INFLATED false
 
 /**
- * <summary> Gets the tires state.</summary>
- * <param name="vehicleid"> Vehicle which we set the tires state.</param>
- * <param name="rear_right_tire"> Rear Right Tire state to set.</param>
- * <param name="front_right_tire"> Front Right Tire state to set.</param>
- * <param name="rear_left_tire"> Rear Left Tire state to set.</param>
- * <param name="front_left_tire"> Front Left Tire state to set.</param>
- * <returns> UpdateVehicleDamageStatus values. </returns>
+ * <library>vehicle_plus</library>
+ * <summary> Sets the state for a tyre.</summary>
+ * <param name="id"> Vehicle or group which we set the tires state.</param>
+ * <param name="tyre">Tyre to modify.</param>
+ * <param name="condition">Condition to set.</param>
+ * <seealso name="Vehicle_SetTyreConditionEx" />
+ * <seealso name="Vehicle_GetTyreCondition" />
+ * <seealso name="Vehicle_GetTyreConditionEx" />
+ * <returns>UpdateVehicleDamageStatus values. </returns>
 */
-
 stock bool: Vehicle_SetTyreCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_TYRE: tyre, VEHICLE_TYRE_CONDITION: condition, tag=tagof(id)) 
 {    
     new
@@ -2103,16 +2104,117 @@ stock bool: Vehicle_SetTyreCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_TYRE: t
 }
 
 /**
- * <summary> Gets the tires state.</summary>
+ * <library>vehicle_plus</library>
+ * <summary>Sets the tires state.</summary>
+ * <param name="vehicleid">Vehicle which we set the tires state.</param>
+ * <param name="rear_right_tire">Rear Right Tire state to set.</param>
+ * <param name="front_right_tire">Front Right Tire state to set.</param>
+ * <param name="rear_left_tire">Rear Left Tire state to set.</param>
+ * <param name="front_left_tire">Front Left Tire state to set.</param>
+ * <seealso name="Vehicle_SetTyreCondition" />
+ * <seealso name="Vehicle_GetTyreCondition" />
+ * <seealso name="Vehicle_GetTyreConditionEx" />
+ * <returns>UpdateVehicleDamageStatus values. </returns>
+*/
+stock bool: Vehicle_SetTyreConditionEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_TYRE_CONDITION: rear_right, VEHICLE_TYRE_CONDITION: front_right, VEHICLE_TYRE_CONDITION: rear_left, VEHICLE_TYRE_CONDITION: front_left, tag=tagof(id)) 
+{    
+    new
+        VEHICLE_DOOR_STATUS: unnecessary_doors,
+        VEHICLE_LIGHT_STATUS: unnecessary_lights,
+        VEHICLE_PANEL_STATUS: unnecessary_panels, 
+        VEHICLE_TYRE_STATUS: tires;
+
+    if(tag == tagof(_:)) 
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        GetVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, tires);
+        UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, VEHICLE_TYRE_STATUS: encode_tires(back_right, front_right, back_left, front_left));
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            GetVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, tires);
+            UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, VEHICLE_TYRE_STATUS: encode_tires(back_right, front_right, back_left, front_left));
+        }
+    }
+    return true;
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Gets the state of a tire.</summary>
+ * <param name="vehicleid"> Vehicle from which we get the tire state.</param>
+ * <param name="tyre">Tyre we get state of.</param>
+ * <seealso name="Vehicle_SetTyreConditionEx" />
+ * <seealso name="Vehicle_SetTyreCondition" />
+ * <seealso name="Vehicle_GetTyreConditionEx" />
+ * <returns>-1 if vehicle is invalid, otherwise true.</returns>
+*/
+stock VEHICLE_TYRE_CONDITION: Vehicle_GetTyreCondition(vehicleid, VEHICLE_TYRE: tyre) 
+{    
+    if(!IsValidVehicle(vehicleid))
+    {
+        return VEHICLE_TYRE_CONDITION: -1;
+    }
+    new 
+        VEHICLE_DOOR_STATUS: unnecessary_doors,
+        VEHICLE_LIGHT_STATUS: unnecessary_lights,
+        VEHICLE_PANEL_STATUS: unnecessary_panels, 
+        VEHICLE_TYRE_STATUS: tires,
+
+        rear_right_tire,
+        front_right_tire,
+        rear_left_tire,
+        front_left_tire;
+
+    GetVehicleDamageStatus(vehicleid, unnecessary_panels, unnecessary_doors, unnecessary_lights, tires);
+    decode_tires(tires, rear_right_tire, front_right_tire, rear_left_tire, front_left_tire);
+
+    switch(tyre)
+    {
+        case VEHICLE_TYRE_FRONT_LEFT:
+        {
+            return front_left_tire;
+        }
+        case VEHICLE_TYRE_FRONT_RIGHT:
+        {
+            return front_right_tire;
+        }
+        case VEHICLE_TYRE_BACK_LEFT:
+        {
+            return rear_left_tire;
+        }
+        case VEHICLE_TYRE_BACK_RIGHT:
+        {
+            return rear_right_tire;
+        }
+    }
+    return VEHICLE_TYRE_CONDITION: -1;
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Gets the tires state.</summary>
  * <param name="vehicleid"> Vehicle from which we get the tires state.</param>
  * <param name="&rear_right_tire"> Rear Right Tire state to get.</param>
  * <param name="&front_right_tire"> Front Right Tire state to get.</param>
  * <param name="&rear_left_tire"> Rear Left Tire state to get.</param>
  * <param name="&front_left_tire"> Front Left Tire state to get.</param>
+ * <seealso name="Vehicle_SetTyreConditionEx" />
+ * <seealso name="Vehicle_GetTyreCondition" />
+ * <seealso name="Vehicle_SetTyreCondition" />
+ * <returns>GetVehicleDamageStatus values.</returns>
 */
-
-stock void: Vehicle_GetTyreCondition(vehicleid, &VEHICLE_TYRE_CONDITION: rear_right_tire, &VEHICLE_TYRE_CONDITION: front_right_tire, &VEHICLE_TYRE_CONDITION: rear_left_tire, &VEHICLE_TYRE_CONDITION: front_left_tire) 
+stock bool: Vehicle_GetTyreConditionEx(vehicleid, &VEHICLE_TYRE_CONDITION: rear_right_tire, &VEHICLE_TYRE_CONDITION: front_right_tire, &VEHICLE_TYRE_CONDITION: rear_left_tire, &VEHICLE_TYRE_CONDITION: front_left_tire) 
 {    
+    if(!IsValidVehicle(vehicleid))
+    {
+        return false;
+    }
     new 
         VEHICLE_DOOR_STATUS: unnecessary_doors,
         VEHICLE_LIGHT_STATUS: unnecessary_lights,
@@ -2121,7 +2223,9 @@ stock void: Vehicle_GetTyreCondition(vehicleid, &VEHICLE_TYRE_CONDITION: rear_ri
 
     GetVehicleDamageStatus(vehicleid, unnecessary_panels, unnecessary_doors, unnecessary_lights, tires);
     decode_tires(tires, rear_right_tire, front_right_tire, rear_left_tire, front_left_tire);
+    
 
+    return true;
 }
 
 static stock decode_tires(tires, &rear_right_tire, &front_right_tire, &rear_left_tire, &front_left_tire)
