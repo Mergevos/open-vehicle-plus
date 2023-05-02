@@ -1467,7 +1467,6 @@ const
     bool: VEHICLE_LIGHT_CONDITION_DAMAGED = true,
     bool: VEHICLE_LIGHT_CONDITION_FIXED = false;
 
-
 /** 
  * <library>vehicle_plus</library>
  * <summary>Gets the number of lights of specified vehicle.</summary>
@@ -2018,6 +2017,38 @@ static stock VEHICLE_TYRE:_@VEHICLE_TYRE() { return __VEHICLE_TYRE; }
 #define VEHICLE_TYRE_POPPED true
 #define VEHICLE_TYRE_INFLATED false
 
+static 
+    bool: Vehicle_gsTyrePoppingGlobal = true;
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Sets tyre popping.</summary>
+ * <param name="set">Popping, true or false, yes or no.</param>
+ * <seealso name="Vehicle_SetTyreConditionEx" />
+ * <seealso name="Vehicle_GetTyreCondition" />
+ * <seealso name="Vehicle_GetTyreConditionEx" />
+ * <seealso name="Vehicle_GetTyrePoppingGlobal" />
+ * <returns>No specific value.</returns>
+*/
+stock void: Vehicle_SetTyrePoppingGlobal(bool: set)
+{
+    Vehicle_gsTyrePoppingGlobal = set;
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Sets tyre popping.</summary>
+ * <seealso name="Vehicle_SetTyreConditionEx" />
+ * <seealso name="Vehicle_GetTyreCondition" />
+ * <seealso name="Vehicle_GetTyreConditionEx" />
+ * <seealso name="Vehicle_SetTyrePoppingGlobal" />
+ * <returns>True if enabled, otherwise false.</returns>
+*/
+stock bool: Vehicle_GetTyrePoppingGlobal()
+{
+    return Vehicle_gsTyrePoppingGlobal;
+}
+
 /**
  * <library>vehicle_plus</library>
  * <summary> Sets the state for a tyre.</summary>
@@ -2027,6 +2058,8 @@ static stock VEHICLE_TYRE:_@VEHICLE_TYRE() { return __VEHICLE_TYRE; }
  * <seealso name="Vehicle_SetTyreConditionEx" />
  * <seealso name="Vehicle_GetTyreCondition" />
  * <seealso name="Vehicle_GetTyreConditionEx" />
+ * <seealso name="Vehicle_SetTyrePoppingGlobal" />
+ * <seealso name="Vehicle_GetTyrePoppingGlobal" />
  * <returns>UpdateVehicleDamageStatus values. </returns>
 */
 stock bool: Vehicle_SetTyreCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_TYRE: tyre, VEHICLE_TYRE_CONDITION: condition, tag=tagof(id)) 
@@ -2114,6 +2147,8 @@ stock bool: Vehicle_SetTyreCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_TYRE: t
  * <seealso name="Vehicle_SetTyreCondition" />
  * <seealso name="Vehicle_GetTyreCondition" />
  * <seealso name="Vehicle_GetTyreConditionEx" />
+ * <seealso name="Vehicle_SetTyrePoppingGlobal" />
+ * <seealso name="Vehicle_GetTyrePoppingGlobal" />
  * <returns>UpdateVehicleDamageStatus values. </returns>
 */
 stock bool: Vehicle_SetTyreConditionEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_TYRE_CONDITION: rear_right, VEHICLE_TYRE_CONDITION: front_right, VEHICLE_TYRE_CONDITION: rear_left, VEHICLE_TYRE_CONDITION: front_left, tag=tagof(id)) 
@@ -2131,14 +2166,14 @@ stock bool: Vehicle_SetTyreConditionEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_TYRE_
             return false;
         }
         GetVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, tires);
-        UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, VEHICLE_TYRE_STATUS: encode_tires(back_right, front_right, back_left, front_left));
+        UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, VEHICLE_TYRE_STATUS: encode_tires(rear_right, front_right, rear_left, front_left));
     }
     else if(tag == tagof(VehicleGroup:))
     {
         foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
         {
             GetVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, tires);
-            UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, VEHICLE_TYRE_STATUS: encode_tires(back_right, front_right, back_left, front_left));
+            UpdateVehicleDamageStatus(id, unnecessary_panels, unnecessary_doors, unnecessary_lights, VEHICLE_TYRE_STATUS: encode_tires(rear_right, front_right, rear_left, front_left));
         }
     }
     return true;
@@ -2152,6 +2187,8 @@ stock bool: Vehicle_SetTyreConditionEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_TYRE_
  * <seealso name="Vehicle_SetTyreConditionEx" />
  * <seealso name="Vehicle_SetTyreCondition" />
  * <seealso name="Vehicle_GetTyreConditionEx" />
+ * <seealso name="Vehicle_SetTyrePoppingGlobal" />
+ * <seealso name="Vehicle_GetTyrePoppingGlobal" />
  * <returns>-1 if vehicle is invalid, otherwise true.</returns>
 */
 stock VEHICLE_TYRE_CONDITION: Vehicle_GetTyreCondition(vehicleid, VEHICLE_TYRE: tyre) 
@@ -2207,6 +2244,8 @@ stock VEHICLE_TYRE_CONDITION: Vehicle_GetTyreCondition(vehicleid, VEHICLE_TYRE: 
  * <seealso name="Vehicle_SetTyreConditionEx" />
  * <seealso name="Vehicle_GetTyreCondition" />
  * <seealso name="Vehicle_SetTyreCondition" />
+ * <seealso name="Vehicle_SetTyrePoppingGlobal" />
+ * <seealso name="Vehicle_GetTyrePoppingGlobal" />
  * <returns>GetVehicleDamageStatus values.</returns>
 */
 stock bool: Vehicle_GetTyreConditionEx(vehicleid, &VEHICLE_TYRE_CONDITION: rear_right_tire, &VEHICLE_TYRE_CONDITION: front_right_tire, &VEHICLE_TYRE_CONDITION: rear_left_tire, &VEHICLE_TYRE_CONDITION: front_left_tire) 
@@ -2239,6 +2278,31 @@ static stock decode_tires(tires, &rear_right_tire, &front_right_tire, &rear_left
 static stock encode_tires(rear_right_tire, front_right_tire, rear_left_tire, front_left_tire)
 {
     return rear_right_tire | (front_right_tire << 1) | (rear_left_tire << 2) | (front_left_tire << 3);
+}
+
+hook OnVehicleDamageStatusUpdate(vehicleid, playerid)
+{
+    if(!Vehicle_gsTyrePoppingGlobal)
+    {
+        new 
+            VEHICLE_TYRE_CONDITION: front_left,
+            VEHICLE_TYRE_CONDITION: back_left,
+            VEHICLE_TYRE_CONDITION: front_right,
+            VEHICLE_TYRE_CONDITION: back_right;
+
+        Vehicle_GetTyreConditionEx(vehicleid, back_right, front_right, back_left, front_left);
+
+        if((back_right, front_right, back_left, front_left) == VEHICLE_TYRE_POPPED)
+        {
+            back_right = VEHICLE_TYRE_INFLATED,
+            front_right = VEHICLE_TYRE_INFLATED, 
+            back_left = VEHICLE_TYRE_INFLATED, 
+            front_left = VEHICLE_TYRE_INFLATED;
+
+            Vehicle_SetTyreConditionEx(vehicleid, back_right, front_right, back_left, front_left);
+        }
+    }
+    return Y_HOOKS_CONTINUE_RETURN_1;
 }
 
 // ---

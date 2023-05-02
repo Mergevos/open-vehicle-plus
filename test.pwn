@@ -15,6 +15,7 @@ public OnGameModeInit()
     SetWorldTime(0);
 
     ManualVehicleEngineAndLights();
+    Vehicle_SetTyrePoppingGlobal(false); //bulletproof
 
     //test win number
 
