@@ -74,6 +74,12 @@ static
 
     Vehicle_gsBlink[MAX_VEHICLES][BLINK_SIDES],
 
+    Timer: Vehicle_gsDistanceTimer[MAX_VEHICLES],
+
+    Float: Vehicle_gsPositionX[MAX_VEHICLES],
+    Float: Vehicle_gsPositionY[MAX_VEHICLES],
+    Float: Vehicle_gsPositionZ[MAX_VEHICLES],
+
     Float: Vehicle_gsHealth[MAX_VEHICLES]; 
 
 
@@ -2619,7 +2625,7 @@ stock bool: Vehicle_GetPanelsCondition(vehicleid, &VEHICLE_PANELS_CONDITION: fro
 
 forward OnVehicleHealthChange(vehicleid, Float: oldhealth, Float:newhealth);
 
-timer Vehicle_HealthTrack[500](vehicleid)
+timer __Vehicle_HealthTrack[500](vehicleid)
 {
     new Float: healthveh;
     GetVehicleHealth(vehicleid, healthveh);
@@ -2685,24 +2691,28 @@ stock bool: Vehicle_Repair(vehicleid)
 // --
 
 /**
+ * <library>vehicle_plus</library>
  * <summary> Gets the vehicle's number plate.</summary>
  * <param name="vehicleid"> Vehicle from which we get the vehicle plate.</param>
  * <param name="plate"> Plate to get.</param>
  * <param name="len"> Size of the plate.</param>
+ * <seealso name="Vehicle_SetNumberPlate" />
+ * <returns>INVALID_VEHICLE_ID if vehicle is invalid.</returns>
 */
-
 stock Vehicle_GetNumberPlate(vehicleid, string: plate[], len = sizeof(plate)) 
 {
-    return GetVehicleNumberPlate(vehicleid, plate, len);
+    return IsValidVehicle(vehicleid) ? GetVehicleNumberPlate(vehicleid, plate, len) : INVALID_VEHICLE_ID;
 }
 
 /**
+ * <library>vehicle_plus</library>
  * <summary> Sets the vehicle's number plate.</summary>
  * <param name="vehicleid"> Vehicle which we set the vehicle plate.</param>
  * <param name="plate"> Plate to set.</param>
+ * <seealso name="Vehicle_GetNumberPlate" />
+ * <returns>False if vehicle is invalid, otherwise true.</returns>
 */
-
-stock Vehicle_SetNumberPlate(VEHICLE_FRAMEWORK_TAGS: id, const string: plate[], tag=tagof(id)) 
+stock bool: Vehicle_SetNumberPlate(VEHICLE_FRAMEWORK_TAGS: id, const string: plate[], tag=tagof(id)) 
 {
     if(tag == tagof(_:))
     {
@@ -3240,15 +3250,108 @@ stock CARMODTYPE: Vehicle_GetComponentType(vehicleid, componentid)
 }
 
 // --
+// Mileage
+// --
+
+#define VEHICLE_UNIT: __TAG(VEHICLE_UNIT):
+enum VEHICLE_UNIT:__VEHICLE_UNIT
+{
+    VEHICLE_UNIT_METRIC,
+    VEHICLE_UNIT_IMPERIAL
+}
+static stock VEHICLE_UNIT:_@VEHICLE_UNIT() { return __VEHICLE_UNIT; }
+
+static
+    Float: Vehicle_gsDistanceTravelledTotalMiles[MAX_VEHICLES],
+    Float: Vehicle_gsDistanceTravelledTotalKilometres[MAX_VEHICLES];
+
+forward OnVehicleDrivenDistanceUpdate(vehicleid);
+
+// If we don't hook this, vehicle distance travelled will go skyhigh when teleported far away
+
+hook native SetVehiclePos(vehicleid, Float:x, Float:y, Float:z)
+{
+    Vehicle_gsPositionX[vehicleid] = x;
+    Vehicle_gsPositionY[vehicleid] = y;
+    Vehicle_gsPositionZ[vehicleid] = z;
+    return continue(vehicleid, x, y, z);
+}
+
+timer __Vehicle_DistanceTravelled[1000](vehicleid)
+{
+    Vehicle_gsDistanceTravelledTotalKilometres[vehicleid] += (GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]) / 1000);
+    Vehicle_gsDistanceTravelledTotalMiles[vehicleid] += (GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]) / 1000);
+    CallLocalFunction("OnVehicleDrivenDistanceUpdate", "i", vehicleid);
+    GetVehiclePos(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]);
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Gets vehicle distance travelled.</summary>
+ * <param name="vehicleid">Vehicle to obtain travelled distance from.</param>
+ * <param name="unit">Unit we return distance in.</param>
+ * <seealso name="Vehicle_SetDistanceTravelled" />
+ * <returns>Distance travelled.</returns> 
+ */
+stock Float: Vehicle_GetDistanceTravelled(vehicleid, VEHICLE_UNIT: unit)
+{
+    if(!IsValidVehicle(vehicleid))
+    {
+        return INVALID_VEHICLE_ID;
+    }
+    if(unit == VEHICLE_UNIT_IMPERIAL)
+    {
+	    return Vehicle_gsDistanceTravelledTotalMiles[vehicleid];
+    }
+    else if(unit == VEHICLE_UNIT_METRIC)
+    {
+        return Vehicle_gsDistanceTravelledTotalKilometres[vehicleid];
+    }
+    return INVALID_VEHICLE_ID;
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Sets vehicle distance travelled.</summary>
+ * <param name="vehicleid">Vehicle to set travelled distance to.</param>
+ * <param name="unit">Unit we set distance in.</param>
+ * <param name="distance">Distance we set.</param>
+ * <seealso name="Vehicle_GetDistanceTravelled" />
+ * <returns>False if vehicle is invalid, otherwise true.</returns> 
+ */
+stock bool: Vehicle_SetDistanceTravelled(vehicleid, VEHICLE_UNIT: unit, Float:distance)
+{
+	if(IsValidVehicle(vehicleid))
+    {
+        if(unit == VEHICLE_UNIT_METRIC)
+        {
+            Vehicle_gsDistanceTravelledTotalKilometres[vehicleid] = distance;
+        }
+        else if(unit == VEHICLE_UNIT_IMPERIAL)
+        {
+            Vehicle_gsDistanceTravelledTotalMiles[vehicleid] = mileage;
+        }
+        return true;
+    }
+	return false;
+}
+
+// --
 // Dimensions
 // --
 
 /**
- * <summary> Sets the vehicle or group interior.</summary>
- * <param name="id"> Vehicle or group which we set the interior to.</param>
- * <param name="interior"> Interior to set.</param>
-*/
-
+ * <library>vehicle_plus</library>
+ * <summary>Sets the vehicle or group of vehicles interior.</summary>
+ * <param name="id">Vehicle or group which we set the interior to.</param>
+ * <param name="interior">Interior to set.</param>
+ * <seealso name="Vehicle_GetInterior" />
+ * <seealso name="Vehicle_SetVirtualWorld" />
+ * <seealso name="Vehicle_GetVirtualWorld" />
+ * <seealso name="Vehicle_SetDimensionsInfo" />
+ * <seealso name="Vehicle_GetDimensionsInfo" />
+ * <returns>LinkVehicleToInterior values.</returns>
+ */
 stock bool: Vehicle_SetInterior(VEHICLE_FRAMEWORK_TAGS: id, interiorid, tag=tagof(id)) 
 {
     if(tag == tagof(_:))
@@ -3266,22 +3369,32 @@ stock bool: Vehicle_SetInterior(VEHICLE_FRAMEWORK_TAGS: id, interiorid, tag=tago
 }
 
 /**
- * <summary> Gets the vehicle or group interior.</summary>
- * <param name="vehicleid"> Vehicle or group which we set the interior to.</param>
- * <returns> Vehicle interior. </returns>
-*/
-
+ * <library>vehicle_plus</library>
+ * <summary>Gets the vehicle or group of vehicles interior.</summary>
+ * <param name="vehicleid">Vehicle we get the interior from.</param>
+ * <seealso name="Vehicle_SetInterior" />
+ * <seealso name="Vehicle_SetVirtualWorld" />
+ * <seealso name="Vehicle_GetVirtualWorld" />
+ * <seealso name="Vehicle_SetDimensionsInfo" />
+ * <seealso name="Vehicle_GetDimensionsInfo" />
+ * <returns>INVALID_VEHICLE_ID if vehicle is invalid, otherwise true.</returns>
+ */
 stock Vehicle_GetInterior(vehicleid) 
 {
-    return ((IsValidVehicle(vehicleid)) ? (GetVehicleInterior(vehicleid)) : -(1));
+    return ((IsValidVehicle(vehicleid)) ? (GetVehicleInterior(vehicleid)) : (INVALID_VEHICLE_ID));
 }
 
 /**
- * <summary> Sets the vehicle or group virtual world.</summary>
- * <param name="id"> Vehicle or group which we set the virtual world to.</param>
- * <param name="virtual_world"> Virtual World to set.</param>
-*/
-
+ * <library>vehicle_plus</library>
+ * <summary>Sets the vehicle or group of vehicles Virtual World.</summary>
+ * <param name="id">Vehicle or group which we set the Virtual World to.</param>
+ * <param name="virtual_world">Virtual World to set.</param>
+ * <seealso name="Vehicle_GetInterior" />
+ * <seealso name="Vehicle_GetVirtualWorld" />
+ * <seealso name="Vehicle_SetDimensionsInfo" />
+ * <seealso name="Vehicle_GetDimensionsInfo" />
+ * <returns>SetVehicleVirtualWorld values.</returns>
+ */
 stock bool: Vehicle_SetVirtualWorld(VEHICLE_FRAMEWORK_TAGS: id, virtual_world, tag=tagof(id))
 {
     if(tag == tagof(_:))
@@ -3303,25 +3416,33 @@ stock bool: Vehicle_SetVirtualWorld(VEHICLE_FRAMEWORK_TAGS: id, virtual_world, t
     return true;
 }
 
-
 /**
- * <summary> Gets the vehicle virtual world.</summary>
- * <param name="vehicleid"> Vehicle or group which we set the interior to.</param>
- * <returns> Vehicle virtual world. </returns>
+ * <library>vehicle_plus</library>
+ * <summary>Gets the vehicle virtual world.</summary>
+ * <param name="vehicleid">Vehicle which we get the virtual world from.</param>
+ * <seealso name="Vehicle_GetInterior" />
+ * <seealso name="Vehicle_SetVirtualWorld" />
+ * <seealso name="Vehicle_SetDimensionsInfo" />
+ * <seealso name="Vehicle_GetDimensionsInfo" />
+ * <returns>Vehicle virtual world or INVALID_VEHICLE_ID if vehicle is invalid.</returns>
 */
-
 stock Vehicle_GetVirtualWorld(vehicleid) 
 {
-    return ((IsValidVehicle(vehicleid)) ? (GetVehicleVirtualWorld(vehicleid)) : -(1));
+    return ((IsValidVehicle(vehicleid)) ? (GetVehicleVirtualWorld(vehicleid)) : (INVALID_VEHICLE_ID));
 }
 
 /**
- * <summary> Sets the vehicle or group dimensions.</summary>
- * <param name="id"> Vehicle or group which we set the dimensions to.</param>
- * <param name="interior"> Interior to set.</param>
- * <param name="virtual_world"> Virtual World to set.</param>
+ * <library>vehicle_plus</library>
+ * <summary>Sets the vehicle virtual world and interior.</summary>
+ * <param name="vehicleid">Vehicle which we set the virtual world and interior to.</param>
+ * <param name="inteiorid">Interior to set.</param>
+ * <param name="virtual_world">Virtual world to set.</param>
+ * <seealso name="Vehicle_GetInterior" />
+ * <seealso name="Vehicle_SetVirtualWorld" />
+ * <seealso name="Vehicle_GetVirtualWorld" />
+ * <seealso name="Vehicle_GetDimensionsInfo" />
+ * <returns>SetVehicleVirtualWorld values.</returns>
 */
-
 stock bool: Vehicle_SetDimensionInfo(VEHICLE_FRAMEWORK_TAGS: id, interiorid, virtual_world, tag=tagof(id))
 {
     if(tag == tagof(_:))
@@ -3341,12 +3462,17 @@ stock bool: Vehicle_SetDimensionInfo(VEHICLE_FRAMEWORK_TAGS: id, interiorid, vir
 }
 
 /**
- * <summary> Sets the vehicle or group dimensions.</summary>
- * <param name="id"> Vehicle or group which we get the dimensions from.</param>
- * <param name="&interior"> Interior to get.</param>
- * <param name="&virtual_world"> Virtual World to get.</param>
+ * <library>vehicle_plus</library>
+ * <summary>Gets the vehicle virtual world and interior.</summary>
+ * <param name="vehicleid">Vehicle which we get the virtual world and interior from.</param>
+ * <param name="&interiorid">Variable to store interior into.</param>
+ * <param name="&virtualworld">Variable to store virtual world into.</param>
+ * <seealso name="Vehicle_GetInterior" />
+ * <seealso name="Vehicle_SetVirtualWorld" />
+ * <seealso name="Vehicle_GetVirtualWorld" />
+ * <seealso name="Vehicle_SetDimensionsInfo" />
+ * <returns>SetVehicleVirtualWorld values.</returns>
 */
-
 stock void: Vehicle_GetDimensionInfo(vehicleid, &interiorid, &virtualworld) 
 {
     interiorid = Vehicle_GetInterior(vehicleid);
@@ -3893,16 +4019,21 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
     Vehicle_gsBlink[idx][2] = -1;
     Vehicle_gsBlink[idx][3] = -1;
 
+    Vehicle_gsPositionX[idx] = x;
+    Vehicle_gsPositionY[idx] = y;
+    Vehicle_gsPositionZ[idx] = z;
+
     Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_CLOSED;
     Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_CLOSED;
     Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_CLOSED;
     Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_CLOSED;
 
     Vehicle_gsHealth[idx] = 1000;
+    Vehicle_gsDistanceTimer[idx] = repeat __Vehicle_DistanceTravelled(idx);
     
     SetVehicleVirtualWorld(idx, virtual_world);
     LinkVehicleToInterior(idx, interior);
-    Vehicle_gsHealthTrackTimer[idx] = repeat Vehicle_HealthTrack(idx);
+    Vehicle_gsHealthTrackTimer[idx] = repeat __Vehicle_HealthTrack(idx);
     CallLocalFunction("OnVehicleFirstSpawn", "i", idx);
     return idx;
 }
@@ -3951,8 +4082,13 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
     Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_CLOSED;
     Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_CLOSED;
 
-    Vehicle_gsHealthTrackTimer[idx] = repeat Vehicle_HealthTrack(idx);
+    Vehicle_gsPositionX[idx] = x;
+    Vehicle_gsPositionY[idx] = y;
+    Vehicle_gsPositionZ[idx] = z;
+
+    Vehicle_gsHealthTrackTimer[idx] = repeat __Vehicle_HealthTrack(idx);
     SetVehicleNumberPlate(idx, plate);
+    Vehicle_gsDistanceTimer[idx] = repeat __Vehicle_DistanceTravelled(idx);
     
     SetVehicleHealth(idx, health);
     SetVehicleNumberPlate(idx, plate);
@@ -3974,6 +4110,15 @@ stock bool: Vehicle_Destroy(idx)
     }
     Vehicle_gsHealth[idx] = 0;
     Vehicle_gsOccupiedTick[idx] = -1;
+
+    Vehicle_gsPositionX[idx] = 0.0;
+    Vehicle_gsPositionY[idx] = 0.0;
+    Vehicle_gsPositionZ[idx] = 0.0;
+
+    Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_CLOSED;
+    Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_CLOSED;
     
     Vehicle_gsBlinkSide[idx] = VEHICLE_BLINKERS_NOT_SET;
     foreach(new i : Vehicle_gsActGps)
@@ -3984,6 +4129,7 @@ stock bool: Vehicle_Destroy(idx)
         }
     }
     stop Vehicle_gsHealthTrackTimer[idx];
+    stop Vehicle_gsDistanceTimer[idx];
     CallLocalFunction("OnVehicleDestroy", "i", idx);
     DestroyVehicle(idx);
     return true;
