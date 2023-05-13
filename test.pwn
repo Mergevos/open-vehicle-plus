@@ -24,9 +24,24 @@ public OnGameModeInit()
     return 1;
 }
 
-public OnVehicleRespray(playerid, vehicleid, colour1, colour2)
+
+public OnVehicleRespray(playerid, vehicleid, color1, color2)
 {
-    SendClientMessage(playerid, -1, "Vehicle resprayed triggered clb %d %d", colour1, colour2);
+    SendClientMessage(playerid, -1, "Vehicle resprayed triggered clb %d %d", color1, color2);
+    return 1;
+}
+
+CMD:testteleport(playerid, params[])
+{
+    new Float: x, Float: y, Float: z;
+    GetPlayerPos(playerid, x, y, z);
+    SetVehiclePos(1, x, y+4, z);
+    return 1;
+}
+
+public OnVehicleDrivenDistanceUpdate(vehicleid)
+{
+    SendClientMessage(0, -1, "Vehicle SPEED %d, Testing miles %f vs kilometres %f" , Vehicle_Speed(vehicleid), Vehicle_GetDistanceTravelled(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetDistanceTravelled(vehicleid, VEHICLE_UNIT_METRIC));
     return 1;
 }
 
