@@ -3279,10 +3279,14 @@ hook native SetVehiclePos(vehicleid, Float:x, Float:y, Float:z)
 
 timer __Vehicle_DistanceTravelled[1000](vehicleid)
 {
-    Vehicle_gsDistanceTravelledTotalKilometres[vehicleid] += (GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]) / 1000);
-    Vehicle_gsDistanceTravelledTotalMiles[vehicleid] += (GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]) / 1000);
-    CallLocalFunction("OnVehicleDrivenDistanceUpdate", "i", vehicleid);
-    GetVehiclePos(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]);
+    if(GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]) >= 0.005)
+    {
+        Vehicle_gsDistanceTravelledTotalKilometres[vehicleid] += (GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]) / 1000);
+        Vehicle_gsDistanceTravelledTotalMiles[vehicleid] += ((GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]) / 1000) * 0.621371);
+
+        CallLocalFunction("OnVehicleDrivenDistanceUpdate", "i", vehicleid);
+        GetVehiclePos(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]);
+    }
 }
 
 /**
@@ -3326,10 +3330,12 @@ stock bool: Vehicle_SetDistanceTravelled(vehicleid, VEHICLE_UNIT: unit, Float:di
         if(unit == VEHICLE_UNIT_METRIC)
         {
             Vehicle_gsDistanceTravelledTotalKilometres[vehicleid] = distance;
+            Vehicle_gsDistanceTravelledTotalMiles[vehicleid] = distance * 0.621371;
         }
         else if(unit == VEHICLE_UNIT_IMPERIAL)
         {
-            Vehicle_gsDistanceTravelledTotalMiles[vehicleid] = mileage;
+            Vehicle_gsDistanceTravelledTotalMiles[vehicleid] = distance;
+            Vehicle_gsDistanceTravelledTotalKilometres[vehicleid] = distance * 1.609344;
         }
         return true;
     }
