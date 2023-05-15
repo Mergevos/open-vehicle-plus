@@ -3617,19 +3617,19 @@ hook OnPlayerStateChange(playerid, PLAYER_STATE:newstate, PLAYER_STATE:oldstate)
 */
 stock bool: Vehicle_Respawn(VEHICLE_FRAMEWORK_TAGS: id, tag=tagof(id))
 {
-    if(tagof(tag) == tagof(_:))
+    if(tag == tagof(_:))
     {
         if(!IsValidVehicle(id))
         {
             return false;
         }
-        SetVehicleToRespawn(id)
+        SetVehicleToRespawn(id);
     }
-    else if(tagof(tag) == tagof(VehicleGroup:))
+    else if(tag == tagof(VehicleGroup:))
     {
         foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
         {
-            SetVehicleToRespawn(i, respawn_delay)
+            SetVehicleToRespawn(i);
         }
     }
     return true;
