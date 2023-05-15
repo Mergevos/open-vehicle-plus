@@ -3531,13 +3531,13 @@ stock bool: Vehicle_SetRespawnDelay(VEHICLE_FRAMEWORK_TAGS: id, respawn_delay, t
 {
     if(tag == tagof(_:))
     {
-        return SetVehicleRespawnDelay(vehicleid, respawn_delay)
+        return SetVehicleRespawnDelay(id, respawn_delay)
     }
     else if(tag == tagof(VehicleGroup:))
     {
         foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
         {
-            SetVehicleRespawnDelay(vehicleid, respawn_delay)
+            SetVehicleRespawnDelay(i, respawn_delay)
         }
     }
     return true;
@@ -3604,6 +3604,35 @@ hook OnPlayerStateChange(playerid, PLAYER_STATE:newstate, PLAYER_STATE:oldstate)
         SetPVarInt(playerid, "FRAMEWORK_PlayerLastVehicle", 0);
     }
     return Y_HOOKS_CONTINUE_RETURN_1;
+}
+
+// --
+// Respawn
+// --
+
+/**
+ * <summary>(Re)spawns a vehicle or group of vehicles.</summary>
+ * <param name="id">Vehicle or group of vehicles we respawn.</param>
+ * <returns>False if function fails, eg. invalid vehicle, else true.</param>
+*/
+stock bool: Vehicle_Respawn(VEHICLE_FRAMEWORK_TAGS: id, tag=tagof(id))
+{
+    if(tagof(tag) == tagof(_:))
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        SetVehicleToRespawn(id)
+    }
+    else if(tagof(tag) == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            SetVehicleToRespawn(i, respawn_delay)
+        }
+    }
+    return true;
 }
 
 // --
