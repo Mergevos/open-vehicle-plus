@@ -2625,7 +2625,7 @@ stock bool: Vehicle_GetPanelsCondition(vehicleid, &VEHICLE_PANELS_CONDITION: fro
 
 forward OnVehicleHealthChange(vehicleid, Float: oldhealth, Float:newhealth);
 
-timer __Vehicle_HealthTrack[500](vehicleid)
+stock timer __Vehicle_HealthTrack[500](vehicleid)
 {
     new Float: healthveh;
     GetVehicleHealth(vehicleid, healthveh);
@@ -3277,7 +3277,7 @@ hook native SetVehiclePos(vehicleid, Float:x, Float:y, Float:z)
     return continue(vehicleid, x, y, z);
 }
 
-timer __Vehicle_DistanceTravelled[1000](vehicleid)
+stock timer __Vehicle_DistanceTravelled[1000](vehicleid)
 {
     if(GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]) >= 0.005)
     {
