@@ -1789,7 +1789,7 @@ stock bool: Vehicle_SetLightsState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: l
 */
 stock VEHICLE_PARAMS: Vehicle_GetLightsState(vehicleid) 
 {
-    if(!IsValidVehicle(id))
+    if(!IsValidVehicle(vehicleid))
     {
         return false;
     }
