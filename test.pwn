@@ -12,6 +12,10 @@ main()
 
 public OnGameModeInit()
 {
+    new string: ssn[20];
+	format(ssn, 20, "530-%02d-%04d", RandomMinMax(0, 99), RandomMinMax(0, 9999));
+    printf("%s", ssn);
+
     SetWorldTime(0);
 
     ManualVehicleEngineAndLights();
@@ -42,6 +46,14 @@ CMD:testteleport(playerid, params[])
 public OnVehicleDrivenDistanceUpdate(vehicleid)
 {
     SendClientMessage(0, -1, "Vehicle SPEED %d, Testing miles %f vs kilometres %f" , Vehicle_Speed(vehicleid), Vehicle_GetDistanceTravelled(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetDistanceTravelled(vehicleid, VEHICLE_UNIT_METRIC));
+    SendClientMessage(0, -1, "Vehicle fuel level %f gal %f lit", 
+        Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT_METRIC));
+    SendClientMessage(0, -1, "distance to empty %f mi %f km",
+        Vehicle_GetDistanceCanPass(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetDistanceCanPass(vehicleid, VEHICLE_UNIT_METRIC)); 
+    SendClientMessage(0, -1, "distance from refill %f mi %f km fuel cons %f gal/100mi %f l/100km",
+        Vehicle_GetDistanceFromLastRefill(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetDistanceFromLastRefill(vehicleid, VEHICLE_UNIT_METRIC),
+        Vehicle_GetFuelConsumption(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetFuelConsumption(vehicleid, VEHICLE_UNIT_METRIC));
+
     return 1;
 }
 
@@ -125,7 +137,11 @@ CMD:vehicle(playerid, params[])
         return SendClientMessage(playerid, -1, "vehicle [model]");
     }
     GetPlayerPos(playerid, x, y, z);
-    Vehicle_Create(vehmodel, x+3, y, z, 0, -1, -1, -1, 0, 0);
+    new id = Vehicle_Create(vehmodel, x+3, y, z, 0, -1, -1, -1, 0, 0);
+
+    Vehicle_SetFuelTankCapacity(id, VEHICLE_UNIT_METRIC, 300);
+    Vehicle_SetFuelConsumption(id, VEHICLE_UNIT_METRIC, 50); // /100kmh
+    Vehicle_SetFuelLevel(id, VEHICLE_UNIT_METRIC, 3);
     return 1;
 }
 
@@ -173,7 +189,7 @@ CMD:testwindow(playerid, params[])
 
 CMD:testengon(playerid, params[])
 {
-    Vehicle_SetEngineState(GetPlayerVehicleID(playerid), true);
+    Vehicle_TryTurningEngine(GetPlayerVehicleID(playerid));
     return 1;
 }
 

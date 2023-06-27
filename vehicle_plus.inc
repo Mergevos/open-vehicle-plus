@@ -91,6 +91,14 @@ static
     #define MAX_VEHICLE_GROUPS 12
 #endif
 
+#define VEHICLE_UNIT: __TAG(VEHICLE_UNIT):
+enum VEHICLE_UNIT:__VEHICLE_UNIT
+{
+    VEHICLE_UNIT_METRIC,
+    VEHICLE_UNIT_IMPERIAL
+}
+static stock VEHICLE_UNIT:_@VEHICLE_UNIT() { return __VEHICLE_UNIT; }
+
 static const Float:Vehicle_gscPayNSprayLocations[10][3] = {
     {1025.05, -1024.23, 32.1}, 	// LS Temple
     {487.68, -1740.87, 11.13}, 	// LS Santa Maria
@@ -1231,7 +1239,7 @@ stock bool: Vehicle_CancelBlinking(VEHICLE_FRAMEWORK_TAGS: id, tag=(tagof(id)))
 // -- 
 // Engine 
 // --
-
+forward Float: Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT: unit);
 /**
  * <library>vehicle_plus</library>
  * <summary> Gets the engine state.</summary>
@@ -1272,6 +1280,41 @@ stock bool: Vehicle_SetEngineState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: e
         foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
         {
             Vehicle_gsParams[i][PARAMS_ENGINE] = engine_state;
+            SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
+        }
+    }
+    return true;
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary> Sets the engine state.</summary>
+ * <param name="vehicleid">Vehicle or group of vehicles which we try turning engine on.</param>
+ * <seealso name="Vehicle_GetEngineState" />
+ * <seealso name="Vehicle_GetDriveType" />
+ * <seealso name="Vehicle_GetEngineType" />
+ * <returns> False if vehicle is invalid, or doesn't have enough fuel, true otherwise.</returns>
+*/
+stock Vehicle_TryTurningEngine(VEHICLE_FRAMEWORK_TAGS: id, tag=tagof(id))
+{
+    if(tag==tagof(_:))
+    {
+        if(!IsValidVehicle(id) || Vehicle_GetFuelLevel(id, VEHICLE_UNIT_METRIC) == 0)
+        {
+            return false;
+        }
+        Vehicle_gsParams[id][PARAMS_ENGINE] = true;
+        SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
+    }
+    else if(tag==tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            if(Vehicle_GetFuelLevel(i, VEHICLE_UNIT_METRIC) == 0)
+            {
+                continue;
+            }
+            Vehicle_gsParams[i][PARAMS_ENGINE] = true;
             SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
         }
     }
@@ -3250,16 +3293,279 @@ stock CARMODTYPE: Vehicle_GetComponentType(vehicleid, componentid)
 }
 
 // --
-// Mileage
+// Fuel
 // --
 
-#define VEHICLE_UNIT: __TAG(VEHICLE_UNIT):
-enum VEHICLE_UNIT:__VEHICLE_UNIT
+static 
+    Float: Vehicle_gsFuelTankCapacity[MAX_VEHICLES],
+    Float: Vehicle_gsFuelTankLevel[MAX_VEHICLES],
+    Float: Vehicle_gsFuelConsumption[MAX_VEHICLES],
+    Float: Vehicle_gsKilometersToEmpty[MAX_VEHICLES],
+    Float: Vehicle_gsDistanceFromLastRefill[MAX_VEHICLES];
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Sets vehicle fuel tank capacity.</summary>
+ * <param name="vehicleid">Vehicle or group of vehicles.</param>
+ * <param name="unit">Unit we set capacity in.</param>
+ * <param name="amount">Amount to set.</param>
+ * <seealso name="Vehicle_SetFuelLevel" />
+ * <seealso name="Vehicle_SetFuelConsumption" />
+ * <seealso name="Vehicle_GetFuelTankCapacity" />
+ * <seealso name="Vehicle_GetFuelLevel" />
+ * <seealso name="Vehicle_GetFuelConsumption" />
+ * <seealso name="Vehicle_GetDistanceCanPass" />
+ * <seealso name="Vehicle_GetDistanceFromLastRefill" />
+ * <returns>False if vehicle is invalid, true otherwise.</returns> 
+ */
+stock bool: Vehicle_SetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit, Float: amount)
 {
-    VEHICLE_UNIT_METRIC,
-    VEHICLE_UNIT_IMPERIAL
+    if(!IsValidVehicle(vehicleid))
+    {
+        return false;
+    }
+    if(unit == VEHICLE_UNIT_IMPERIAL)
+    {
+        Vehicle_gsFuelTankCapacity[vehicleid] = amount * 3.78541; // convert back to litres
+    }
+    else if(unit == VEHICLE_UNIT_METRIC)
+    {
+        Vehicle_gsFuelTankCapacity[vehicleid] = amount;
+    } 
+    return true;
 }
-static stock VEHICLE_UNIT:_@VEHICLE_UNIT() { return __VEHICLE_UNIT; }
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Sets vehicle fuel level.</summary>
+ * <param name="vehicleid">Vehicle or group of vehicles.</param>
+ * <param name="unit">Unit we set fuel in.</param>
+ * <param name="amount">Amount to set.</param>
+ * <seealso name="Vehicle_SetFuelTankCapacity" />
+ * <seealso name="Vehicle_SetFuelConsumption" />
+ * <seealso name="Vehicle_GetFuelTankCapacity" />
+ * <seealso name="Vehicle_GetFuelLevel" />
+ * <seealso name="Vehicle_GetFuelConsumption" />
+ * <seealso name="Vehicle_GetDistanceCanPass" />
+ * <seealso name="Vehicle_GetDistanceFromLastRefill" />
+ * <returns>False if vehicle is invalid or amount is higher than capacity, true otherwise.</returns> 
+ */
+stock bool: Vehicle_SetFuelLevel(vehicleid, VEHICLE_UNIT: unit, Float: amount)
+{
+    if(!IsValidVehicle(vehicleid) || ammount >= Vehicle_GetFuelTankCapacity(vehicleid, unit))
+    {
+        return false;
+    }
+    if(unit == VEHICLE_UNIT_IMPERIAL)
+    {
+        Vehicle_gsFuelTankLevel[vehicleid] = amount * 3.78541; //litres
+        Vehicle_gsDistanceFromLastRefill[vehicleid] = 0;
+        Vehicle_gsKilometersToEmpty[vehicleid] = (Vehicle_gsFuelTankLevel[vehicleid] / Vehicle_gsFuelConsumption[vehicleid]) * 100;
+    }
+    else if(unit == VEHICLE_UNIT_METRIC)
+    {
+        Vehicle_gsFuelTankLevel[vehicleid] = amount;
+        Vehicle_gsDistanceFromLastRefill[vehicleid] = 0;
+        Vehicle_gsKilometersToEmpty[vehicleid] = (Vehicle_gsFuelTankLevel[vehicleid] / Vehicle_gsFuelConsumption[vehicleid]) * 100;
+    } 
+    return true;
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Sets vehicle fuel consumption.</summary>
+ * <param name="vehicleid">Vehicle or group of vehicles.</param>
+ * <param name="unit">Unit we set consumption in.</param>
+ * <param name="amount">Amount to set.</param>
+ * <seealso name="Vehicle_SetFuelTankCapacity" />
+ * <seealso name="Vehicle_SetFuelLevel" />
+ * <seealso name="Vehicle_GetFuelTankCapacity" />
+ * <seealso name="Vehicle_GetFuelLevel" />
+ * <seealso name="Vehicle_GetFuelConsumption" />
+ * <seealso name="Vehicle_GetDistanceCanPass" />
+ * <seealso name="Vehicle_GetDistanceFromLastRefill" />
+ * <returns>False if vehicle is invalid, true otherwise.</returns> 
+ */
+stock bool: Vehicle_SetFuelConsumption(vehicleid, VEHICLE_UNIT: unit, Float: amount)
+{
+    if(!IsValidVehicle(vehicleid))
+    {
+        return false;
+    }
+    if(unit == VEHICLE_UNIT_IMPERIAL)
+    {
+        Vehicle_gsFuelConsumption[vehicleid] = amount * 3.78541; //litres
+    }
+    else if(unit == VEHICLE_UNIT_METRIC)
+    {
+        Vehicle_gsFuelConsumption[vehicleid] = amount;
+    } 
+    return true;
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Gets vehicle fuel tank capacity.</summary>
+ * <param name="vehicleid">Vehicle.</param>
+ * <param name="unit">Unit we get capacity in.</param>
+ * <seealso name="Vehicle_SetFuelTankCapacity" />
+ * <seealso name="Vehicle_SetFuelConsumption" />
+ * <seealso name="Vehicle_GetFuelTankCapacity" />
+ * <seealso name="Vehicle_GetFuelLevel" />
+ * <seealso name="Vehicle_SetFuelLevel" />
+ * <seealso name="Vehicle_GetDistanceCanPass" />
+ * <seealso name="Vehicle_GetDistanceFromLastRefill" />
+ * <returns>INVALID_VEHICLE_ID if vehicle is invalid, tank capacity otherwise.</returns> 
+ */
+stock Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit)
+{
+    if(IsValidVehicle(vehicleid))
+    {
+        if(unit == VEHICLE_UNIT_IMPERIAL)
+        {
+            return Vehicle_gsFuelTankCapacity[vehicleid] * 0.26417205; // now we convert to gallons since getter
+        }
+        else if(unit == VEHICLE_UNIT_METRIC)
+        {
+            return Vehicle_gsFuelTankCapacity[vehicleid];
+        }   
+    }
+    return INVALID_VEHICLE_ID;
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Gets vehicle fuel level.</summary>
+ * <param name="vehicleid">Vehicle.</param>
+ * <param name="unit">Unit we get level in.</param>
+ * <seealso name="Vehicle_SetFuelTankCapacity" />
+ * <seealso name="Vehicle_SetFuelConsumption" />
+ * <seealso name="Vehicle_GetFuelTankCapacity" />
+ * <seealso name="Vehicle_GetFuelConsumption" />
+ * <seealso name="Vehicle_SetFuelLevel" />
+ * <seealso name="Vehicle_GetDistanceCanPass" />
+ * <seealso name="Vehicle_GetDistanceFromLastRefill" />
+ * <returns>INVALID_VEHICLE_ID if vehicle is invalid, fuel level otherwise.</returns> 
+ */
+stock Float: Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT: unit)
+{
+    if(IsValidVehicle(vehicleid))
+    {
+        if(unit == VEHICLE_UNIT_IMPERIAL)
+        {
+            return Vehicle_gsFuelTankLevel[vehicleid] * 0.26417205; //gallons
+        }
+        else if(unit == VEHICLE_UNIT_METRIC)
+        {
+            return Vehicle_gsFuelTankLevel[vehicleid];
+        }
+    }
+    return INVALID_VEHICLE_ID;
+   
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Gets vehicle fuel consumption rate.</summary>
+ * <param name="vehicleid">Vehicle.</param>
+ * <param name="unit">Unit we get consumption rate in.</param>
+ * <seealso name="Vehicle_SetFuelTankCapacity" />
+ * <seealso name="Vehicle_SetFuelConsumption" />
+ * <seealso name="Vehicle_GetFuelTankCapacity" />
+ * <seealso name="Vehicle_GetFuelLevel" />
+ * <seealso name="Vehicle_SetFuelLevel" />
+ * <seealso name="Vehicle_GetDistanceCanPass" />
+ * <seealso name="Vehicle_GetDistanceFromLastRefill" />
+ * <returns>INVALID_VEHICLE_ID if vehicle is invalid, otherwise consumption rate.</returns> 
+ */
+stock Float: Vehicle_GetFuelConsumption(vehicleid, VEHICLE_UNIT: unit)
+{
+    if(IsValidVehicle(vehicleid))
+    {
+        if(unit == VEHICLE_UNIT_IMPERIAL)
+        {
+            //galons
+            // if we just convert it then we would get consumption rate per 100 kilometres..
+            // Fuel consumption rate (gal/km) = 30 l/km * 0.264172 = 7.92516 gal/km
+            // Fuel consumption rate (gal/mi) = 7.92516 gal/km / 0.621371 = 12.74598 gal/mi
+
+            return (Vehicle_gsFuelConsumption[vehicleid] * 0.26417205) / 0.621371; 
+        }
+        else if(unit == VEHICLE_UNIT_METRIC)
+        {
+            return Vehicle_gsFuelConsumption[vehicleid];
+        }
+    }
+    return INVALID_VEHICLE_ID;
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Gets distance vehicle can pass with its fuel level.</summary>
+ * <param name="vehicleid">Vehicle.</param>
+ * <param name="unit">Unit we get distance in.</param>
+ * <seealso name="Vehicle_SetFuelTankCapacity" />
+ * <seealso name="Vehicle_SetFuelConsumption" />
+ * <seealso name="Vehicle_GetFuelTankCapacity" />
+ * <seealso name="Vehicle_GetFuelLevel" />
+ * <seealso name="Vehicle_SetFuelLevel" />
+ * <seealso name="Vehicle_GetFuelConsumption" />
+ * <seealso name="Vehicle_GetDistanceFromLastRefill" />
+ * <returns>INVALID_VEHICLE_ID if vehicle is invalid, distance otherwise.</returns> 
+ */
+stock Float: Vehicle_GetDistanceCanPass(vehicleid, VEHICLE_UNIT: unit)
+{
+    if(IsValidVehicle(vehicleid))
+    {
+        if(unit == VEHICLE_UNIT_IMPERIAL)
+        {
+            //miles
+            return Vehicle_gsKilometersToEmpty[vehicleid] * 0.621371;
+        }
+        else if(unit == VEHICLE_UNIT_METRIC)
+        {
+            return Vehicle_gsKilometersToEmpty[vehicleid];
+        }
+    }
+    return INVALID_VEHICLE_ID;
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Gets distance from vehicle last refill.</summary>
+ * <param name="vehicleid">Vehicle.</param>
+ * <param name="unit">Unit we get distance in.</param>
+ * <seealso name="Vehicle_SetFuelTankCapacity" />
+ * <seealso name="Vehicle_SetFuelConsumption" />
+ * <seealso name="Vehicle_GetFuelTankCapacity" />
+ * <seealso name="Vehicle_GetFuelLevel" />
+ * <seealso name="Vehicle_SetFuelLevel" />
+ * <seealso name="Vehicle_GetFuelConsumption" />
+ * <seealso name="Vehicle_GetDistanceCanPass" />
+ * <returns>INVALID_VEHICLE_ID if vehicle is invalid, distance otherwise.</returns> 
+ */
+stock Float: Vehicle_GetDistanceFromLastRefill(vehicleid, VEHICLE_UNIT: unit)
+{
+    if(IsValidVehicle(vehicleid))
+    {
+        if(unit == VEHICLE_UNIT_IMPERIAL)
+        {
+            //miles
+            return Vehicle_gsDistanceFromLastRefill[vehicleid] * 0.621371;
+        }
+        else if(unit == VEHICLE_UNIT_METRIC)
+        {
+            return Vehicle_gsDistanceFromLastRefill[vehicleid];
+        }
+    }
+    return INVALID_VEHICLE_ID;
+}
+// if capacity -1 then infinite amount of fuel
+// timer on mileage
+
+// --
+// Mileage
+// --
 
 static
     Float: Vehicle_gsDistanceTravelledTotalMiles[MAX_VEHICLES],
@@ -3279,10 +3585,30 @@ hook native SetVehiclePos(vehicleid, Float:x, Float:y, Float:z)
 
 stock timer __Vehicle_DistanceTravelled[1000](vehicleid)
 {
-    if(GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]) >= 0.005)
+    new Float: distance = GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]);
+    if(distance >= 0.005)
     {
-        Vehicle_gsDistanceTravelledTotalKilometres[vehicleid] += (GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]) / 1000);
-        Vehicle_gsDistanceTravelledTotalMiles[vehicleid] += ((GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]) / 1000) * 0.621371);
+        Vehicle_gsDistanceTravelledTotalKilometres[vehicleid] += (distance / 1000);
+        Vehicle_gsDistanceTravelledTotalMiles[vehicleid] += ((distance / 1000) * 0.621371);
+
+        if(Vehicle_GetEngineState(vehicleid) == VEHICLE_PARAMS_ON)
+        {
+            if(Vehicle_gsFuelTankCapacity[vehicleid] != -1)
+            {
+                if(Vehicle_gsFuelTankLevel[vehicleid] > 0)
+                {
+                    Vehicle_gsFuelTankLevel[vehicleid] -= (Vehicle_gsFuelConsumption[vehicleid] / 100) * (distance/1000);
+                    Vehicle_gsKilometersToEmpty[vehicleid] -= distance / 1000;
+                    Vehicle_gsDistanceFromLastRefill[vehicleid] += distance / 1000;
+                }
+                else if(Vehicle_gsFuelTankLevel[vehicleid] <= 0)
+                {
+                    Vehicle_SetEngineState(vehicleid, VEHICLE_PARAMS_OFF);
+                    Vehicle_gsFuelTankLevel[vehicleid] = 0;
+                    Vehicle_gsKilometersToEmpty[vehicleid] = 0;
+                }
+            }
+        }
 
         CallLocalFunction("OnVehicleDrivenDistanceUpdate", "i", vehicleid);
         GetVehiclePos(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]);
@@ -4063,6 +4389,12 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
     Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_CLOSED;
     Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_CLOSED;
 
+    Vehicle_gsFuelTankCapacity[idx] = -1;
+    Vehicle_gsFuelTankLevel[idx] = -1;
+    Vehicle_gsFuelConsumption[idx] = 0;
+    Vehicle_gsKilometersToEmpty[idx] = 0;
+    Vehicle_gsDistanceFromLastRefill[idx] = 0;
+
     Vehicle_gsHealth[idx] = 1000;
     Vehicle_gsDistanceTimer[idx] = repeat __Vehicle_DistanceTravelled(idx);
     
@@ -4120,6 +4452,12 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
     Vehicle_gsPositionX[idx] = x;
     Vehicle_gsPositionY[idx] = y;
     Vehicle_gsPositionZ[idx] = z;
+
+    Vehicle_gsFuelTankCapacity[idx] = -1;
+    Vehicle_gsFuelTankLevel[idx] = -1;
+    Vehicle_gsFuelConsumption[idx] = 0;
+    Vehicle_gsKilometersToEmpty[idx] = 0;
+    Vehicle_gsDistanceFromLastRefill[idx] = 0;
 
     Vehicle_gsHealthTrackTimer[idx] = repeat __Vehicle_HealthTrack(idx);
     SetVehicleNumberPlate(idx, plate);
