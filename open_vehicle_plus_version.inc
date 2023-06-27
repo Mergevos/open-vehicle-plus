@@ -3,5 +3,5 @@
 // To update the version number for a new release, run "sampctl package release"
 
 #define OPEN_VEHICLE_PLUS_VERSION_MAJOR (1)
-#define OPEN_VEHICLE_PLUS_VERSION_MINOR (3)
-#define OPEN_VEHICLE_PLUS_VERSION_PATCH (2)
+#define OPEN_VEHICLE_PLUS_VERSION_MINOR (4)
+#define OPEN_VEHICLE_PLUS_VERSION_PATCH (0)
