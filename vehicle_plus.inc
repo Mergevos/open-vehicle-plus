@@ -55,7 +55,6 @@ forward bool: IsPlayerInsidePaySpray(playerid);
 
 native _Framework_CallLocalFunction(const function[], const format[], {VehicleGroup, Float,_}:...) = CallLocalFunction;
 
-
 // -- 
 // Script-Side
 // --
@@ -3352,7 +3351,7 @@ stock bool: Vehicle_SetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit, Float: am
  */
 stock bool: Vehicle_SetFuelLevel(vehicleid, VEHICLE_UNIT: unit, Float: amount)
 {
-    if(!IsValidVehicle(vehicleid) || ammount >= Vehicle_GetFuelTankCapacity(vehicleid, unit))
+    if(!IsValidVehicle(vehicleid) || amount >= Vehicle_GetFuelTankCapacity(vehicleid, unit))
     {
         return false;
     }
@@ -3417,6 +3416,7 @@ stock bool: Vehicle_SetFuelConsumption(vehicleid, VEHICLE_UNIT: unit, Float: amo
  * <seealso name="Vehicle_GetDistanceFromLastRefill" />
  * <returns>INVALID_VEHICLE_ID if vehicle is invalid, tank capacity otherwise.</returns> 
  */
+forward Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit);
 stock Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit)
 {
     if(IsValidVehicle(vehicleid))
@@ -3974,7 +3974,6 @@ forward OnTrailerUnhook(vehicleid, trailerid);
  * <param name="trailerid"> Trailer to set.</param>
  * <returns> 0 if function fails, eg. trailerid is equal to vehicleid or vehicle and trailer aren't created, else 1.</param>
 */
-
 stock bool: Vehicle_AttachTrailer(vehicleid, trailerid)
 {
     if(!IsValidVehicle(vehicleid) || !IsValidVehicle(trailerid) || trailerid == vehicleid)
