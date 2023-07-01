@@ -3336,6 +3336,36 @@ stock bool: Vehicle_SetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit, Float: am
 
 /**
  * <library>vehicle_plus</library>
+ * <summary>Gets vehicle fuel tank capacity.</summary>
+ * <param name="vehicleid">Vehicle.</param>
+ * <param name="unit">Unit we get capacity in.</param>
+ * <seealso name="Vehicle_SetFuelTankCapacity" />
+ * <seealso name="Vehicle_SetFuelConsumption" />
+ * <seealso name="Vehicle_GetFuelTankCapacity" />
+ * <seealso name="Vehicle_GetFuelLevel" />
+ * <seealso name="Vehicle_SetFuelLevel" />
+ * <seealso name="Vehicle_GetDistanceCanPass" />
+ * <seealso name="Vehicle_GetDistanceFromLastRefill" />
+ * <returns>INVALID_VEHICLE_ID if vehicle is invalid, tank capacity otherwise.</returns> 
+ */
+stock Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit)
+{
+    if(IsValidVehicle(vehicleid))
+    {
+        if(unit == VEHICLE_UNIT_IMPERIAL)
+        {
+            return Vehicle_gsFuelTankCapacity[vehicleid] * 0.26417205; // now we convert to gallons since getter
+        }
+        else if(unit == VEHICLE_UNIT_METRIC)
+        {
+            return Vehicle_gsFuelTankCapacity[vehicleid];
+        }   
+    }
+    return INVALID_VEHICLE_ID;
+}
+
+/**
+ * <library>vehicle_plus</library>
  * <summary>Sets vehicle fuel level.</summary>
  * <param name="vehicleid">Vehicle or group of vehicles.</param>
  * <param name="unit">Unit we set fuel in.</param>
@@ -3400,37 +3430,6 @@ stock bool: Vehicle_SetFuelConsumption(vehicleid, VEHICLE_UNIT: unit, Float: amo
         Vehicle_gsFuelConsumption[vehicleid] = amount;
     } 
     return true;
-}
-
-/**
- * <library>vehicle_plus</library>
- * <summary>Gets vehicle fuel tank capacity.</summary>
- * <param name="vehicleid">Vehicle.</param>
- * <param name="unit">Unit we get capacity in.</param>
- * <seealso name="Vehicle_SetFuelTankCapacity" />
- * <seealso name="Vehicle_SetFuelConsumption" />
- * <seealso name="Vehicle_GetFuelTankCapacity" />
- * <seealso name="Vehicle_GetFuelLevel" />
- * <seealso name="Vehicle_SetFuelLevel" />
- * <seealso name="Vehicle_GetDistanceCanPass" />
- * <seealso name="Vehicle_GetDistanceFromLastRefill" />
- * <returns>INVALID_VEHICLE_ID if vehicle is invalid, tank capacity otherwise.</returns> 
- */
-forward Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit);
-stock Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit)
-{
-    if(IsValidVehicle(vehicleid))
-    {
-        if(unit == VEHICLE_UNIT_IMPERIAL)
-        {
-            return Vehicle_gsFuelTankCapacity[vehicleid] * 0.26417205; // now we convert to gallons since getter
-        }
-        else if(unit == VEHICLE_UNIT_METRIC)
-        {
-            return Vehicle_gsFuelTankCapacity[vehicleid];
-        }   
-    }
-    return INVALID_VEHICLE_ID;
 }
 
 /**
