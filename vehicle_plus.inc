@@ -1466,7 +1466,7 @@ stock bool: Vehicle_SetObjectiveState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS
 {
     if(tag==tagof(_:)) 
     {        
-        if(!IsValidVehicle(vehicleid))
+        if(!IsValidVehicle(id))
         {
             return false;
         }
@@ -3381,7 +3381,7 @@ stock Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit)
  */
 stock bool: Vehicle_SetFuelLevel(vehicleid, VEHICLE_UNIT: unit, Float: amount)
 {
-    if(!IsValidVehicle(vehicleid) || amount >= Vehicle_GetFuelTankCapacity(vehicleid, unit))
+    if(!IsValidVehicle(vehicleid) || amount > Vehicle_GetFuelTankCapacity(vehicleid, unit))
     {
         return false;
     }
