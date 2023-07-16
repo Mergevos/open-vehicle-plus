@@ -4486,6 +4486,14 @@ stock bool: Vehicle_Destroy(idx)
     Vehicle_gsPositionY[idx] = 0.0;
     Vehicle_gsPositionZ[idx] = 0.0;
 
+    Vehicle_gsParams[idx][PARAMS_ENGINE] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_LIGHTS] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_BONNET] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_BOOT] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_ALARM] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_DOORS] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_OBJECTIVE] = VEHICLE_PARAMS_OFF;
+
     Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_CLOSED;
     Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_CLOSED;
     Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_CLOSED;
