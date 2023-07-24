@@ -1466,7 +1466,7 @@ stock bool: Vehicle_SetObjectiveState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS
 {
     if(tag==tagof(_:)) 
     {        
-        if(!IsValidVehicle(vehicleid))
+        if(!IsValidVehicle(id))
         {
             return false;
         }
@@ -3381,7 +3381,7 @@ stock Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit)
  */
 stock bool: Vehicle_SetFuelLevel(vehicleid, VEHICLE_UNIT: unit, Float: amount)
 {
-    if(!IsValidVehicle(vehicleid) || amount >= Vehicle_GetFuelTankCapacity(vehicleid, unit))
+    if(!IsValidVehicle(vehicleid) || amount > Vehicle_GetFuelTankCapacity(vehicleid, unit))
     {
         return false;
     }
@@ -4485,6 +4485,14 @@ stock bool: Vehicle_Destroy(idx)
     Vehicle_gsPositionX[idx] = 0.0;
     Vehicle_gsPositionY[idx] = 0.0;
     Vehicle_gsPositionZ[idx] = 0.0;
+
+    Vehicle_gsParams[idx][PARAMS_ENGINE] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_LIGHTS] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_BONNET] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_BOOT] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_ALARM] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_DOORS] = VEHICLE_PARAMS_OFF;
+    Vehicle_gsParams[idx][PARAMS_OBJECTIVE] = VEHICLE_PARAMS_OFF;
 
     Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_CLOSED;
     Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_CLOSED;
