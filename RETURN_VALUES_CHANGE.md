@@ -1,7 +1,7 @@
 ## Important change in return values within some functions and planned things to be done for 2.0.0
 
 Guess who's back.
-Long time no see with this repository due to my personal obligations.
+Long time no see with this repository due to my personal obligations. 
 It's been 3 months since this library got its last update and I decided it's time to refresh it with some new update or couple of them?
 
 ### Error handling
