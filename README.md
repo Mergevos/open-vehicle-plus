@@ -4,7 +4,7 @@
 
 ## Note
 
-Library is currently in beta phase of 2.0.0 release. More on [RETURN_VALUE_CHANGE.md](https://github.com/Mergevos/open-vehicle-plus/RETURN_VALUE_CHANGE.md)
+Library is currently in beta phase of 2.0.0 release. More on [RETURN_VALUE_CHANGE.md](https://github.com/Mergevos/open-vehicle-plus/blob/master/RETURN_VALUES_CHANGE.md)
 
 ## Installation
 
