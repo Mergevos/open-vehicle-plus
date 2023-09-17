@@ -97,6 +97,10 @@ For sure one of the titles will be this. Electric vehicles will be implemented. 
 Some functions has its extended brothers, like `Vehicle_GetTyreCondition` has `Vehicle_GetTyreConditionEx`. Same but the latter one gets all tyres' status passed by reference.
 Until main release, I hope I will have extended all functions.
 
+##### Logging
+
+Logging is in the game, with a function that can turn off or on logging.
+
 ##### Errors
 
 As mentioned above, main subject of this topic has been return values. Yes, I hope all functions which need to be, will be ported to this neat error handling.
