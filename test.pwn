@@ -76,7 +76,11 @@ CMD:testtrailerattach(playerid, params[])
     {
         return SendClientMessage(playerid, -1, "testtrailerattach [vehid]");
     }
-    Vehicle_AttachTrailer(GetPlayerVehicleID(playerid), vehid);
+    new Error: e = Vehicle_AttachTrailer(GetPlayerVehicleID(playerid), vehid);
+    if(IsError(e))
+    {
+        Handled();
+    }
     SendClientMessage(playerid, -1, "Trailer %d has been attached to vehicle %d", Vehicle_GetTrailer(GetPlayerVehicleID(playerid)), Vehicle_GetTrailerCab(vehid));
 
     return 1;

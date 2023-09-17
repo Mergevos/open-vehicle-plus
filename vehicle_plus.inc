@@ -12,6 +12,9 @@
 
 #include <streamer>
 
+#include <logger>
+#include <errors>
+
 /*
     Since I don't know how to fix the tag mismatch warning,
     where it happens on every line which performs tag checking,
@@ -27,16 +30,6 @@
 
 #pragma warning push
 #pragma warning disable 213
-
-/**
- * <library>omp_vehicle</library>
- * <summary>Check if a vehicle ID is valid.</summary>
- * <param name="vehicleid">The ID of the vehicle to check</param>
- * <seealso name="CreateVehicle" />
- * <seealso name="DestroyVehicle" />
- * <returns>true or false.</returns>
- */
-forward bool: IsPlayerInsidePaySpray(playerid);
 
 #if !defined RELEASED
 	#define RELEASED(%0)			(((newkeys & (%0)) != (%0)) && ((oldkeys & (%0)) == (%0)))
@@ -111,6 +104,165 @@ static const Float:Vehicle_gscPayNSprayLocations[10][3] = {
     {2393.74, 1493.01, 10.52} 	// LV Unused (Pyramid)
 };
 
+
+//--
+// Header
+// --
+
+/**
+ * <library>omp_vehicle</library>
+ * <summary>Check if a vehicle ID is valid.</summary>
+ * <param name="vehicleid">The ID of the vehicle to check</param>
+ * <seealso name="CreateVehicle" />
+ * <seealso name="DestroyVehicle" />
+ * <returns>true or false.</returns>
+ */
+forward bool: IsPlayerInsidePaySpray(playerid);
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Gets vehicle fuel tank capacity.</summary>
+ * <param name="vehicleid">Vehicle.</param>
+ * <param name="unit">Unit we get capacity in.</param>
+ * <seealso name="Vehicle_SetFuelTankCapacity" />
+ * <seealso name="Vehicle_SetFuelConsumption" />
+ * <seealso name="Vehicle_GetFuelTankCapacity" />
+ * <seealso name="Vehicle_GetFuelLevel" />
+ * <seealso name="Vehicle_SetFuelLevel" />
+ * <seealso name="Vehicle_GetDistanceCanPass" />
+ * <seealso name="Vehicle_GetDistanceFromLastRefill" />
+ * <returns>INVALID_VEHICLE_ID if vehicle is invalid, tank capacity otherwise.</returns> 
+ */
+forward Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit);
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Called when vehicle has been created.</summary>
+ * <param name="vehicleid">The ID of created vehicle.</param>
+ * <seealso name="Vehicle_Create" />
+ * <seealso name="Vehicle_CreateEx" />
+ * <seealso name="Vehicle_Destroy" />
+ * <seealso name="OnVehicleDestroy" />
+ * <returns>Doesn't return any specific value.</returns>
+ */
+forward OnVehicleFirstSpawn(vehicleid);
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Called when vehicle has been destroyed.</summary>
+ * <param name="vehicleid">The ID of destroyed vehicle.</param>
+ * <seealso name="Vehicle_Destroy" />
+ * <seealso name="Vehicle_Create" />
+ * <seealso name="Vehicle_CreateEx" />
+ * <seealso name="OnVehicleFirstSpawn" />
+ * <returns>Doesn't return any specific value.</returns>
+ */
+forward OnVehicleDestroy(vehicleid);
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Called when group has been initialized.</summary>
+ * <param name="VehicleGroup: groupid">The ID of initialized group.</param>
+ * <seealso name="Vehicle_GetGroupByName" />
+ * <seealso name="Vehicle_GroupHas" />
+ * <seealso name="Vehicle_GroupInit" />
+ * <seealso name="Vehicle_IsValidGroup" />
+ * <seealso name="Vehicle_AddToGroup" />
+ * <seealso name="Vehicle_RemoveFromGroup" />
+ * <seealso name="Vehicle_IsEmptyGroup" />
+ * <seealso name="Vehicle_GroupDestroy" />
+ * <seealso name="Vehicle_ClearGroup" />
+ * <seealso name="OnGroupAdd" />
+ * <seealso name="OnGroupRemoveMember" />
+ * <seealso name="OnGroupClear" />
+ * <returns>Doesn't return any specific value.</returns>
+ */
+forward OnGroupInitialize(VehicleGroup: groupid);
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Called when group has a member added.</summary>
+ * <param name="VehicleGroup: groupid">The ID of group that has member added.</param>
+ * <param name="vehicleid">The ID vehicle that has been added.</param>
+ * <seealso name="Vehicle_GetGroupByName" />
+ * <seealso name="Vehicle_GroupHas" />
+ * <seealso name="Vehicle_GroupInit" />
+ * <seealso name="Vehicle_IsValidGroup" />
+ * <seealso name="Vehicle_AddToGroup" />
+ * <seealso name="Vehicle_RemoveFromGroup" />
+ * <seealso name="Vehicle_IsEmptyGroup" />
+ * <seealso name="Vehicle_GroupDestroy" />
+ * <seealso name="Vehicle_ClearGroup" />
+ * <seealso name="OnGroupInitialize" />
+ * <seealso name="OnGroupRemoveMember" />
+ * <seealso name="OnGroupClear" />
+ * <returns>Doesn't return any specific value.</returns>
+ */
+forward OnGroupAdd(VehicleGroup: groupid, vehicleid);
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Called when group has a member removed.</summary>
+ * <param name="VehicleGroup: groupid">The ID of group that has member removed.</param>
+ * <param name="vehicleid">The ID vehicle that has been removed.</param>
+ * <seealso name="Vehicle_GetGroupByName" />
+ * <seealso name="Vehicle_GroupHas" />
+ * <seealso name="Vehicle_GroupInit" />
+ * <seealso name="Vehicle_IsValidGroup" />
+ * <seealso name="Vehicle_AddToGroup" />
+ * <seealso name="Vehicle_RemoveFromGroup" />
+ * <seealso name="Vehicle_IsEmptyGroup" />
+ * <seealso name="Vehicle_GroupDestroy" />
+ * <seealso name="Vehicle_ClearGroup" />
+ * <seealso name="OnGroupInitialize" />
+ * <seealso name="OnGroupAdd" />
+ * <seealso name="OnGroupClear" />
+ * <returns>Doesn't return any specific value.</returns>
+ */
+forward OnGroupRemoveMember(VehicleGroup: groupid, vehicleid);
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Called when group has been cleared.</summary>
+ * <param name="VehicleGroup: groupid">The ID of group that has been cleared.</param>
+ * <seealso name="Vehicle_GetGroupByName" />
+ * <seealso name="Vehicle_GroupHas" />
+ * <seealso name="Vehicle_GroupInit" />
+ * <seealso name="Vehicle_IsValidGroup" />
+ * <seealso name="Vehicle_AddToGroup" />
+ * <seealso name="Vehicle_RemoveFromGroup" />
+ * <seealso name="Vehicle_IsEmptyGroup" />
+ * <seealso name="Vehicle_GroupDestroy" />
+ * <seealso name="Vehicle_ClearGroup" />
+ * <seealso name="OnGroupInitialize" />
+ * <seealso name="OnGroupRemoveMember" />
+ * <seealso name="OnGroupAdd" />
+ * <returns>Doesn't return any specific value.</returns>
+ */
+forward OnGroupClear(VehicleGroup: groupid);
+
+forward Float: Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT: unit);
+
+/**
+ * <summary>Called when vehicle's health change.</summary>
+ * <param name="vehicleid">Vehicle which health modified.</param>
+ * <param name="oldhealth">Old health.</param>
+ * <param name="newhealth">New health.</param>
+ * <seealso name="Vehicle_SetHealth" />
+ * <seealso name="Vehicle_GetHealth" />
+ * <seealso name="Vehicle_Repair" />
+ * <remarks>Called every 500 milliseconds.</remarks>
+ */
+forward OnVehicleHealthChange(vehicleid, Float: oldhealth, Float:newhealth);
+
+forward OnVehicleDrivenDistanceUpdate(vehicleid);
+
+forward OnTrailerHook(vehicleid, trailerid);
+forward OnTrailerUnhook(vehicleid, trailerid);
+
+forward OnVehiclePaintjobChange(vehicleid, paintjobid);
+
+
 // --
 // Vehicle Info
 // --
@@ -121,7 +273,8 @@ enum DRIVE_TYPE:__DRIVE_TYPE
     DRIVE_INVALID = 0,
     DRIVE_4WD = 1,
     DRIVE_FWD = 2,
-    DRIVE_RWD
+    DRIVE_RWD,
+    DRIVE_MANUAL
 }
 static stock DRIVE_TYPE:_@DRIVE_TYPE() { return __DRIVE_TYPE; }
 
@@ -227,7 +380,7 @@ static const Vehicle_Info[212][e_VEHICLE_INFO] =
     {2, 1850.0, DRIVE_4WD, ENGINE_DIESEL, 3},
     {4, 1500.0, DRIVE_FWD, ENGINE_PETROL, 3},
     {2, 1400.0, DRIVE_4WD, ENGINE_PETROL, 3},
-    {0, 100.0, DRIVE_RWD, ENGINE_PETROL, 0},
+    {0, 100.0, DRIVE_MANUAL, ENGINE_INVALID, 0},
     {4, 1900.0, DRIVE_RWD, ENGINE_PETROL, 3},
     {3, 1900.0, DRIVE_RWD, ENGINE_PETROL, 3},
     {0, 5000.0, DRIVE_RWD, ENGINE_PETROL, 0},
@@ -255,8 +408,8 @@ static const Vehicle_Info[212][e_VEHICLE_INFO] =
     {2, 1400.0, DRIVE_RWD, ENGINE_PETROL, 3},
     {4, 2200.0, DRIVE_RWD, ENGINE_PETROL, 3},
     {3, 3500.0, DRIVE_RWD, ENGINE_DIESEL, 3},
-    {0, 100.0, DRIVE_RWD, ENGINE_PETROL, 0}, 
-    {0, 100.0, DRIVE_RWD, ENGINE_PETROL, 0}, 
+    {0, 100.0, DRIVE_MANUAL, ENGINE_INVALID, 0}, 
+    {0, 100.0, DRIVE_MANUAL, ENGINE_INVALID, 0}, 
     {2, 10000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
     {1, 5000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
     {1, 5000.0, DRIVE_4WD, ENGINE_PETROL, 0}, 
@@ -386,116 +539,9 @@ static enum PARAMS
 static
     VEHICLE_PARAMS: Vehicle_gsParams[MAX_VEHICLES][PARAMS];
 
-/**
- * <library>vehicle_plus</library>
- * <summary>Called when vehicle has been created.</summary>
- * <param name="vehicleid">The ID of created vehicle.</param>
- * <seealso name="Vehicle_Create" />
- * <seealso name="Vehicle_CreateEx" />
- * <seealso name="Vehicle_Destroy" />
- * <seealso name="OnVehicleDestroy" />
- * <returns>Doesn't return any specific value.</returns>
- */
-forward OnVehicleFirstSpawn(vehicleid);
-
-/**
- * <library>vehicle_plus</library>
- * <summary>Called when vehicle has been destroyed.</summary>
- * <param name="vehicleid">The ID of destroyed vehicle.</param>
- * <seealso name="Vehicle_Destroy" />
- * <seealso name="Vehicle_Create" />
- * <seealso name="Vehicle_CreateEx" />
- * <seealso name="OnVehicleFirstSpawn" />
- * <returns>Doesn't return any specific value.</returns>
- */
-forward OnVehicleDestroy(vehicleid);
-
 // --
 // Groups 
 // --
-
-/**
- * <library>vehicle_plus</library>
- * <summary>Called when group has been initialized.</summary>
- * <param name="VehicleGroup: groupid">The ID of initialized group.</param>
- * <seealso name="Vehicle_GetGroupByName" />
- * <seealso name="Vehicle_GroupHas" />
- * <seealso name="Vehicle_GroupInit" />
- * <seealso name="Vehicle_IsValidGroup" />
- * <seealso name="Vehicle_AddToGroup" />
- * <seealso name="Vehicle_RemoveFromGroup" />
- * <seealso name="Vehicle_IsEmptyGroup" />
- * <seealso name="Vehicle_GroupDestroy" />
- * <seealso name="Vehicle_ClearGroup" />
- * <seealso name="OnGroupAdd" />
- * <seealso name="OnGroupRemoveMember" />
- * <seealso name="OnGroupClear" />
- * <returns>Doesn't return any specific value.</returns>
- */
-forward OnGroupInitialize(VehicleGroup: groupid);
-
-/**
- * <library>vehicle_plus</library>
- * <summary>Called when group has a member added.</summary>
- * <param name="VehicleGroup: groupid">The ID of group that has member added.</param>
- * <param name="vehicleid">The ID vehicle that has been added.</param>
- * <seealso name="Vehicle_GetGroupByName" />
- * <seealso name="Vehicle_GroupHas" />
- * <seealso name="Vehicle_GroupInit" />
- * <seealso name="Vehicle_IsValidGroup" />
- * <seealso name="Vehicle_AddToGroup" />
- * <seealso name="Vehicle_RemoveFromGroup" />
- * <seealso name="Vehicle_IsEmptyGroup" />
- * <seealso name="Vehicle_GroupDestroy" />
- * <seealso name="Vehicle_ClearGroup" />
- * <seealso name="OnGroupInitialize" />
- * <seealso name="OnGroupRemoveMember" />
- * <seealso name="OnGroupClear" />
- * <returns>Doesn't return any specific value.</returns>
- */
-forward OnGroupAdd(VehicleGroup: groupid, vehicleid);
-
-/**
- * <library>vehicle_plus</library>
- * <summary>Called when group has a member removed.</summary>
- * <param name="VehicleGroup: groupid">The ID of group that has member removed.</param>
- * <param name="vehicleid">The ID vehicle that has been removed.</param>
- * <seealso name="Vehicle_GetGroupByName" />
- * <seealso name="Vehicle_GroupHas" />
- * <seealso name="Vehicle_GroupInit" />
- * <seealso name="Vehicle_IsValidGroup" />
- * <seealso name="Vehicle_AddToGroup" />
- * <seealso name="Vehicle_RemoveFromGroup" />
- * <seealso name="Vehicle_IsEmptyGroup" />
- * <seealso name="Vehicle_GroupDestroy" />
- * <seealso name="Vehicle_ClearGroup" />
- * <seealso name="OnGroupInitialize" />
- * <seealso name="OnGroupAdd" />
- * <seealso name="OnGroupClear" />
- * <returns>Doesn't return any specific value.</returns>
- */
-forward OnGroupRemoveMember(VehicleGroup: groupid, vehicleid);
-
-/**
- * <library>vehicle_plus</library>
- * <summary>Called when group has been cleared.</summary>
- * <param name="VehicleGroup: groupid">The ID of group that has been cleared.</param>
- * <seealso name="Vehicle_GetGroupByName" />
- * <seealso name="Vehicle_GroupHas" />
- * <seealso name="Vehicle_GroupInit" />
- * <seealso name="Vehicle_IsValidGroup" />
- * <seealso name="Vehicle_AddToGroup" />
- * <seealso name="Vehicle_RemoveFromGroup" />
- * <seealso name="Vehicle_IsEmptyGroup" />
- * <seealso name="Vehicle_GroupDestroy" />
- * <seealso name="Vehicle_ClearGroup" />
- * <seealso name="OnGroupInitialize" />
- * <seealso name="OnGroupRemoveMember" />
- * <seealso name="OnGroupAdd" />
- * <returns>Doesn't return any specific value.</returns>
- */
-forward OnGroupClear(VehicleGroup: groupid);
-
 
 #define INVALID_VEHICLE_GROUP_ID 0
 
@@ -651,17 +697,25 @@ stock bool: Vehicle_IsValidGroup(VehicleGroup: groupid)
  * <seealso name="OnGroupRemoveMember" />
  * <seealso name="OnGroupAdd" />
  * <seealso name="OnGroupClear" />
- * <returns>Returns INVALID_VEHICLE_GROUP_ID if vehicle or group isn't valid or group already contains the vehicle.</returns>
+ * <returns>Returns error code 1 if vehicle or group isn't valid or 2 if vehicle specified is invalid or 3 if group already contains the vehicle, return 0 on success.</returns>
 */
-stock Vehicle_AddToGroup(VehicleGroup: groupid, vehicleid)
+stock Error: Vehicle_AddToGroup(VehicleGroup: groupid, vehicleid)
 {
-    if(!Vehicle_IsValidGroup(groupid) || !IsValidVehicle(vehicleid) || Iter_Contains(Vehicle_gsGroups[groupid], vehicleid))
+    if(!Vehicle_IsValidGroup(groupid))
     {
-        return INVALID_VEHICLE_GROUP_ID;
+        return Error(1, "Invalid group.");
+    }
+    else if(!IsValidVehicle(vehicleid))
+    {
+        return Error(2, "Invalid vehicle.");
+    }
+    else if(Iter_Contains(Vehicle_gsGroups[groupid], vehicleid))
+    {
+        return Ok(3); // vehicle already has been added
     }
     Iter_Add(Vehicle_gsGroups[groupid], vehicleid);
     _Framework_CallLocalFunction("OnGroupAddMember", "ii", groupid, vehicleid);
-    return true;
+    return Ok();
 }
 
 /**
@@ -681,17 +735,21 @@ stock Vehicle_AddToGroup(VehicleGroup: groupid, vehicleid)
  * <seealso name="OnGroupRemoveMember" />
  * <seealso name="OnGroupAdd" />
  * <seealso name="OnGroupClear" />
- * <returns>False if vehicle or group isn't valid, true otherwise</returns>
+ * <returns>1 if group isn't valid, 2 if vehicle has already been added, 0 on success.</returns>
 */
-stock bool: Vehicle_RemoveFromGroup(VehicleGroup: groupid, vehicleid)
+stock Error: Vehicle_RemoveFromGroup(VehicleGroup: groupid, vehicleid)
 {
-    if(!Vehicle_IsValidGroup(groupid) || !Iter_Contains(Vehicle_gsGroups[groupid], vehicleid))
+    if(!Vehicle_IsValidGroup(groupid))
     {
-        return false;
+        return Error(1, "Invalid group.");
+    }
+    else if(!Iter_Contains(Vehicle_gsGroups[groupid], vehicleid))
+    {
+        return Ok(2); // vehicle already has been added
     }
     Iter_Remove(Vehicle_gsGroups[groupid], vehicleid);
     _Framework_CallLocalFunction("OnGroupRemoveMember", "ii", groupid, vehicleid);
-    return true;
+    return Ok();
 }
 
 /**
@@ -710,20 +768,24 @@ stock bool: Vehicle_RemoveFromGroup(VehicleGroup: groupid, vehicleid)
  * <seealso name="OnGroupRemoveMember" />
  * <seealso name="OnGroupAdd" />
  * <seealso name="OnGroupClear" />
- * <returns>False if vehicle or group isn't valid, true otherwise</returns>
+ * <returns>Error code 1 if group isn't valid, 2 if iterator was already empty, 0 on success.</returns>
 */
-stock bool: Vehicle_ClearGroup(VehicleGroup: groupid)
+stock Error: Vehicle_ClearGroup(VehicleGroup: groupid)
 {
-    if(!Vehicle_IsValidGroup(groupid) || Iter_IsEmpty(Vehicle_gsGroups[groupid]))
+    if(!Vehicle_IsValidGroup(groupid))
     {
-        return false;
+        return Error(1, "Invalid group.")
+    } 
+    else if(Iter_IsEmpty(Vehicle_gsGroups[groupid]))
+    {
+        return Ok(2); // works but iterator was empty already
     }
     foreach(new i : Vehicle_gsGroups[groupid])
     {
         Iter_SafeRemove(Vehicle_gsGroups[groupid], i, i);
     }
     _Framework_CallLocalFunction("OnGroupClear", "i", groupid);
-    return true;
+    return Ok();
 }
 
 /**
@@ -750,11 +812,7 @@ stock bool: Vehicle_IsEmptyGroup(VehicleGroup: groupid)
     {
         return false;
     }
-    else if(Iter_IsEmpty(Vehicle_gsGroups[groupid]))
-    {
-        return true;
-    }
-    return false;
+    return Iter_IsEmpty(Vehicle_gsGroups[groupid]);
 }
 
 /**
@@ -1238,7 +1296,6 @@ stock bool: Vehicle_CancelBlinking(VEHICLE_FRAMEWORK_TAGS: id, tag=(tagof(id)))
 // -- 
 // Engine 
 // --
-forward Float: Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT: unit);
 /**
  * <library>vehicle_plus</library>
  * <summary> Gets the engine state.</summary>
@@ -1294,13 +1351,17 @@ stock bool: Vehicle_SetEngineState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: e
  * <seealso name="Vehicle_GetEngineType" />
  * <returns> False if vehicle is invalid, or doesn't have enough fuel, true otherwise.</returns>
 */
-stock Vehicle_TryTurningEngine(VEHICLE_FRAMEWORK_TAGS: id, tag=tagof(id))
+stock Error: Vehicle_TryTurningEngine(VEHICLE_FRAMEWORK_TAGS: id, tag=tagof(id))
 {
     if(tag==tagof(_:))
     {
-        if(!IsValidVehicle(id) || Vehicle_GetFuelLevel(id, VEHICLE_UNIT_METRIC) == 0)
+        if(!IsValidVehicle(id))
         {
-            return false;
+            return Error(1, "Invalid vehicle.");
+        }
+        else if(Vehicle_GetFuelLevel(id, VEHICLE_UNIT_METRIC) == 0)
+        {
+            return Error(2, "No fuel.");
         }
         Vehicle_gsParams[id][PARAMS_ENGINE] = true;
         SetVehicleParamsEx(id, Vehicle_gsParams[id][PARAMS_ENGINE], Vehicle_gsParams[id][PARAMS_LIGHTS], Vehicle_gsParams[id][PARAMS_ALARM], Vehicle_gsParams[id][PARAMS_DOORS], Vehicle_gsParams[id][PARAMS_BONNET], Vehicle_gsParams[id][PARAMS_BOOT], Vehicle_gsParams[id][PARAMS_OBJECTIVE]);
@@ -1317,7 +1378,7 @@ stock Vehicle_TryTurningEngine(VEHICLE_FRAMEWORK_TAGS: id, tag=tagof(id))
             SetVehicleParamsEx(i, Vehicle_gsParams[i][PARAMS_ENGINE], Vehicle_gsParams[i][PARAMS_LIGHTS], Vehicle_gsParams[i][PARAMS_ALARM], Vehicle_gsParams[i][PARAMS_DOORS], Vehicle_gsParams[i][PARAMS_BONNET], Vehicle_gsParams[i][PARAMS_BOOT], Vehicle_gsParams[i][PARAMS_OBJECTIVE]);
         }
     }
-    return true;
+    return Ok();
 }
 
 /**
@@ -1327,7 +1388,7 @@ stock Vehicle_TryTurningEngine(VEHICLE_FRAMEWORK_TAGS: id, tag=tagof(id))
  * <seealso name="Vehicle_GetEngineState" />
  * <seealso name="Vehicle_SetEngineState" />
  * <seealso name="Vehicle_GetEngineType" />
- * <returns>Vehicle drive type. 0 if vehicle is not created.</returns>
+ * <returns>Vehicle drive type. DRIVE_INVALID if vehicle is not created.</returns>
  */
 stock DRIVE_TYPE: Vehicle_GetDriveType(vehicleid) 
 {
@@ -1342,7 +1403,7 @@ stock DRIVE_TYPE: Vehicle_GetDriveType(vehicleid)
  * <seealso name="Vehicle_GetEngineState" />
  * <seealso name="Vehicle_SetEngineState" />
  * <seealso name="Vehicle_GetDriveType" />
- * <returns>Vehicle engine type. 0 if vehicle is not created.</returns>
+ * <returns>Vehicle engine type. ENGINE_INVALID if vehicle is not created OR if vehicle is powered by human (bikes).</returns>
  */
 stock ENGINE_TYPE: Vehicle_GetEngineType(vehicleid) 
 {
@@ -1355,12 +1416,11 @@ stock ENGINE_TYPE: Vehicle_GetEngineType(vehicleid)
 // --
 
 /**
- * <summary> Gets the engine state.</summary>
- * <param name="vehicleid"> Vehicle from which we get engine state.</param>
-
- * <returns> Engine state. </returns>
+ * <summary>Gets the engine state.</summary>
+ * <param name="vehicleid">Vehicle from which we get engine state.</param>
+ * <seealso name="Vehicle_SetBootState" />
+ * <returns>Boot state.</returns>
  */
-
 stock VEHICLE_PARAMS: Vehicle_GetBootState(vehicleid) 
 {
     return Vehicle_gsParams[vehicleid][PARAMS_BOOT];
@@ -1370,9 +1430,9 @@ stock VEHICLE_PARAMS: Vehicle_GetBootState(vehicleid)
  * <summary> Sets the boot state.</summary>
  * <param name="vehicleid"> Vehicle which we set the boot state.</param>
  * <param name="engine_state"> Boot state to set.</param>
- * <returns> SetVehicleParamsEx values. </returns>
+ * <seealso name="Vehicle_GetBootState" />
+ * <returns>SetVehicleParamsEx values. </returns>
 */
-
 stock bool: Vehicle_SetBootState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: boot_state, tag=tagof(id)) 
 {
     if(tag==tagof(_:)) 
@@ -1404,7 +1464,6 @@ stock bool: Vehicle_SetBootState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: boo
  * <param name="vehicleid"> Vehicle from which we get bonnet state.</param>
  * <returns> Bonnet state. </returns>
  */
-
 stock VEHICLE_PARAMS: Vehicle_GetBonnetState(vehicleid) 
 {
     return Vehicle_gsParams[vehicleid][PARAMS_BONNET];
@@ -1449,7 +1508,6 @@ stock bool: Vehicle_SetBonnetState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: b
  * <param name="vehicleid"> Vehicle from which we get Objective state.</param>
  * <returns> Objective state. </returns>
  */
-
 stock VEHICLE_PARAMS: Vehicle_GetObjectiveState(vehicleid) 
 {
     return Vehicle_gsParams[vehicleid][PARAMS_OBJECTIVE];
@@ -1461,7 +1519,6 @@ stock VEHICLE_PARAMS: Vehicle_GetObjectiveState(vehicleid)
  * <param name="engine_state"> Objective state to set.</param>
  * <returns> SetVehicleParamsEx values. </returns>
 */
-
 stock bool: Vehicle_SetObjectiveState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: objective_state, tag=tagof(id)) 
 {
     if(tag==tagof(_:)) 
@@ -1831,10 +1888,6 @@ stock bool: Vehicle_SetLightsState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: l
 */
 stock VEHICLE_PARAMS: Vehicle_GetLightsState(vehicleid) 
 {
-    if(!IsValidVehicle(vehicleid))
-    {
-        return false;
-    }
     return Vehicle_gsParams[vehicleid][PARAMS_LIGHTS];
 }
 
@@ -1944,7 +1997,6 @@ stock bool: Vehicle_SetWindows(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_WINDOW: windo
         }
         Vehicle_gsWindows[id][window] = window_status;
         SetVehicleParamsCarWindows(id, Vehicle_gsWindows[id][VEHICLE_WINDOW_DRIVER], Vehicle_gsWindows[id][VEHICLE_WINDOW_PASSENGER], Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_LEFT], Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_RIGHT]);
-        return true;
     }
     else if(tag == tagof(VehicleGroup:))
     {
@@ -2000,7 +2052,6 @@ stock bool: Vehicle_SetWindowsEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_WINDOWS: dr
         Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_LEFT] = backleft;
         Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_RIGHT] = backright;
         SetVehicleParamsCarWindows(id, Vehicle_gsWindows[id][VEHICLE_WINDOW_DRIVER], Vehicle_gsWindows[id][VEHICLE_WINDOW_PASSENGER],Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_LEFT], Vehicle_gsWindows[id][VEHICLE_WINDOW_REAR_RIGHT]);
-        return true;
     }
     else if(tag == tagof(VehicleGroup:))
     {
@@ -2665,8 +2716,6 @@ stock bool: Vehicle_GetPanelsCondition(vehicleid, &VEHICLE_PANELS_CONDITION: fro
 // Health
 // --
 
-forward OnVehicleHealthChange(vehicleid, Float: oldhealth, Float:newhealth);
-
 stock timer __Vehicle_HealthTrack[500](vehicleid)
 {
     new Float: healthveh;
@@ -2682,47 +2731,51 @@ stock timer __Vehicle_HealthTrack[500](vehicleid)
  * <summary> Sets vehicle health.</summary>
  * <param name="vehicleid"> Vehicle we set health to.</param>
  * <param name="health"> Health to set.</param>
+ * <seealso name="OnVehicleHealthChange" />
+ * <seealso name="Vehicle_GetHealth" />
+ * <seealso name="Vehicle_Repair" />
  * <returns> 1 on success, 0 otherwise.</param>
 */
-
-stock bool: Vehicle_SetHealth(vehicleid, Float:health)
+stock Error: Vehicle_SetHealth(vehicleid, Float:health)
 {
-    if(health < 0 || !IsValidVehicle(vehicleid)) 
+    if(health < 0)
     {
-        return false;
+        return Error(1, "Invalid health amount.");
+    }
+    else if(!IsValidVehicle(vehicleid))
+    {
+        return Error(2, "Invalid vehicle.");
     }
     Vehicle_gsHealth[vehicleid] = health;
     SetVehicleHealth(vehicleid, health);
-    return true;
+    return Ok();
 }
 
 /**
  * <summary> Gets vehicle health.</summary>
  * <param name="vehicleid"> Vehicle we get health from.</param>
  * <param name="&health"> Optional variable to store value into.</param>
- * <returns> 0.0 on fail, else vehicle health or stores health in referred variable.</param>
+ * <seealso name="OnVehicleHealthChange" />
+ * <seealso name="Vehicle_SetHealth" />
+ * <seealso name="Vehicle_Repair" />
+ * <returns> -1.0 on fail, else vehicle health.</param>
 */
-
-stock Float:Vehicle_GetHealth(vehicleid, &Float:health = 0.0)
+stock Float:Vehicle_GetHealth(vehicleid)
 {
     if(!IsValidVehicle(vehicleid)) 
     {
-        return 0.0;
+        return -1.0;
     }
-    if(numargs() == 2)
-    {
-        return health = Vehicle_gsHealth[vehicleid];
-    }
-    else
-    {
-        return Vehicle_gsHealth[vehicleid];
-    }
+    return Vehicle_gsHealth[vehicleid];
 }
 
 /**
  * <summary> Repairs vehicle. </summary>
+ * <seealso name="OnVehicleHealthChange" />
+ * <seealso name="Vehicle_GetHealth" />
+ * <seealso name="Vehicle_SetHealth" />
+ * <returns>RepairVehicle values.</returns>
  */
-
 stock bool: Vehicle_Repair(vehicleid) 
 {
     return RepairVehicle(vehicleid);
@@ -2748,8 +2801,8 @@ stock Vehicle_GetNumberPlate(vehicleid, string: plate[], len = sizeof(plate))
 
 /**
  * <library>vehicle_plus</library>
- * <summary> Sets the vehicle's number plate.</summary>
- * <param name="vehicleid"> Vehicle which we set the vehicle plate.</param>
+ * <summary>Sets the vehicle's number plate.</summary>
+ * <param name="vehicleid">Vehicle which we set the vehicle plate.</param>
  * <param name="plate"> Plate to set.</param>
  * <seealso name="Vehicle_GetNumberPlate" />
  * <returns>False if vehicle is invalid, otherwise true.</returns>
@@ -3230,14 +3283,17 @@ stock bool: Vehicle_CanHaveComponent(vehicleid, componentid)
  * <param name="componentid"> componentid to set.</param>
  * <returns> 0 if function fails, eg. vehicle is not created or vehicle can't have the component, else 1.</param>
 */
-
-stock bool: Vehicle_AddComponent(VEHICLE_FRAMEWORK_TAGS: id, componentid, tag=tagof(id)) 
+stock Error: Vehicle_AddComponent(VEHICLE_FRAMEWORK_TAGS: id, componentid, tag=tagof(id)) 
 {
     if(tag == tagof(_:))
     {
-        if(!Vehicle_CanHaveComponent(id, componentid) || !IsValidVehicle(id))
+        if(!IsValidVehicle(id))
         {
-            return false;
+            return Error(1, "Invalid vehicle.");
+        }
+        else if(!Vehicle_CanHaveComponent(id, componentid))
+        {
+            return Error(2, "Vehicle can't have the component.");
         }
         AddVehicleComponent(id, componentid);
     }
@@ -3252,7 +3308,7 @@ stock bool: Vehicle_AddComponent(VEHICLE_FRAMEWORK_TAGS: id, componentid, tag=ta
             AddVehicleComponent(id, componentid);
         }
     }
-    return true;
+    return Ok();
 }
 
 /**
@@ -3381,9 +3437,13 @@ stock Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit)
  */
 stock bool: Vehicle_SetFuelLevel(vehicleid, VEHICLE_UNIT: unit, Float: amount)
 {
-    if(!IsValidVehicle(vehicleid) || amount > Vehicle_GetFuelTankCapacity(vehicleid, unit))
+    if(!IsValidVehicle(vehicleid))
     {
-        return false;
+        return Error(1, "Invalid vehicle.");
+    }
+    else if(amount > Vehicle_GetFuelTankCapacity(vehicleid, unit))
+    {
+        return Ok(2);
     }
     if(unit == VEHICLE_UNIT_IMPERIAL)
     {
@@ -3397,7 +3457,7 @@ stock bool: Vehicle_SetFuelLevel(vehicleid, VEHICLE_UNIT: unit, Float: amount)
         Vehicle_gsDistanceFromLastRefill[vehicleid] = 0;
         Vehicle_gsKilometersToEmpty[vehicleid] = (Vehicle_gsFuelTankLevel[vehicleid] / Vehicle_gsFuelConsumption[vehicleid]) * 100;
     } 
-    return true;
+    return Ok();
 }
 
 /**
@@ -3430,6 +3490,37 @@ stock bool: Vehicle_SetFuelConsumption(vehicleid, VEHICLE_UNIT: unit, Float: amo
         Vehicle_gsFuelConsumption[vehicleid] = amount;
     } 
     return true;
+}
+
+/**
+ * <library>vehicle_plus</library>
+ * <summary>Gets vehicle fuel tank capacity.</summary>
+ * <param name="vehicleid">Vehicle.</param>
+ * <param name="unit">Unit we get capacity in.</param>
+ * <seealso name="Vehicle_SetFuelTankCapacity" />
+ * <seealso name="Vehicle_SetFuelConsumption" />
+ * <seealso name="Vehicle_GetFuelTankCapacity" />
+ * <seealso name="Vehicle_GetFuelLevel" />
+ * <seealso name="Vehicle_SetFuelLevel" />
+ * <seealso name="Vehicle_GetDistanceCanPass" />
+ * <seealso name="Vehicle_GetDistanceFromLastRefill" />
+ * <returns>INVALID_VEHICLE_ID if vehicle is invalid, tank capacity otherwise.</returns> 
+ */
+forward Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit);
+stock Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit)
+{
+    if(IsValidVehicle(vehicleid))
+    {
+        if(unit == VEHICLE_UNIT_IMPERIAL)
+        {
+            return Vehicle_gsFuelTankCapacity[vehicleid] * 0.26417205; // now we convert to gallons since getter
+        }
+        else if(unit == VEHICLE_UNIT_METRIC)
+        {
+            return Vehicle_gsFuelTankCapacity[vehicleid];
+        }   
+    }
+    return INVALID_VEHICLE_ID;
 }
 
 /**
@@ -3570,8 +3661,6 @@ static
     Float: Vehicle_gsDistanceTravelledTotalMiles[MAX_VEHICLES],
     Float: Vehicle_gsDistanceTravelledTotalKilometres[MAX_VEHICLES];
 
-forward OnVehicleDrivenDistanceUpdate(vehicleid);
-
 // If we don't hook this, vehicle distance travelled will go skyhigh when teleported far away
 
 hook native SetVehiclePos(vehicleid, Float:x, Float:y, Float:z)
@@ -3585,12 +3674,13 @@ hook native SetVehiclePos(vehicleid, Float:x, Float:y, Float:z)
 stock timer __Vehicle_DistanceTravelled[1000](vehicleid)
 {
     new Float: distance = GetVehicleDistanceFromPoint(vehicleid, Vehicle_gsPositionX[vehicleid], Vehicle_gsPositionY[vehicleid], Vehicle_gsPositionZ[vehicleid]);
+    
     if(distance >= 0.005)
     {
         Vehicle_gsDistanceTravelledTotalKilometres[vehicleid] += (distance / 1000);
         Vehicle_gsDistanceTravelledTotalMiles[vehicleid] += ((distance / 1000) * 0.621371);
 
-        if(Vehicle_GetEngineState(vehicleid) == VEHICLE_PARAMS_ON)
+        if(Vehicle_GetEngineState(vehicleid) == VEHICLE_PARAMS_ON) // driver check
         {
             if(Vehicle_gsFuelTankCapacity[vehicleid] != -1)
             {
@@ -3847,16 +3937,23 @@ stock Vehicle_GetLastDriver(vehicleid)
 
 
 /**
-* <summary> Sets the vehicle or groups respawn delay.</summary>
-* <param name="id"> Vehicle or group which we set the delay to.</param>
-* <param name="respawn_delay"> Delay to set.</param>
+ * <summary> Sets the vehicle or groups respawn delay.</summary>
+ * <param name="id"> Vehicle or group which we set the delay to.</param>
+ * <param name="respawn_delay"> Delay to set.</param>
+ * <seealso name="Vehicle_GetRespawnDelay" />
+ * <seealso name="Vehicle_GetOccupiedTime" />
+ * <seealso name="Vehicle_GetRespawnedTime" />
+ * <returns>False if vehicle is invalid, otherwise true.</returns>
 */
-
 stock bool: Vehicle_SetRespawnDelay(VEHICLE_FRAMEWORK_TAGS: id, respawn_delay, tag=tagof(id))
 {
     if(tag == tagof(_:))
     {
-        return SetVehicleRespawnDelay(id, respawn_delay)
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        SetVehicleRespawnDelay(id, respawn_delay)
     }
     else if(tag == tagof(VehicleGroup:))
     {
@@ -3871,20 +3968,24 @@ stock bool: Vehicle_SetRespawnDelay(VEHICLE_FRAMEWORK_TAGS: id, respawn_delay, t
 /**
  * <summary> Gets the vehicle respawn delay.</summary>
  * <param name="vehicleid"> Vehicle we get the delay from.</param>
+ * <seealso name="Vehicle_SetRespawnDelay" />
+ * <seealso name="Vehicle_GetOccupiedTime" />
+ * <seealso name="Vehicle_GetRespawnedTime" />
  * <returns> Respawn delay. -2 if vehicle is invalid</returns>
  */
-
 stock Vehicle_GetRespawnDelay(vehicleid)
 {
     return ((IsValidVehicle(vehicleid)) ? (GetVehicleRespawnDelay(vehicleid)) : -(2));
 }
 
 /**
- * <summary> Gets the vehicle occupied time.</summary>
+ * <summary>Gets the vehicle occupied time.</summary>
  * <param name="vehicleid"> Vehicle we get the occupied time from.</param>
- * <returns> -1 if vehicle is not occupied. Else occupied time.</returns>
+ * <seealso name="Vehicle_GetRespawnDelay" />
+ * <seealso name="Vehicle_SetRespawnDelay" />
+ * <seealso name="Vehicle_GetRespawnedTime" />
+ * <returns>-1 if vehicle is not occupied. Else occupied time.</returns>
  */
-
 stock Vehicle_GetOccupiedTime(vehicleid)
 {
     if(Vehicle_IsOccupied(vehicleid) && IsValidVehicle(vehicleid))
@@ -3897,9 +3998,11 @@ stock Vehicle_GetOccupiedTime(vehicleid)
 /**
  * <summary> Gets the vehicle (re)spawned time.</summary>
  * <param name="vehicleid"> Vehicle we get the respawned time from.</param>
+ * <seealso name="Vehicle_GetRespawnDelay" />
+ * <seealso name="Vehicle_GetOccupiedTime" />
+ * <seealso name="Vehicle_SetRespawnDelay" />
  * <returns> Respawned time.</returns>
  */
-
 stock Vehicle_GetRespawnedTime(vehicleid)
 {
     if(IsValidVehicle(vehicleid))
@@ -3908,11 +4011,6 @@ stock Vehicle_GetRespawnedTime(vehicleid)
     }
     return -1;
 }
-
-// By default, all vehicles have engines. 
-// Bypass: Hook a callback to check if player is riding a manual vehicle (pedal power)
-// and then turn engines on
-// When the player have exited vehicle turn offV
 
 hook OnPlayerStateChange(playerid, PLAYER_STATE:newstate, PLAYER_STATE:oldstate)
 {
@@ -3964,23 +4062,28 @@ stock bool: Vehicle_Respawn(VEHICLE_FRAMEWORK_TAGS: id, tag=tagof(id))
 // Trailers
 // --
 
-forward OnTrailerHook(vehicleid, trailerid);
-forward OnTrailerUnhook(vehicleid, trailerid);
-
 /**
  * <summary> Attach a trailer to vehicle.</summary>
  * <param name="vehicleid"> Vehicle which we set the trailer to.</param>
  * <param name="trailerid"> Trailer to set.</param>
  * <returns> 0 if function fails, eg. trailerid is equal to vehicleid or vehicle and trailer aren't created, else 1.</param>
 */
-stock bool: Vehicle_AttachTrailer(vehicleid, trailerid)
+stock Error: Vehicle_AttachTrailer(vehicleid, trailerid)
 {
-    if(!IsValidVehicle(vehicleid) || !IsValidVehicle(trailerid) || trailerid == vehicleid)
+    if(!IsValidVehicle(vehicleid))
     {
-        return false;
+        return Error(1, "Invalid vehicle.");
+    }
+    else if(!IsValidVehicle(trailerid))
+    {
+        return Error(2, "Invalid trailer.");
+    }
+    else if(trailerid == vehicleid)
+    {
+        return Error(3, "Trailer can't be same as vehicle");
     }
     AttachTrailerToVehicle(trailerid, vehicleid);
-    return true;
+    return Ok();
 }
 
 /**
@@ -4178,7 +4281,6 @@ stock Vehicle_SetColour(VEHICLE_FRAMEWORK_TAGS: id, color1, color2, tag=tagof(id
  * <param name="color1"> First color to get.</param>
  * <param name="color2"> Second color to get.</param>
 */
-
 stock void: Vehicle_GetColour(vehicleid, &color1, &color2) 
 {
     GetVehicleColours(vehicleid, color1, color2);
@@ -4187,8 +4289,6 @@ stock void: Vehicle_GetColour(vehicleid, &color1, &color2)
 // --
 // Paintjob
 // --
-
-forward OnVehiclePaintjobChange(vehicleid, paintjobid);
 
 static const Vehicle_gscPaintjob[] = 
 {
@@ -4212,18 +4312,21 @@ static const Vehicle_gscPaintjob[] =
  * <param name="id"> Vehicle or group which we set the paintjob to.</param>
  * <param name="paintjob"> Paintjob to set.</param>
 */
-
-stock Vehicle_SetPaintjob(VEHICLE_FRAMEWORK_TAGS: id, paintjobid, tag=tagof(id))
+stock Error: Vehicle_SetPaintjob(VEHICLE_FRAMEWORK_TAGS: id, paintjobid, tag=tagof(id))
 {
     if(tag == tagof(_:))
     {
-        if((GetVehicleModel(id) == 483 && (paintjobid != 0 && paintjobid != 3)) || !IsValidVehicle(id)) 
+        if(!IsValidVehicle(id))
         {
-            return 0;
+            return Error(1, "Invalid vehicle.");
+        }
+        if((GetVehicleModel(id) == 483 && (paintjobid != 0 && paintjobid != 3))) 
+        {
+            return Ok(2);
         }
         if(GetVehicleModel(id) == 575 && (paintjobid != 0 && paintjobid != 1 && paintjobid != 3)) 
         {
-            return 0;
+            return Ok(3);
         }
     
         for(new i = 0; i < sizeof(Vehicle_gscPaintjob); i++)
@@ -4262,7 +4365,7 @@ stock Vehicle_SetPaintjob(VEHICLE_FRAMEWORK_TAGS: id, paintjobid, tag=tagof(id))
             }
         }
     }
-    return 1;
+    return Ok();
 }
 
 /**

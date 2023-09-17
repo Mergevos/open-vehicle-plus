@@ -14,7 +14,9 @@
 		"pawn-lang/samp-stdlib@open.mp",
 		"pawn-lang/pawn-stdlib@open.mp",
 		"samp-incognito/samp-streamer-plugin:v2.9.6",
-		"pawn-lang/YSI-Includes@5.x"
+		"pawn-lang/YSI-Includes@5.x",
+		"Southclaws/pawn-errors",
+		"Southclaws/samp-logger"
 	],
 	"dev_dependencies": [
 		"pawn-lang/sa-mp-fixes",
