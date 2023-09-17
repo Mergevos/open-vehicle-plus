@@ -97,6 +97,10 @@ For sure one of the titles will be this. Electric vehicles will be implemented. 
 Some functions has its extended brothers, like `Vehicle_GetTyreCondition` has `Vehicle_GetTyreConditionEx`. Same but the latter one gets all tyres' status passed by reference.
 Until main release, I hope I will have extended all functions.
 
+##### SA:MP Compact
+
+SA:MP name functions and hooks for CreateVehicle and AddStaticVehicle(Ex)
+
 ##### Logging
 
 Logging is in the game, with a function that can turn off or on logging.
