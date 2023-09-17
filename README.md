@@ -2,6 +2,10 @@
 
 [![Mergevos](https://img.shields.io/badge/Mergevos-open--vehicle--plus-2f2f2f.svg?style=for-the-badge)](https://github.com/Mergevos/open-vehicle-plus)
 
+## Note
+
+Library is currently in beta phase of 2.0.0 release. More on [RETURN_VALUE_CHANGE.md](https://github.com/Mergevos/open-vehicle-plus/RETURN_VALUE_CHANGE.md)
+
 ## Installation
 
 Simply install to your project:
