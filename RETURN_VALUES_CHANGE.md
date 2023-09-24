@@ -99,7 +99,8 @@ Until main release, I hope I will have extended all functions.
 
 ##### SA:MP Compact
 
-SA:MP name functions and hooks for CreateVehicle and AddStaticVehicle(Ex)
+SA:MP name functions and hooks for CreateVehicle and AddStaticVehicle(Ex).
+_Note: This won't add support for a_samp or remove YSF implemented functions._
 
 ##### Logging
 
