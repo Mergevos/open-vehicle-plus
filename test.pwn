@@ -3,7 +3,7 @@
 
 #include <YSI_Visual\y_commands>
 #include <sscanf2>
-#define VEHICLE_PLUS_gitSAMP_COMPAT
+//#define VEHICLE_PLUS_SAMP_COMPAT
 #include "vehicle_plus.inc"
 
 main() 
@@ -12,9 +12,6 @@ main()
 
 public OnGameModeInit()
 {
-    new string: ssn[20];
-	format(ssn, 20, "530-%02d-%04d", RandomMinMax(0, 99), RandomMinMax(0, 9999));
-    printf("%s", ssn);
 
     SetWorldTime(0);
 
@@ -25,9 +22,26 @@ public OnGameModeInit()
 
     printf("%d windows", Vehicle_GetWindowsNumber(3)); //should be 65355, INVALID_VEHICLE_ID
     printf("%d tyre", Vehicle_GetTyreCondition(3, VEHICLE_TYRE_FRONT_LEFT)); //should be -1
+
+    new veh = CreateVehicle(411, 0, 0, 0, 0, 0, 0, 0);
+
+    DestroyVehicle(veh);
+    // hook test
     return 1;
 }
 
+public OnVehicleDestroy(vehicleid)
+{
+    print("TEST", 0xFF0000FF, -1);
+    printf("Vehicle %d has been destroyed", vehicleid);
+    return 1;
+}
+
+public OnVehicleFirstSpawn(vehicleid)
+{
+    printf("Vehicle %d just spawned", vehicleid);
+    return 1;
+}
 
 public OnVehicleRespray(playerid, vehicleid, color1, color2)
 {
@@ -342,12 +356,6 @@ CMD:testlightsdamagesetex(playerid, params[])
 CMD:testdestroy(playerid, params[])
 {
     Vehicle_Destroy(GetPlayerVehicleID(playerid));
-    return 1;
-}
-
-public OnVehicleDestroy(vehicleid)
-{
-    SendClientMessageToAll(-1, "Vehicle %d has been destroyed", vehicleid);
     return 1;
 }
 

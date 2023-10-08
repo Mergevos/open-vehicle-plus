@@ -41,65 +41,6 @@
     #define isnull(%1) ((!(%1[0])) || (((%1[0]) == '\1') && (!(%1[1]))))
 #endif
 
-#if defined VEHICLE_PLUS_SAMP_COMPAT
-    #define IsVehicleBlinking           Vehicle_IsBlinking
-    #define SetVehicleBlinking          Vehicle_SetBlinking
-    #define CancelVehicleBlinking       Vehicle_CancelBlinking
-    #define GetVehicleEngineState       Vehicle_GetEngineState
-    #define SetVehicleEngineState       Vehicle_SetEngineState
-    #define TryTurningVehicleEngine     Vehicle_TryTurningEngine
-    #define GetVehicleDriveType         Vehicle_GetDriveType
-    #define GetVehicleEngineType        Vehicle_GetEngineType
-    #define GetVehicleBootState         Vehicle_GetBootState
-    #define SetVehicleBootState         Vehicle_SetBootState
-    #define GetVehicleBonnetState       Vehicle_GetBonnetState
-    #define SetVehicleBonnetState       Vehicle_SetBonnetState
-    #define GetVehicleObjectiveState    Vehicle_GetObjectiveState
-    #define SetVehicleObjectiveState    Vehicle_SetObjectiveState
-    #define GetVehicleLightsNumber      Vehicle_GetLightsNumber
-    #define SetVehicleLightsConditionEx Vehicle_SetLightsConditionEx
-    #define SetVehicleLightsCondition   Vehicle_SetLightsCondition
-    #define GetVehicleLightsCondition   Vehicle_GetLightsCondition
-    #define GetVehicleLightsConditionEx Vehicle_GetLightsConditionEx
-    #define SetVehicleLightsState       Vehicle_SetLightsState
-    #define GetVehicleLightsState       Vehicle_GetLightsState
-    #define SetVehicleAlarms            Vehicle_SetAlarms
-    #define GetVehicleAlarms            Vehicle_GetAlarms
-    #define GetVehicleWindowsNumber     Vehicle_GetWindowsNumber
-    #define SetVehicleWindows           Vehicle_SetWindows
-    #define GetVehicleWindows           Vehicle_GetWindows
-    #define SetVehicleWindowsEx         Vehicle_SetWindowsEx
-    #define GetVehicleWindowsEx         Vehicle_GetWindowsEx
-    #define SetVehicleTyrePoppingGlobal Vehicle_SetTyrePoppingGlobal
-    #define GetVehicleTyrePoppingGlobal Vehicle_GetTyrePoppingGlobal
-    #define SetVehicleTyreCondition     Vehicle_SetTyreCondition
-    #define GetVehicleTyreCondition     Vehicle_GetTyreCondition
-    #define SetVehicleTyreConditionEx   Vehicle_SetTyreConditionEx
-    #define GetVehicleTyreConditionEx   Vehicle_GetTyreConditionEx
-    #define SetVehicleDoorCondition     Vehicle_SetDoorCondition
-    #define GetVehicleDoorCondition     Vehicle_GetDoorCondition
-    #define GetVehicleDoorsLocked       Vehicle_GetDoorsLocked
-    #define SetVehicleDoorsLocked       Vehicle_SetDoorsLocked
-    #define SetVehiclePanelsCondition   Vehicle_SetPanelsCondition
-    #define GetVehiclePanelsCondition   Vehicle_GetPanelsCondition
-    #define GetVehicleComponentName     Vehicle_GetComponentName
-    #define CanVehicleHaveComponent     Vehicle_CanHaveComponent
-    #define SetVehicleFuelTankCapacity  Vehicle_SetFuelTankCapacity
-    #define SetVehicleFuelLevel         Vehicle_SetFuelLevel
-    #define SetVehicleFuelConsumption   Vehicle_SetFuelConsumption
-    #define GetVehicleFuelTankCapacity  Vehicle_GetFuelTankCapacity
-    #define GetVehicleFuelLevel         Vehicle_GetFuelLevel
-    #define GetVehicleFuelConsumption   Vehicle_GetFuelConsumption
-    #define GetDistanceVehicleCanPass   Vehicle_GetDistanceCanPass
-    #define GetVehicleDistanceFromLastRefill Vehicle_GetDistanceFromLastRefill
-    #define GetVehicleDistanceTravelled Vehicle_GetDistanceTravelled
-    #define SetVehicleDistanceTravelled Vehicle_SetDistanceTravelled
-    #define SetVehicleDimensionInfo     Vehicle_SetDimensionInfo
-    #define GetVehicleDimensionInfo     Vehicle_GetDimensionInfo
-    #define GetVehicleOccupiedTime      Vehicle_GetOccupiedTime
-    #define GetVehicleRespawnedTime     Vehicle_GetRespawnedTime
-#endif
-
 native _Framework_CallLocalFunction(const function[], const format[], {VehicleGroup, Float,_}:...) = CallLocalFunction;
 
 // -- 
@@ -1998,6 +1939,7 @@ stock VEHICLE_PARAMS: Vehicle_GetAlarms(vehicleid)
 #define VEHICLE_WINDOWS: bool:
 #define VEHICLE_WINDOW_OPEN false
 #define VEHICLE_WINDOW_CLOSED true
+#define VEHICLE_WINDOW_NOT_SET bool: -1
 
 #define VEHICLE_WINDOW: __TAG(VEHICLE_WINDOW):
 enum VEHICLE_WINDOW:__VEHICLE_WINDOW
@@ -2790,7 +2732,7 @@ stock timer __Vehicle_HealthTrack[500](vehicleid)
  * <seealso name="Vehicle_Repair" />
  * <returns> 1 on success, 0 otherwise.</param>
 */
-stock Error: Vehicle_SetHealth(vehicleid, Float:health) // hook compat
+stock Error: Vehicle_SetHealth(vehicleid, Float:health)
 {
     if(health < 0)
     {
@@ -2814,9 +2756,9 @@ stock Error: Vehicle_SetHealth(vehicleid, Float:health) // hook compat
  * <seealso name="Vehicle_Repair" />
  * <returns> -1.0 on fail, else vehicle health.</param>
 */
-stock Float:Vehicle_GetHealth(vehicleid) // hook compat
+stock Float:Vehicle_GetHealth(vehicleid)
 {
-    if(!IsValidVehicle(vehicleid)) 
+    if(!IsValidVehicle(vehicleid))
     {
         return -1.0;
     }
@@ -2848,9 +2790,9 @@ stock bool: Vehicle_Repair(vehicleid)
  * <seealso name="Vehicle_SetNumberPlate" />
  * <returns>INVALID_VEHICLE_ID if vehicle is invalid.</returns>
 */
-stock Vehicle_GetNumberPlate(vehicleid, string: plate[], len = sizeof(plate)) 
+stock bool: Vehicle_GetNumberPlate(vehicleid, string: plate[], len = sizeof(plate)) 
 {
-    return IsValidVehicle(vehicleid) ? GetVehicleNumberPlate(vehicleid, plate, len) : INVALID_VEHICLE_ID;
+    return GetVehicleNumberPlate(vehicleid, plate, len);
 }
 
 /**
@@ -4478,7 +4420,7 @@ static Timer: Vehicle_gsHealthTrackTimer[MAX_VEHICLES];
   * <param name="respawn_delay">The time(ms) when the vehicle will be respawned again.</param>
   * <param name="interior">interior id, if you want to create a vehicle inside the building</param>
 */
-stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, bool:addsiren=false) 
+stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, color1, color2, respawn_delay, interior, virtual_world, bool:addsiren=false, bool:compat=false) 
 {
     new idx;
     if(modelid == 537 || modelid == 538)
@@ -4508,10 +4450,20 @@ stock Vehicle_Create(modelid, Float: x, Float: y, Float: z, Float: rotation, col
     Vehicle_gsPositionY[idx] = y;
     Vehicle_gsPositionZ[idx] = z;
 
-    Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_CLOSED;
-    Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_CLOSED;
-    Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_CLOSED;
-    Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_CLOSED;
+    if(compat)
+    {
+        Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_NOT_SET;
+        Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_NOT_SET;
+        Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_NOT_SET;
+        Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_NOT_SET;
+    }
+    else
+    {
+        Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_CLOSED;
+        Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_CLOSED;
+        Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_CLOSED;
+        Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_CLOSED;
+    }
 
     Vehicle_gsFuelTankCapacity[idx] = -1;
     Vehicle_gsFuelTankLevel[idx] = -1;
@@ -4597,9 +4549,10 @@ stock Vehicle_CreateEx(modelid, Float: x, Float: y, Float: z, Float: rotation, c
 
 /**
  * <summary> Destroys vehicle. </summary>
+ * <remarks>You should not touch compat param.</remarks>
 */
 
-stock bool: Vehicle_Destroy(idx)
+stock bool: Vehicle_Destroy(idx, bool: compat = false)
 {
     if(!IsValidVehicle(idx)) 
     {
@@ -4620,11 +4573,20 @@ stock bool: Vehicle_Destroy(idx)
     Vehicle_gsParams[idx][PARAMS_DOORS] = VEHICLE_PARAMS_OFF;
     Vehicle_gsParams[idx][PARAMS_OBJECTIVE] = VEHICLE_PARAMS_OFF;
 
-    Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_CLOSED;
-    Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_CLOSED;
-    Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_CLOSED;
-    Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_CLOSED;
-    
+    if(compat)
+    {
+        Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_NOT_SET;
+        Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_NOT_SET;
+        Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_NOT_SET;
+        Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_NOT_SET;
+    }
+    else
+    {
+        Vehicle_gsWindows[idx][0] = VEHICLE_WINDOW_CLOSED;
+        Vehicle_gsWindows[idx][1] = VEHICLE_WINDOW_CLOSED;
+        Vehicle_gsWindows[idx][2] = VEHICLE_WINDOW_CLOSED;
+        Vehicle_gsWindows[idx][3] = VEHICLE_WINDOW_CLOSED;
+    }
     Vehicle_gsBlinkSide[idx] = VEHICLE_BLINKERS_NOT_SET;
     foreach(new i : Vehicle_gsActGps)
     {
@@ -4639,5 +4601,108 @@ stock bool: Vehicle_Destroy(idx)
     DestroyVehicle(idx);
     return true;
 }
+
+// --
+// Compat
+// --
+// --
+// Compat
+// --
+#if defined VEHICLE_PLUS_SAMP_COMPAT
+    #define IsVehicleBlinking           Vehicle_IsBlinking
+    #define SetVehicleBlinking          Vehicle_SetBlinking
+    #define CancelVehicleBlinking       Vehicle_CancelBlinking
+    #define GetVehicleEngineState       Vehicle_GetEngineState
+    #define SetVehicleEngineState       Vehicle_SetEngineState
+    #define TryTurningVehicleEngine     Vehicle_TryTurningEngine
+    #define GetVehicleDriveType         Vehicle_GetDriveType
+    #define GetVehicleEngineType        Vehicle_GetEngineType
+    #define GetVehicleBootState         Vehicle_GetBootState
+    #define SetVehicleBootState         Vehicle_SetBootState
+    #define GetVehicleBonnetState       Vehicle_GetBonnetState
+    #define SetVehicleBonnetState       Vehicle_SetBonnetState
+    #define GetVehicleObjectiveState    Vehicle_GetObjectiveState
+    #define SetVehicleObjectiveState    Vehicle_SetObjectiveState
+    #define GetVehicleLightsNumber      Vehicle_GetLightsNumber
+    #define SetVehicleLightsConditionEx Vehicle_SetLightsConditionEx
+    #define SetVehicleLightsCondition   Vehicle_SetLightsCondition
+    #define GetVehicleLightsCondition   Vehicle_GetLightsCondition
+    #define GetVehicleLightsConditionEx Vehicle_GetLightsConditionEx
+    #define SetVehicleLightsState       Vehicle_SetLightsState
+    #define GetVehicleLightsState       Vehicle_GetLightsState
+    #define SetVehicleAlarms            Vehicle_SetAlarms
+    #define GetVehicleAlarms            Vehicle_GetAlarms
+    #define GetVehicleWindowsNumber     Vehicle_GetWindowsNumber
+    #define SetVehicleWindows           Vehicle_SetWindows
+    #define GetVehicleWindows           Vehicle_GetWindows
+    #define SetVehicleWindowsEx         Vehicle_SetWindowsEx
+    #define GetVehicleWindowsEx         Vehicle_GetWindowsEx
+    #define SetVehicleTyrePoppingGlobal Vehicle_SetTyrePoppingGlobal
+    #define GetVehicleTyrePoppingGlobal Vehicle_GetTyrePoppingGlobal
+    #define SetVehicleTyreCondition     Vehicle_SetTyreCondition
+    #define GetVehicleTyreCondition     Vehicle_GetTyreCondition
+    #define SetVehicleTyreConditionEx   Vehicle_SetTyreConditionEx
+    #define GetVehicleTyreConditionEx   Vehicle_GetTyreConditionEx
+    #define SetVehicleDoorCondition     Vehicle_SetDoorCondition
+    #define GetVehicleDoorCondition     Vehicle_GetDoorCondition
+    #define GetVehicleDoorsLocked       Vehicle_GetDoorsLocked
+    #define SetVehicleDoorsLocked       Vehicle_SetDoorsLocked
+    #define SetVehiclePanelsCondition   Vehicle_SetPanelsCondition
+    #define GetVehiclePanelsCondition   Vehicle_GetPanelsCondition
+    #define GetVehicleComponentName     Vehicle_GetComponentName
+    #define CanVehicleHaveComponent     Vehicle_CanHaveComponent
+    #define SetVehicleFuelTankCapacity  Vehicle_SetFuelTankCapacity
+    #define SetVehicleFuelLevel         Vehicle_SetFuelLevel
+    #define SetVehicleFuelConsumption   Vehicle_SetFuelConsumption
+    #define GetVehicleFuelTankCapacity  Vehicle_GetFuelTankCapacity
+    #define GetVehicleFuelLevel         Vehicle_GetFuelLevel
+    #define GetVehicleFuelConsumption   Vehicle_GetFuelConsumption
+    #define GetDistanceVehicleCanPass   Vehicle_GetDistanceCanPass
+    #define GetVehicleDistanceFromLastRefill Vehicle_GetDistanceFromLastRefill
+    #define GetVehicleDistanceTravelled Vehicle_GetDistanceTravelled
+    #define SetVehicleDistanceTravelled Vehicle_SetDistanceTravelled
+    #define SetVehicleDimensionInfo     Vehicle_SetDimensionInfo
+    #define GetVehicleDimensionInfo     Vehicle_GetDimensionInfo
+    #define GetVehicleOccupiedTime      Vehicle_GetOccupiedTime
+    #define GetVehicleRespawnedTime     Vehicle_GetRespawnedTime
+
+    hook function SetVehicleHealth(vehicleid, Float:health)
+    {
+        Vehicle_gsHealth[vehicleid] = health;
+        return continue(vehicleid, health);
+    }
+
+    hook function GetVehicleHealth(vehicleid, &Float:health)
+    {
+        health = Vehicle_gsHealth[vehicleid];
+        return continue(vehicleid, health);
+    }
+    stock __FRAMEWORK_CreateVehicle__(vehicletype, Float:x, Float:y, Float:z, Float:rotation, color1, color2, respawn_delay, addsiren=false)
+    {
+        return Vehicle_Create(vehicletype, x, y, z, rotation, color1, color2, respawn_delay, 0, 0, addsiren, true);
+    }
+
+    #if defined _ALS_CreateVehicle
+        #undef CreateVehicle
+    #else
+        #define _ALS_CreateVehicle
+    #endif
+
+    #define CreateVehicle __FRAMEWORK_CreateVehicle__
+
+    stock __FRAMEWORK_DeleteVehicle__(vidx)
+    {
+        return Vehicle_Destroy(vidx, true);
+    }
+
+    #if defined _ALS_DestroyVehicle
+        #undef DestroyVehicle
+    #else
+        #define _ALS_DestroyVehicle
+    #endif
+
+    #define DestroyVehicle __FRAMEWORK_DeleteVehicle__
+
+#endif
 
 #pragma warning pop
