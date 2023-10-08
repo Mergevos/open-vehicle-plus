@@ -1,9 +1,9 @@
-#define WEAK_TAGS
-#include <open.mp>
+#include <a_samp>
 #define CGEN_MEMORY 20000
 
 #include <YSI_Visual\y_commands>
 #include <sscanf2>
+#define VEHICLE_PLUS_gitSAMP_COMPAT
 #include "vehicle_plus.inc"
 
 main() 

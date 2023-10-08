@@ -4,7 +4,6 @@
 #define _VEHICLE_PLUS_included
 
 #include <open.mp>
-
 #include <YSI_Data\y_foreach>
 #include <YSI_Coding\y_timers>
 #include <YSI_Coding\y_hooks>
@@ -35,15 +34,70 @@
 	#define RELEASED(%0)			(((newkeys & (%0)) != (%0)) && ((oldkeys & (%0)) == (%0)))
 #endif
 
-#if defined EMPTY_DAMAGE 
-    #include <weapon-config>
-#endif
-
 #define VEHICLE_FRAMEWORK_TAGS \
     {_, VehicleGroup}
 
 #if !defined isnull
     #define isnull(%1) ((!(%1[0])) || (((%1[0]) == '\1') && (!(%1[1]))))
+#endif
+
+#if defined VEHICLE_PLUS_SAMP_COMPAT
+    #define IsVehicleBlinking           Vehicle_IsBlinking
+    #define SetVehicleBlinking          Vehicle_SetBlinking
+    #define CancelVehicleBlinking       Vehicle_CancelBlinking
+    #define GetVehicleEngineState       Vehicle_GetEngineState
+    #define SetVehicleEngineState       Vehicle_SetEngineState
+    #define TryTurningVehicleEngine     Vehicle_TryTurningEngine
+    #define GetVehicleDriveType         Vehicle_GetDriveType
+    #define GetVehicleEngineType        Vehicle_GetEngineType
+    #define GetVehicleBootState         Vehicle_GetBootState
+    #define SetVehicleBootState         Vehicle_SetBootState
+    #define GetVehicleBonnetState       Vehicle_GetBonnetState
+    #define SetVehicleBonnetState       Vehicle_SetBonnetState
+    #define GetVehicleObjectiveState    Vehicle_GetObjectiveState
+    #define SetVehicleObjectiveState    Vehicle_SetObjectiveState
+    #define GetVehicleLightsNumber      Vehicle_GetLightsNumber
+    #define SetVehicleLightsConditionEx Vehicle_SetLightsConditionEx
+    #define SetVehicleLightsCondition   Vehicle_SetLightsCondition
+    #define GetVehicleLightsCondition   Vehicle_GetLightsCondition
+    #define GetVehicleLightsConditionEx Vehicle_GetLightsConditionEx
+    #define SetVehicleLightsState       Vehicle_SetLightsState
+    #define GetVehicleLightsState       Vehicle_GetLightsState
+    #define SetVehicleAlarms            Vehicle_SetAlarms
+    #define GetVehicleAlarms            Vehicle_GetAlarms
+    #define GetVehicleWindowsNumber     Vehicle_GetWindowsNumber
+    #define SetVehicleWindows           Vehicle_SetWindows
+    #define GetVehicleWindows           Vehicle_GetWindows
+    #define SetVehicleWindowsEx         Vehicle_SetWindowsEx
+    #define GetVehicleWindowsEx         Vehicle_GetWindowsEx
+    #define SetVehicleTyrePoppingGlobal Vehicle_SetTyrePoppingGlobal
+    #define GetVehicleTyrePoppingGlobal Vehicle_GetTyrePoppingGlobal
+    #define SetVehicleTyreCondition     Vehicle_SetTyreCondition
+    #define GetVehicleTyreCondition     Vehicle_GetTyreCondition
+    #define SetVehicleTyreConditionEx   Vehicle_SetTyreConditionEx
+    #define GetVehicleTyreConditionEx   Vehicle_GetTyreConditionEx
+    #define SetVehicleDoorCondition     Vehicle_SetDoorCondition
+    #define GetVehicleDoorCondition     Vehicle_GetDoorCondition
+    #define GetVehicleDoorsLocked       Vehicle_GetDoorsLocked
+    #define SetVehicleDoorsLocked       Vehicle_SetDoorsLocked
+    #define SetVehiclePanelsCondition   Vehicle_SetPanelsCondition
+    #define GetVehiclePanelsCondition   Vehicle_GetPanelsCondition
+    #define GetVehicleComponentName     Vehicle_GetComponentName
+    #define CanVehicleHaveComponent     Vehicle_CanHaveComponent
+    #define SetVehicleFuelTankCapacity  Vehicle_SetFuelTankCapacity
+    #define SetVehicleFuelLevel         Vehicle_SetFuelLevel
+    #define SetVehicleFuelConsumption   Vehicle_SetFuelConsumption
+    #define GetVehicleFuelTankCapacity  Vehicle_GetFuelTankCapacity
+    #define GetVehicleFuelLevel         Vehicle_GetFuelLevel
+    #define GetVehicleFuelConsumption   Vehicle_GetFuelConsumption
+    #define GetDistanceVehicleCanPass   Vehicle_GetDistanceCanPass
+    #define GetVehicleDistanceFromLastRefill Vehicle_GetDistanceFromLastRefill
+    #define GetVehicleDistanceTravelled Vehicle_GetDistanceTravelled
+    #define SetVehicleDistanceTravelled Vehicle_SetDistanceTravelled
+    #define SetVehicleDimensionInfo     Vehicle_SetDimensionInfo
+    #define GetVehicleDimensionInfo     Vehicle_GetDimensionInfo
+    #define GetVehicleOccupiedTime      Vehicle_GetOccupiedTime
+    #define GetVehicleRespawnedTime     Vehicle_GetRespawnedTime
 #endif
 
 native _Framework_CallLocalFunction(const function[], const format[], {VehicleGroup, Float,_}:...) = CallLocalFunction;
@@ -2736,7 +2790,7 @@ stock timer __Vehicle_HealthTrack[500](vehicleid)
  * <seealso name="Vehicle_Repair" />
  * <returns> 1 on success, 0 otherwise.</param>
 */
-stock Error: Vehicle_SetHealth(vehicleid, Float:health)
+stock Error: Vehicle_SetHealth(vehicleid, Float:health) // hook compat
 {
     if(health < 0)
     {
@@ -2760,7 +2814,7 @@ stock Error: Vehicle_SetHealth(vehicleid, Float:health)
  * <seealso name="Vehicle_Repair" />
  * <returns> -1.0 on fail, else vehicle health.</param>
 */
-stock Float:Vehicle_GetHealth(vehicleid)
+stock Float:Vehicle_GetHealth(vehicleid) // hook compat
 {
     if(!IsValidVehicle(vehicleid)) 
     {
@@ -3392,36 +3446,6 @@ stock bool: Vehicle_SetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit, Float: am
 
 /**
  * <library>vehicle_plus</library>
- * <summary>Gets vehicle fuel tank capacity.</summary>
- * <param name="vehicleid">Vehicle.</param>
- * <param name="unit">Unit we get capacity in.</param>
- * <seealso name="Vehicle_SetFuelTankCapacity" />
- * <seealso name="Vehicle_SetFuelConsumption" />
- * <seealso name="Vehicle_GetFuelTankCapacity" />
- * <seealso name="Vehicle_GetFuelLevel" />
- * <seealso name="Vehicle_SetFuelLevel" />
- * <seealso name="Vehicle_GetDistanceCanPass" />
- * <seealso name="Vehicle_GetDistanceFromLastRefill" />
- * <returns>INVALID_VEHICLE_ID if vehicle is invalid, tank capacity otherwise.</returns> 
- */
-stock Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit)
-{
-    if(IsValidVehicle(vehicleid))
-    {
-        if(unit == VEHICLE_UNIT_IMPERIAL)
-        {
-            return Vehicle_gsFuelTankCapacity[vehicleid] * 0.26417205; // now we convert to gallons since getter
-        }
-        else if(unit == VEHICLE_UNIT_METRIC)
-        {
-            return Vehicle_gsFuelTankCapacity[vehicleid];
-        }   
-    }
-    return INVALID_VEHICLE_ID;
-}
-
-/**
- * <library>vehicle_plus</library>
  * <summary>Sets vehicle fuel level.</summary>
  * <param name="vehicleid">Vehicle or group of vehicles.</param>
  * <param name="unit">Unit we set fuel in.</param>
@@ -3506,7 +3530,6 @@ stock bool: Vehicle_SetFuelConsumption(vehicleid, VEHICLE_UNIT: unit, Float: amo
  * <seealso name="Vehicle_GetDistanceFromLastRefill" />
  * <returns>INVALID_VEHICLE_ID if vehicle is invalid, tank capacity otherwise.</returns> 
  */
-forward Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit);
 stock Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit)
 {
     if(IsValidVehicle(vehicleid))
