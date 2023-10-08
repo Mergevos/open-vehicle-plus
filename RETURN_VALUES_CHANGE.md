@@ -97,7 +97,7 @@ For sure one of the titles will be this. Electric vehicles will be implemented. 
 Some functions has its extended brothers, like `Vehicle_GetTyreCondition` has `Vehicle_GetTyreConditionEx`. Same but the latter one gets all tyres' status passed by reference.
 Until main release, I hope I will have extended all functions.
 
-##### SA:MP Compact
+##### SA:MP Compact /finish
 
 SA:MP name functions and hooks for CreateVehicle and AddStaticVehicle(Ex).
 _Note: This won't add support for a_samp or remove YSF implemented functions._
