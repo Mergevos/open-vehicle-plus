@@ -2450,7 +2450,6 @@ static stock decode_doors(VEHICLE_DOOR_STATUS: doors, &bonnet, &boot, &driver_do
  * <param name="passenger"> Passenger-door state to set. </param>
  * <returns> UpdateVehicleDamageStatus values. </returns>
 */
-
 stock bool: Vehicle_SetDoorCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_DOORS: door, VEHICLE_DOOR_CONDITION: condition, tag=tagof(id)) 
 {
 
@@ -2526,6 +2525,43 @@ stock bool: Vehicle_SetDoorCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_DOORS: 
 }
 
 /**
+ * <summary> Sets the doors state.</summary>
+ * <param name="vehicleid"> Vehicle which we set the doors state.</param>
+ * <param name="hood"> Hood state to set. </param>
+ * <param name="trunk"> Trunk state to set. </param>
+ * <param name="driver"> Driver-door state to set. </param>
+ * <param name="passenger"> Passenger-door state to set. </param>
+ * <returns> UpdateVehicleDamageStatus values. </returns>
+*/
+stock bool: Vehicle_SetDoorConditionEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_DOOR_CONDITION: hood, VEHICLE_DOOR_CONDITION: trunk, VEHICLE_DOOR_CONDITION: left_door, VEHICLE_DOOR_CONDITION: right_door, tag=tagof(id)) 
+{    
+    new
+        VEHICLE_DOOR_STATUS: doors,
+        VEHICLE_LIGHT_STATUS: unnecessary_lights,
+        VEHICLE_PANEL_STATUS: unnecessary_panels, 
+        VEHICLE_TYRE_STATUS: unnecessary_tires;
+
+    if(tag == tagof(_:)) 
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        GetVehicleDamageStatus(id, unnecessary_panels, doors, unnecessary_lights, unnecessary_tires);
+        UpdateVehicleDamageStatus(id, unnecessary_panels, VEHICLE_DOOR_STATUS: encode_doors(hood, trunk, left_door, right_door), unnecessary_lights, unnecessary_tires);
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            GetVehicleDamageStatus(id, unnecessary_panels, doors, unnecessary_lights, unnecessary_tires);
+            UpdateVehicleDamageStatus(id, unnecessary_panels, VEHICLE_DOOR_STATUS: encode_doors(hood, trunk, left_door, right_door), unnecessary_lights, unnecessary_tires);
+        }
+    }
+    return true;
+}
+
+/**
  * <summary> Gets the doors state.</summary>
  * <param name="vehicleid"> Vehicle from which we get the doors state.</param>
  * <param name="&hood"> Hood state to get.</param>
@@ -2533,8 +2569,7 @@ stock bool: Vehicle_SetDoorCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_DOORS: 
  * <param name="&driver"> Driver-door state to get.</param>
  * <param name="&passenger"> Passenger-door state to get.</param>
 */
-
-stock Vehicle_GetDoorCondition(vehicleid, &VEHICLE_DOOR_CONDITION: bonnet, &VEHICLE_DOOR_CONDITION: boot, &VEHICLE_DOOR_CONDITION: driver, &VEHICLE_DOOR_CONDITION: passenger) 
+stock Vehicle_GetDoorConditionEx(vehicleid, &VEHICLE_DOOR_CONDITION: bonnet, &VEHICLE_DOOR_CONDITION: boot, &VEHICLE_DOOR_CONDITION: driver, &VEHICLE_DOOR_CONDITION: passenger) 
 {
     if(!IsValidVehicle(vehicleid))
     {
@@ -2550,6 +2585,49 @@ stock Vehicle_GetDoorCondition(vehicleid, &VEHICLE_DOOR_CONDITION: bonnet, &VEHI
     decode_doors(doors, bonnet, boot, driver, passenger);
     return true;
 }
+
+stock VEHICLE_DOOR_CONDITION: Vehicle_GetDoorCondition(vehicleid, VEHICLE_DOORS: door) 
+{    
+    if(!IsValidVehicle(vehicleid))
+    {
+        return VEHICLE_DOOR_CONDITION: -1;
+    }
+    new 
+        VEHICLE_DOOR_STATUS: doors,
+        VEHICLE_LIGHT_STATUS: unnecessary_lights,
+        VEHICLE_PANEL_STATUS: unnecessary_panels, 
+        VEHICLE_TYRE_STATUS: unnecessary_tires,
+
+        hood,
+        trunk,
+        right_door,
+        left_door;
+
+    GetVehicleDamageStatus(vehicleid, unnecessary_panels, doors, unnecessary_lights, unnecessary_tires);
+    decode_doors(VEHICLE_DOOR_STATUS: doors, hood, trunk, left_door, right) 
+
+    switch(door)
+    {
+        case VEHICLE_DOOR_HOOD:
+        {
+            return hood;
+        }
+        case VEHICLE_DOOR_TRUNK:
+        {
+            return trunk;
+        }
+        case VEHICLE_DOOR_DRIVER:
+        {
+            return left_door;
+        }
+        case VEHICLE_DOOR_PASSENGER:
+        {
+            return right_door;
+        }
+    }
+    return VEHICLE_DOOR_CONDITION: -1;
+}
+
 
 /**
  * <summary> Gets the doors' lock state.</summary>
@@ -2617,7 +2695,7 @@ static stock VEHICLE_PANEL:_@VEHICLE_PANEL() { return __VEHICLE_PANEL; }
 #define VEHICLE_PANELS_CONDITION: __TAG(VEHICLE_PANELS_CONDITION):
 enum VEHICLE_PANELS_CONDITION:__VEHICLE_PANELS_CONDITION
 {
-    VEHICLE_PANEL_UNDAMAGEDL = 0,
+    VEHICLE_PANEL_UNDAMAGED = 0,
     VEHICLE_PANEL_CRUSHED = 1,
     VEHICLE_PANEL_HANGING_LOOSE = 2,
     VEHICLE_PANEL_REMOVED
@@ -2649,7 +2727,7 @@ static stock encode_panels(front_left_panel, front_right_panel, rear_left_panel,
  * <param name="back_left_panel"> Back left panel state to set.</param>
  * <param name="back_right_panel"> Back right state to set.</param>
 */
-stock bool: Vehicle_SetPanelsCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PANELS_CONDITION: front_left_panel, VEHICLE_PANELS_CONDITION: front_right_panel, VEHICLE_PANELS_CONDITION: back_left_panel, VEHICLE_PANELS_CONDITION: back_right_panel, VEHICLE_PANELS_CONDITION: front_bumper, VEHICLE_PANELS_CONDITION: back_bumper, tag=tagof(id)) 
+stock bool: Vehicle_SetPanelsConditionEx(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PANELS_CONDITION: front_left_panel, VEHICLE_PANELS_CONDITION: front_right_panel, VEHICLE_PANELS_CONDITION: back_left_panel, VEHICLE_PANELS_CONDITION: back_right_panel, VEHICLE_PANELS_CONDITION: front_bumper, VEHICLE_PANELS_CONDITION: back_bumper, tag=tagof(id)) 
 {
     new
         VEHICLE_DOOR_STATUS: unnecessary_doors,
@@ -2690,7 +2768,7 @@ stock bool: Vehicle_SetPanelsCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PANEL
  * <param name="&back_left_panel"> Back left panel state to get.</param>
  * <param name="&back_right_panel"> Back right state to get.</param>
 */
-stock bool: Vehicle_GetPanelsCondition(vehicleid, &VEHICLE_PANELS_CONDITION: front_left_panel, &VEHICLE_PANELS_CONDITION: front_right_panel, &VEHICLE_PANELS_CONDITION: back_left_panel, &VEHICLE_PANELS_CONDITION: back_right_panel, &VEHICLE_PANELS_CONDITION: front_bumper, &VEHICLE_PANELS_CONDITION: back_bumper, &VEHICLE_PANELS_CONDITION: windshield) 
+stock bool: Vehicle_GetPanelsConditionEx(vehicleid, &VEHICLE_PANELS_CONDITION: front_left_panel, &VEHICLE_PANELS_CONDITION: front_right_panel, &VEHICLE_PANELS_CONDITION: back_left_panel, &VEHICLE_PANELS_CONDITION: back_right_panel, &VEHICLE_PANELS_CONDITION: front_bumper, &VEHICLE_PANELS_CONDITION: back_bumper, &VEHICLE_PANELS_CONDITION: windshield) 
 {
     new
         VEHICLE_DOOR_STATUS: unnecessary_doors,
@@ -2707,6 +2785,7 @@ stock bool: Vehicle_GetPanelsCondition(vehicleid, &VEHICLE_PANELS_CONDITION: fro
     return true;
 }
 
+// panels ex
 
 // --
 // Health
