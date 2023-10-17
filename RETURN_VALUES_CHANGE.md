@@ -92,7 +92,7 @@ Until main 2.0.0 release I will be releasing beta pre-releases.
 For sure one of the titles will be this. Electric vehicles will be implemented. You won't be able to use fuel functions for electric vehicles anymore but something like
 `Vehicle_ChargeBattery` and the unit of measurement will be kWh. Using fuel functions on electric vehicles will result in an error. Electric vehicles will be predefined.
 
-##### Ex functions for vehicle parts.
+##### Ex functions for vehicle parts. /finish
 
 Some functions has its extended brothers, like `Vehicle_GetTyreCondition` has `Vehicle_GetTyreConditionEx`. Same but the latter one gets all tyres' status passed by reference.
 Until main release, I hope I will have extended all functions.
