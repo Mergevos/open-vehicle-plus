@@ -2604,7 +2604,7 @@ stock VEHICLE_DOOR_CONDITION: Vehicle_GetDoorCondition(vehicleid, VEHICLE_DOORS:
         left_door;
 
     GetVehicleDamageStatus(vehicleid, unnecessary_panels, doors, unnecessary_lights, unnecessary_tires);
-    decode_doors(VEHICLE_DOOR_STATUS: doors, hood, trunk, left_door, right) 
+    decode_doors(VEHICLE_DOOR_STATUS: doors, hood, trunk, left_door, right_door);
 
     switch(door)
     {

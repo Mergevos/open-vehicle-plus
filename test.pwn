@@ -32,7 +32,6 @@ public OnGameModeInit()
 
 public OnVehicleDestroy(vehicleid)
 {
-    print("TEST", 0xFF0000FF, -1);
     printf("Vehicle %d has been destroyed", vehicleid);
     return 1;
 }
@@ -373,10 +372,10 @@ CMD:testpanels(playerid, params[])
     {
         return SendClientMessage(playerid, -1, "testpanels [panels [1 2 3 4 5 6]]");
     }
-    Vehicle_SetPanelsCondition(GetPlayerVehicleID(playerid), VEHICLE_PANELS_CONDITION: front_left, VEHICLE_PANELS_CONDITION: front_right, VEHICLE_PANELS_CONDITION: back_left, VEHICLE_PANELS_CONDITION: back_right, VEHICLE_PANELS_CONDITION: front_bumper, VEHICLE_PANELS_CONDITION: back_bumper);
+    Vehicle_SetPanelsConditionEx(GetPlayerVehicleID(playerid), VEHICLE_PANELS_CONDITION: front_left, VEHICLE_PANELS_CONDITION: front_right, VEHICLE_PANELS_CONDITION: back_left, VEHICLE_PANELS_CONDITION: back_right, VEHICLE_PANELS_CONDITION: front_bumper, VEHICLE_PANELS_CONDITION: back_bumper);
     SendClientMessage(playerid, -1, "Vehicle panels updated, getting values..");
     front_left = -1, front_right = -1, back_left = -1, back_right = -1, front_bumper = -1, back_bumper = -1, windshield = -1;
-    Vehicle_GetPanelsCondition(GetPlayerVehicleID(playerid), VEHICLE_PANELS_CONDITION: front_left, VEHICLE_PANELS_CONDITION: front_right, VEHICLE_PANELS_CONDITION: back_left, VEHICLE_PANELS_CONDITION: back_right, VEHICLE_PANELS_CONDITION: front_bumper, VEHICLE_PANELS_CONDITION: back_bumper, VEHICLE_PANELS_CONDITION: windshield);
+    Vehicle_GetPanelsConditionEx(GetPlayerVehicleID(playerid), VEHICLE_PANELS_CONDITION: front_left, VEHICLE_PANELS_CONDITION: front_right, VEHICLE_PANELS_CONDITION: back_left, VEHICLE_PANELS_CONDITION: back_right, VEHICLE_PANELS_CONDITION: front_bumper, VEHICLE_PANELS_CONDITION: back_bumper, VEHICLE_PANELS_CONDITION: windshield);
     return 1;
 }
 
@@ -417,7 +416,7 @@ CMD:testdoordamageget(playerid, params[])
         VEHICLE_DOOR_CONDITION: driver_door,
         VEHICLE_DOOR_CONDITION: passenger_door;
 
-    Vehicle_GetDoorCondition(GetPlayerVehicleID(playerid), hood, trunk, driver_door, passenger_door);
+    Vehicle_GetDoorConditionEx(GetPlayerVehicleID(playerid), hood, trunk, driver_door, passenger_door);
     printf("Hood: %d\nTrunk: %d\nDriver: %d\nPassenger: %d", _:hood, _:trunk, _:driver_door, _:passenger_door);
 
     return 1;
