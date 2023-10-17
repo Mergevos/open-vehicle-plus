@@ -2719,6 +2719,107 @@ static stock encode_panels(front_left_panel, front_right_panel, rear_left_panel,
 }
 
 
+stock bool: Vehicle_SetPanelsCondition(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PANEL: panel, VEHICLE_PANELS_CONDITION: condition, tag=tagof(id)) 
+{
+
+    new
+        VEHICLE_DOOR_STATUS: unnecessary_doors,
+        VEHICLE_LIGHT_STATUS: unnecessary_lights,
+        VEHICLE_PANEL_STATUS: panels, 
+        VEHICLE_TYRE_STATUS: unnecessary_tires,
+
+        front_left_panel,
+        front_right_panel,
+        rear_left_panel,
+        rear_right_panel,
+        windshield,
+        front_bumper,        
+        rear_bumper;
+
+    if(tag == tagof(_:)) 
+    {
+        if(!IsValidVehicle(id))
+        {
+            return false;
+        }
+        GetVehicleDamageStatus(id, panels, unnecessary_doors, unnecessary_lights, unnecessary_tires);
+        decode_panels(panels, front_left_panel, front_right_panel, rear_left_panel, rear_right_panel, windshield, front_bumper, rear_bumper);
+        switch(panel)
+        {
+            case VEHICLE_PANEL_FRONT_LEFT:
+            {
+                front_left_panel = condition;
+            }
+            case VEHICLE_PANEL_FRONT_RIGHT:
+            {
+                front_right_panel = condition;
+            }
+            case VEHICLE_PANEL_BACK_LEFT:
+            {
+                rear_left_panel = condition;
+            }
+            case VEHICLE_PANEL_BACK_RIGHT:
+            {
+                rear_right_panel = condition;
+            }
+            case VEHICLE_PANEL_WINDSHIELD:
+            {
+                windshield = condition;
+            }
+            case VEHICLE_PANEL_FRONT_BUMPER:
+            {
+                front_bumper = condition;
+            }
+            case VEHICLE_PANEL_BACK_BUMPER:
+            {
+                rear_bumper = condition;
+            }
+        }
+        UpdateVehicleDamageStatus(id, VEHICLE_PANELS_CONDITION: encode_panels(front_left_panel, front_right_panel, rear_left_panel, rear_right_panel, windshield, front_bumper, rear_bumper), unnecessary_doors, unnecessary_lights, unnecessary_tires);
+    }
+    else if(tag == tagof(VehicleGroup:))
+    {
+        foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
+        {
+            GetVehicleDamageStatus(i, panels, unnecessary_doors, unnecessary_lights, unnecessary_tires);
+            decode_panels(panels, front_left_panel, front_right_panel, rear_left_panel, rear_right_panel, windshield, front_bumper, rear_bumper);
+            switch(panel)
+            {
+                case VEHICLE_PANEL_FRONT_LEFT:
+                {
+                    front_left_panel = condition;
+                }
+                case VEHICLE_PANEL_FRONT_RIGHT:
+                {
+                    front_right_panel = condition;
+                }
+                case VEHICLE_PANEL_BACK_LEFT:
+                {
+                    rear_left_panel = condition;
+                }
+                case VEHICLE_PANEL_BACK_RIGHT:
+                {
+                    rear_right_panel = condition;
+                }
+                case VEHICLE_PANEL_WINDSHIELD:
+                {
+                    windshield = condition;
+                }
+                case VEHICLE_PANEL_FRONT_BUMPER:
+                {
+                    front_bumper = condition;
+                }
+                case VEHICLE_PANEL_BACK_BUMPER:
+                {
+                    rear_bumper = condition;
+                }
+            }
+            UpdateVehicleDamageStatus(i, VEHICLE_PANELS_CONDITION: encode_panels(front_left_panel, front_right_panel, rear_left_panel, rear_right_panel, windshield, front_bumper, rear_bumper), unnecessary_doors, unnecessary_lights, unnecessary_tires);
+        } 
+    }
+    return true;
+}
+
 /**
  * <summary> Sets the vehicle's panels' states. </summary>
  * <param name="vehicleid"> Id of vehicle we are setting panel states to.</param>
@@ -2784,6 +2885,64 @@ stock bool: Vehicle_GetPanelsConditionEx(vehicleid, &VEHICLE_PANELS_CONDITION: f
     decode_panels(panels, front_left_panel, front_right_panel, back_left_panel, back_right_panel, front_bumper, back_bumper, windshield);
     return true;
 }
+
+stock VEHICLE_PANELS_CONDITION: Vehicle_GetPanelsCondition(vehicleid, VEHICLE_PANEL: panel) 
+{    
+    if(!IsValidVehicle(vehicleid))
+    {
+        return VEHICLE_PANELS_CONDITION: -1;
+    }
+    new 
+        VEHICLE_DOOR_STATUS: unnecessary_doors,
+        VEHICLE_LIGHT_STATUS: unnecessary_lights,
+        VEHICLE_PANEL_STATUS: panels, 
+        VEHICLE_TYRE_STATUS: unnecessary_tires,
+
+        front_left_panel,
+        front_right_panel,
+        rear_left_panel,
+        rear_right_panel,
+        windshield,
+        front_bumper,        
+        rear_bumper;
+
+    GetVehicleDamageStatus(vehicleid, panels, unnecessary_doors, unnecessary_lights, unnecessary_tires);
+    decode_panels(panels, front_left_panel, front_right_panel, rear_left_panel, rear_right_panel, windshield, front_bumper, rear_bumper);
+    
+    switch(panel)
+    {
+        case VEHICLE_PANEL_FRONT_LEFT:
+        {
+            return front_left_panel;
+        }
+        case VEHICLE_PANEL_FRONT_RIGHT:
+        {
+            return front_right_panel;
+        }
+        case VEHICLE_PANEL_BACK_LEFT:
+        {
+            return rear_left_panel;
+        }
+        case VEHICLE_PANEL_BACK_RIGHT:
+        {
+            return rear_right_panel;
+        }
+        case VEHICLE_PANEL_WINDSHIELD:
+        {
+            return windshield;
+        }
+        case VEHICLE_PANEL_FRONT_BUMPER:
+        {
+            return front_bumper;
+        }
+        case VEHICLE_PANEL_BACK_BUMPER:
+        {
+            return rear_bumper;
+        }
+    }
+    return VEHICLE_PANELS_CONDITION: -1;
+}
+
 
 // panels ex
 
