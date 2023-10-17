@@ -4883,10 +4883,14 @@ stock bool: Vehicle_Destroy(idx, bool: compat = false)
     #define GetVehicleTyreConditionEx   Vehicle_GetTyreConditionEx
     #define SetVehicleDoorCondition     Vehicle_SetDoorCondition
     #define GetVehicleDoorCondition     Vehicle_GetDoorCondition
+    #define SetVehicleDoorConditionEx   Vehicle_SetDoorConditionEx
+    #define GetVehicleDoorConditionEx   Vehicle_GetDoorConditionEx
     #define GetVehicleDoorsLocked       Vehicle_GetDoorsLocked
     #define SetVehicleDoorsLocked       Vehicle_SetDoorsLocked
     #define SetVehiclePanelsCondition   Vehicle_SetPanelsCondition
     #define GetVehiclePanelsCondition   Vehicle_GetPanelsCondition
+    #define SetVehiclePanelsConditionEx Vehicle_SetPanelsConditionEx
+    #define GetVehiclePanelsConditionEx Vehicle_GetPanelsConditionEx
     #define GetVehicleComponentName     Vehicle_GetComponentName
     #define CanVehicleHaveComponent     Vehicle_CanHaveComponent
     #define SetVehicleFuelTankCapacity  Vehicle_SetFuelTankCapacity
