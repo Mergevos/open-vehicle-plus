@@ -22,6 +22,7 @@ public OnGameModeInit()
 
     printf("%d windows", Vehicle_GetWindowsNumber(3)); //should be 65355, INVALID_VEHICLE_ID
     printf("%d tyre", Vehicle_GetTyreCondition(3, VEHICLE_TYRE_FRONT_LEFT)); //should be -1
+    Vehicle_GetFuelLevel(0, VEHICLE_UNIT_KILOWATT_HOUR);
 
     new veh = CreateVehicle(411, 0, 0, 0, 0, 0, 0, 0);
 
@@ -60,7 +61,7 @@ public OnVehicleDrivenDistanceUpdate(vehicleid)
 {
     SendClientMessage(0, -1, "Vehicle SPEED %d, Testing miles %f vs kilometres %f" , Vehicle_Speed(vehicleid), Vehicle_GetDistanceTravelled(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetDistanceTravelled(vehicleid, VEHICLE_UNIT_METRIC));
     SendClientMessage(0, -1, "Vehicle fuel level %f gal %f lit", 
-        Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT_METRIC));
+        Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT_KILOWATT_HOUR));
     SendClientMessage(0, -1, "distance to empty %f mi %f km",
         Vehicle_GetDistanceCanPass(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetDistanceCanPass(vehicleid, VEHICLE_UNIT_METRIC)); 
     SendClientMessage(0, -1, "distance from refill %f mi %f km fuel cons %f gal/100mi %f l/100km",

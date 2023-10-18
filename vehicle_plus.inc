@@ -82,7 +82,8 @@ static
 enum VEHICLE_UNIT:__VEHICLE_UNIT
 {
     VEHICLE_UNIT_METRIC,
-    VEHICLE_UNIT_IMPERIAL
+    VEHICLE_UNIT_IMPERIAL,
+    VEHICLE_UNIT_KILOWATT_HOUR
 }
 static stock VEHICLE_UNIT:_@VEHICLE_UNIT() { return __VEHICLE_UNIT; }
 
@@ -511,7 +512,7 @@ static const Vehicle_Info[212][e_VEHICLE_INFO] =
 /**
  * <summary> Gets vehicle mass</summary>
  */
-stock Float: Vehicle_GetMass(vehicleid) 
+stock Error: Vehicle_GetMass(vehicleid, Float: mass) 
 {
     return Vehicle_Info[GetVehicleModel(vehicleid) - 400][E_VEHICLE_MASS];
 }
@@ -3621,9 +3622,22 @@ stock bool: Vehicle_SetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit, Float: am
     {
         Vehicle_gsFuelTankCapacity[vehicleid] = amount;
     } 
+    else if(unit == VEHICLE_UNIT_KILOWATT_HOUR)
+    {
+        //#error Use Vehicle_SetBatteryCapacity
+    }
     return true;
 }
 
+stock bool: Vehicle_SetBatteryCapacity(vehicleid, Float: amount)
+{
+    if(Vehicle_GetEngineType(vehicleid) != ENGINE_ELECTRIC)
+    {
+        return false;
+    }
+    Vehicle_gsFuelTankCapacity[vehicleid];
+    return true;
+}
 /**
  * <library>vehicle_plus</library>
  * <summary>Sets vehicle fuel level.</summary>
@@ -3660,8 +3674,24 @@ stock bool: Vehicle_SetFuelLevel(vehicleid, VEHICLE_UNIT: unit, Float: amount)
         Vehicle_gsFuelTankLevel[vehicleid] = amount;
         Vehicle_gsDistanceFromLastRefill[vehicleid] = 0;
         Vehicle_gsKilometersToEmpty[vehicleid] = (Vehicle_gsFuelTankLevel[vehicleid] / Vehicle_gsFuelConsumption[vehicleid]) * 100;
-    } 
+    }
+    else if(Vehicle_GetEngineType(vehicleid) == ENGINE_ELECTRIC || unit == VEHICLE_UNIT_KILOWATT_HOUR)
+    {
+       // #error Use Vehicle_ChargeBattery
+    }
     return Ok();
+}
+
+stock bool: Vehicle_ChargeBattery(vehicleid, Float: amount)
+{
+    if(Vehicle_GetEngineType(vehicleid) != ENGINE_ELECTRIC)
+    {
+        return false;
+    }
+    Vehicle_gsFuelTankLevel[vehicleid] = amount;
+    Vehicle_gsDistanceFromLastRefill[vehicleid] = 0;
+    Vehicle_gsKilometersToEmpty[vehicleid] = (Vehicle_gsFuelTankLevel[vehicleid] / Vehicle_gsFuelConsumption[vehicleid]) * 100;
+    return true;
 }
 
 /**
@@ -3693,6 +3723,20 @@ stock bool: Vehicle_SetFuelConsumption(vehicleid, VEHICLE_UNIT: unit, Float: amo
     {
         Vehicle_gsFuelConsumption[vehicleid] = amount;
     } 
+    else if(unit == VEHICLE_UNIT_KILOWATT_HOUR)
+    {
+       // #error Use Vehicle_SetEnergyConsumption
+    }
+    return true;
+}
+
+stock bool: Vehicle_SetEnergyConsumption(vehicleid, Float: amount)
+{
+    if(!Vehicle_GetEngineType(vehicleid) != ENGINE_ELECTRIC)
+    {
+        return false;
+    }
+    Vehicle_gsFuelConsumption[vehicleid] = amount; //litres
     return true;
 }
 
@@ -3722,8 +3766,21 @@ stock Float: Vehicle_GetFuelTankCapacity(vehicleid, VEHICLE_UNIT: unit)
         {
             return Vehicle_gsFuelTankCapacity[vehicleid];
         }   
+        else if(unit == VEHICLE_UNIT_KILOWATT_HOUR)
+        {
+          //  #error Use Vehicle_GetBatteryCapacity
+        }
     }
     return INVALID_VEHICLE_ID;
+}
+
+stock Float: Vehicle_GetBatteryCapacity(vehicleid)
+{
+    if(Vehicle_GetEngineType(vehicleid) != ENGINE_ELECTRIC)
+    {
+        return false;
+    }
+    return Vehicle_gsFuelTankCapacity[vehicleid];
 }
 
 /**
@@ -3752,9 +3809,21 @@ stock Float: Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT: unit)
         {
             return Vehicle_gsFuelTankLevel[vehicleid];
         }
+        else if(unit == VEHICLE_UNIT_KILOWATT_HOUR)
+        {
+            //#error Use Vehicle_GetBattery
+        }
     }
-    return INVALID_VEHICLE_ID;
-   
+    return INVALID_VEHICLE_ID;   
+}
+
+stock Float: Vehicle_GetBattery(vehicleid)
+{
+    if(Vehicle_GetEngineType(vehicleid) != ENGINE_ELECTRIC)
+    {
+        return false;
+    }
+    return Vehicle_gsFuelTankLevel[vehicleid];
 }
 
 /**
@@ -3788,8 +3857,21 @@ stock Float: Vehicle_GetFuelConsumption(vehicleid, VEHICLE_UNIT: unit)
         {
             return Vehicle_gsFuelConsumption[vehicleid];
         }
+        else if(unit == VEHICLE_UNIT_KILOWATT_HOUR)
+        {
+        //    #error Use Vehicle_GetEnergyConsumption
+        }
     }
     return INVALID_VEHICLE_ID;
+}
+
+stock Float: Vehicle_GetBattery(vehicleid)
+{
+    if(Vehicle_GetEngineType(vehicleid) != ENGINE_ELECTRIC)
+    {
+        return false;
+    }
+    return Vehicle_gsFuelConsumption[vehicleid];
 }
 
 /**
