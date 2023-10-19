@@ -19,10 +19,22 @@ public OnGameModeInit()
     Vehicle_SetTyrePoppingGlobal(false); //bulletproof
 
     //test win number
-
-    printf("%d windows", Vehicle_GetWindowsNumber(3)); //should be 65355, INVALID_VEHICLE_ID
-    printf("%d tyre", Vehicle_GetTyreCondition(3, VEHICLE_TYRE_FRONT_LEFT)); //should be -1
-    Vehicle_GetFuelLevel(0, VEHICLE_UNIT_KILOWATT_HOUR);
+    new data;
+    new Float: float_data;
+    new VEHICLE_TYRE_CONDITION: tire;
+    new Error: ret = Vehicle_GetWindowsNumber(3, data);
+    if(IsError(ret))
+    {
+        print("Some error");
+        Handled(true);
+    }
+    else
+    {
+        printf("%d windows", data);
+    }
+    Vehicle_GetTyreCondition(3, VEHICLE_TYRE_FRONT_LEFT, tire);
+    printf("%d tyre", tire); //should be -1
+    Vehicle_GetFuelLevel(0, VEHICLE_UNIT_KILOWATT_HOUR, float_data);
 
     new veh = CreateVehicle(411, 0, 0, 0, 0, 0, 0, 0);
 
@@ -59,14 +71,35 @@ CMD:testteleport(playerid, params[])
 
 public OnVehicleDrivenDistanceUpdate(vehicleid)
 {
-    SendClientMessage(0, -1, "Vehicle SPEED %d, Testing miles %f vs kilometres %f" , Vehicle_Speed(vehicleid), Vehicle_GetDistanceTravelled(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetDistanceTravelled(vehicleid, VEHICLE_UNIT_METRIC));
+    new Float:travelled_imperial, Float:travelled_metric, Float:fuel_imperial, Float:fuel_metric;
+    new Float:distance_empty_imperial, Float: distance_empty_metric;
+    new Float: from_refill_imperial, Float: from_refill_metric;
+    new Float: consumption_imperial, Float: consumption_metric;
+
+    Vehicle_GetDistanceTravelled(vehicleid, VEHICLE_UNIT_IMPERIAL, travelled_imperial);
+    Vehicle_GetDistanceTravelled(vehicleid, VEHICLE_UNIT_METRIC, travelled_metric);
+
+    Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT_IMPERIAL, fuel_imperial);
+    Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT_METRIC, fuel_metric);
+
+
+    SendClientMessage(0, -1, "Vehicle SPEED %d, Testing miles %f vs kilometres %f" , Vehicle_Speed(vehicleid), travelled_imperial, travelled_metric);
     SendClientMessage(0, -1, "Vehicle fuel level %f gal %f lit", 
-        Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT_KILOWATT_HOUR));
+        fuel_imperial, fuel_metric);
+    
+    Vehicle_GetDistanceCanPass(vehicleid, VEHICLE_UNIT_IMPERIAL, distance_empty_imperial);
+    Vehicle_GetDistanceCanPass(vehicleid, VEHICLE_UNIT_METRIC, distance_empty_metric);
+    
     SendClientMessage(0, -1, "distance to empty %f mi %f km",
-        Vehicle_GetDistanceCanPass(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetDistanceCanPass(vehicleid, VEHICLE_UNIT_METRIC)); 
+        distance_empty_imperial, distance_empty_metric); 
+
+    Vehicle_GetDistanceFromLastRefill(vehicleid, VEHICLE_UNIT_IMPERIAL, from_refill_imperial); 
+    Vehicle_GetDistanceFromLastRefill(vehicleid, VEHICLE_UNIT_METRIC, from_refill_metric);
+    Vehicle_GetFuelConsumption(vehicleid, VEHICLE_UNIT_IMPERIAL, consumption_imperial);
+    Vehicle_GetFuelConsumption(vehicleid, VEHICLE_UNIT_METRIC, consumption_metric);
+
     SendClientMessage(0, -1, "distance from refill %f mi %f km fuel cons %f gal/100mi %f l/100km",
-        Vehicle_GetDistanceFromLastRefill(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetDistanceFromLastRefill(vehicleid, VEHICLE_UNIT_METRIC),
-        Vehicle_GetFuelConsumption(vehicleid, VEHICLE_UNIT_IMPERIAL), Vehicle_GetFuelConsumption(vehicleid, VEHICLE_UNIT_METRIC));
+        from_refill_imperial, from_refill_metric, consumption_imperial, consumption_metric);
 
     return 1;
 }
@@ -95,7 +128,10 @@ CMD:testtrailerattach(playerid, params[])
     {
         Handled();
     }
-    SendClientMessage(playerid, -1, "Trailer %d has been attached to vehicle %d", Vehicle_GetTrailer(GetPlayerVehicleID(playerid)), Vehicle_GetTrailerCab(vehid));
+    new trailer, cab;
+    Vehicle_GetTrailer(GetPlayerVehicleID(playerid), trailer);
+    Vehicle_GetTrailerCab(vehid, cab);
+    SendClientMessage(playerid, -1, "Trailer %d has been attached to vehicle %d", trailer, cab);
 
     return 1;
 }
@@ -111,8 +147,11 @@ CMD:testrespawntime(playerid, params[])
 {
     new 
         bool: occupied = Vehicle_IsOccupied(GetPlayerVehicleID(playerid)),
-        respawn_time = Vehicle_GetRespawnedTime(GetPlayerVehicleID(playerid)),
-        occupied_time = Vehicle_GetOccupiedTime(GetPlayerVehicleID(playerid));
+        respawn_time,
+        occupied_time;
+
+    Vehicle_GetRespawnedTime(GetPlayerVehicleID(playerid), respawn_time);
+    Vehicle_GetOccupiedTime(GetPlayerVehicleID(playerid), occupied_time);
 
     SendClientMessage(playerid, -1, "Vehicle %d occupied %d respawned time %d occupied time %d", GetPlayerVehicleID(playerid), occupied, respawn_time, occupied_time);
 
@@ -260,7 +299,8 @@ CMD:testvirtualworld(playerid, params[])
         return SendClientMessage(playerid, -1, "testvirtualworld [world]");
     }
     Vehicle_SetVirtualWorld(GetPlayerVehicleID(playerid), virtualworld);
-    SendClientMessage(playerid, -1, "Vehicle vw has been set to %d", Vehicle_GetVirtualWorld(GetPlayerVehicleID(playerid)));
+    Vehicle_GetVirtualWorld(GetPlayerVehicleID(playerid), virtualworld);
+    SendClientMessage(playerid, -1, "Vehicle vw has been set to %d", virtualworld);
     return 1;
 }
 
@@ -273,7 +313,8 @@ CMD:testinterior(playerid, params[])
         return SendClientMessage(playerid, -1, "testinterior [interior]");
     }
     Vehicle_SetInterior(GetPlayerVehicleID(playerid), interior);
-    SendClientMessage(playerid, -1, "Vehicle interior has been set to %d", Vehicle_GetInterior(GetPlayerVehicleID(playerid)));
+    Vehicle_GetInterior(GetPlayerVehicleID(playerid), interior);
+    SendClientMessage(playerid, -1, "Vehicle interior has been set to %d", interior);
     return 1;
 }
 
@@ -333,8 +374,9 @@ CMD:alarmsoff(playerid, params[])
 
 CMD:testlightsdamageget(playerid, params[])
 {
-
-    printf("Front Left %d", Vehicle_GetLightsCondition(GetPlayerVehicleID(playerid), VEHICLE_LIGHT_FRONT_LEFT));
+    new VEHICLE_LIGHT_CONDITION: condition;
+    Vehicle_GetLightsCondition(GetPlayerVehicleID(playerid), VEHICLE_LIGHT_FRONT_LEFT, condition);
+    printf("Front Left %d", _:condition);
     return 1;
 }
 
@@ -394,7 +436,9 @@ CMD:testdoorlock(playerid, params[])
 
 CMD:testdoorlockget(playerid, params[])
 {
-    printf("Doors lock %d", Vehicle_GetDoorsLocked(GetPlayerVehicleID(playerid)));
+    new bool: output_data;
+    Vehicle_GetDoorsLocked(GetPlayerVehicleID(playerid), output_data);
+    printf("Doors lock %d", output_data);
     return 1;
 }
 
@@ -435,7 +479,7 @@ CMD:testtyres(playerid, params[])
     Vehicle_GetTyreConditionEx(GetPlayerVehicleID(playerid), tire1, tire2, tire3, tire4);
     SendClientMessage(playerid, -1, "zadnja desna %d, prednja desna %d, zadnja leva %d, prednja leva %d", tire1, tire2, tire3, tire4); 
 
-    SendClientMessage(playerid, -1, "Test samo prednje desne %d", Vehicle_GetTyreCondition(GetPlayerVehicleID(playerid), VEHICLE_TYRE_FRONT_RIGHT));
+//    SendClientMessage(playerid, -1, "Test samo prednje desne %d", Vehicle_GetTyreCondition(GetPlayerVehicleID(playerid), VEHICLE_TYRE_FRONT_RIGHT));
     return 1;
 }
 
@@ -458,7 +502,8 @@ CMD:testcomponentget(playerid, params[])
     {
         return SendClientMessage(playerid, -1, "/testcomponentget [slot]");
     }
-    new comp = Vehicle_GetComponentInSlot(GetPlayerVehicleID(playerid), CARMODTYPE: slot);
+    new comp;
+    Vehicle_GetComponentInSlot(GetPlayerVehicleID(playerid), CARMODTYPE: slot, comp);
     SendClientMessage(playerid, -1, "Component on slot: %d is %d", slot, comp);
     return 1;
 }
