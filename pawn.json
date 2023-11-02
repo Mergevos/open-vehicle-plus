@@ -3,9 +3,10 @@
 	"repo": "open-vehicle-plus",
 	"contributors": [
 		"Mergevos",
-		"emmet-white",
+		"emmett-white",
 		"medzdvel",
-		"omcho420"
+		"omcho420",
+		"iamjexcdevvv"
 	],
 	"entry": "test.pwn",
 	"output": "test.amx",
@@ -15,8 +16,7 @@
 		"pawn-lang/pawn-stdlib@open.mp",
 		"samp-incognito/samp-streamer-plugin:v2.9.6",
 		"pawn-lang/YSI-Includes@5.x",
-		"Southclaws/pawn-errors",
-		"Southclaws/samp-logger"
+		"Southclaws/pawn-errors"
 	],
 	"dev_dependencies": [
 		"pawn-lang/sa-mp-fixes",

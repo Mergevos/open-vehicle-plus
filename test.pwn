@@ -14,9 +14,19 @@ public OnGameModeInit()
 {
 
     SetWorldTime(0);
+    
+    new veh = CreateVehicle(411, 0, 0, 0, 0, 0, 0, 0);
 
     ManualVehicleEngineAndLights();
     Vehicle_SetTyrePoppingGlobal(false); //bulletproof
+
+    new VehicleGroup: groupid1;
+    new Error: retcode = Vehicle_GroupInit("Test_name", groupid1);
+    if(IsError(retcode))
+    {
+        print("Hej");
+    }
+
 
     //test win number
     new data;
@@ -32,11 +42,23 @@ public OnGameModeInit()
     {
         printf("%d windows", data);
     }
-    Vehicle_GetTyreCondition(3, VEHICLE_TYRE_FRONT_LEFT, tire);
+    Vehicle_GetTyreCondition(veh, VEHICLE_TYRE_FRONT_LEFT, tire);
     printf("%d tyre", tire); //should be -1
-    Vehicle_GetFuelLevel(0, VEHICLE_UNIT_KILOWATT_HOUR, float_data);
+    new Error: retc = Vehicle_GetFuelLevel(veh, VEHICLE_UNIT_KILOWATT_HOUR, float_data);
+    if(IsError(retc))
+    {
+        printf("%d", _:retc);
+        if(retc == Error: 1)
+        {
+            print("Invveh");
+        }
+        else if(retc == Error: 2)
+        {
+            print("Kilow");
+        }
+        Handled(true);
+    }
 
-    new veh = CreateVehicle(411, 0, 0, 0, 0, 0, 0, 0);
 
     DestroyVehicle(veh);
     // hook test

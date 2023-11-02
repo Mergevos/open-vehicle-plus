@@ -11,7 +11,6 @@
 
 #include <streamer>
 
-#include <logger>
 #include <errors>
 
 /*
@@ -646,7 +645,13 @@ stock Error: Vehicle_GroupInit(const name[], &VehicleGroup: index)
         Iter_Add(Vehicle_gsActGps, 0);
     }
     new VehicleGroup: idx = VehicleGroup: Iter_Free(Vehicle_gsActGps);
-    if(Vehicle_GetGroupByName(name) != VehicleGroup: INVALID_VEHICLE_GROUP_ID)
+    new VehicleGroup: output;
+    new Error: ret = Vehicle_GetGroupByName(name, output);
+    if(IsError(ret))
+    {
+        Handled(true);
+    }
+    if(output != VehicleGroup: INVALID_VEHICLE_GROUP_ID)
     {
         return Error(1, "Invalid vehicle group");
     }
@@ -3930,12 +3935,12 @@ stock Error: Vehicle_GetFuelLevel(vehicleid, VEHICLE_UNIT: unit, &Float: output)
         }
         else if(unit == VEHICLE_UNIT_KILOWATT_HOUR)
         {
-            Error(2, "Use Vehicle_GetBattery instead");
+            return Error(2, "Use Vehicle_GetBattery instead");
         }
     }
     else
     {
-        Error(1, "Invalid vehicle");
+        return Error(1, "Invalid vehicle");
     }
     return Ok();   
 }
