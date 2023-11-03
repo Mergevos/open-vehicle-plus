@@ -649,7 +649,15 @@ stock Error: Vehicle_GroupInit(const name[], &VehicleGroup: index)
     new Error: ret = Vehicle_GetGroupByName(name, output);
     if(IsError(ret))
     {
-        Handled(true);
+        if(ret == Error: 1)
+        {
+            Handled(true);
+            return Error(2, "NULL group name");
+        }
+        else if(ret == Error: 2)
+        {
+            return Error(1, "Invalid vehicle group");
+        }
     }
     if(output != VehicleGroup: INVALID_VEHICLE_GROUP_ID)
     {
@@ -5145,9 +5153,7 @@ stock bool: Vehicle_Destroy(idx, bool: compat = false)
 // --
 // Compat
 // --
-// --
-// Compat
-// --
+
 #if defined VEHICLE_PLUS_SAMP_COMPAT
     #define IsVehicleBlinking           Vehicle_IsBlinking
     #define SetVehicleBlinking          Vehicle_SetBlinking
