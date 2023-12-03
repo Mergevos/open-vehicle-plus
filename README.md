@@ -27,6 +27,8 @@ Feel free in any way to contribute.
 
 Check [wiki](https://github.com/Mergevos/open-vehicle-plus/wiki)
 
+Make sure you have installed YSI5, streamer and pawn-errors by Southclaws.
+
 ## Testing
 
 To test, simply run the package:
