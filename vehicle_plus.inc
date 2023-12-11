@@ -1528,7 +1528,7 @@ stock bool: Vehicle_SetBonnetState(VEHICLE_FRAMEWORK_TAGS: id, VEHICLE_PARAMS: b
 {
     if(tag==tagof(_:)) 
     {        
-        if(!IsValidVehicle(vehicleid))
+        if(!IsValidVehicle(id))
         {
             return Error(1, "Invalid vehicle");
         }
@@ -4676,7 +4676,10 @@ hook OnVehicleDeath(vehicleid, killerid)
         }
         return 1;
     }
-    Vehicle_CancelBlinking(vehicleid);
+    if(Vehicle_IsBlinking(vehicleid))
+    {
+        Vehicle_CancelBlinking(vehicleid);
+    }
     return 1;
 }
 
