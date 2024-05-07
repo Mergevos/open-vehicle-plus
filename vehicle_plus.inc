@@ -4543,18 +4543,22 @@ hook OnPlayerStateChange(playerid, PLAYER_STATE:newstate, PLAYER_STATE:oldstate)
 */
 stock bool: Vehicle_Respawn(VEHICLE_FRAMEWORK_TAGS: id, tag=tagof(id))
 {
+    new Float:unused;
+
     if(tag == tagof(_:))
     {
         if(!IsValidVehicle(id))
         {
             return Error(1, "Invalid vehicle");
         }
+        GetVehicleSpawnInfo(id, Vehicle_gsPositionX[id], Vehicle_gsPositionY[id], Vehicle_gsPositionZ[id], unused);
         SetVehicleToRespawn(id);
     }
     else if(tag == tagof(VehicleGroup:))
     {
         foreach(new i : Vehicle_gsGroups[VehicleGroup: id])
         {
+            GetVehicleSpawnInfo(i, Vehicle_gsPositionX[i], Vehicle_gsPositionY[i], Vehicle_gsPositionZ[i], unused);
             SetVehicleToRespawn(i);
         }
     }
